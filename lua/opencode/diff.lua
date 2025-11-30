@@ -39,6 +39,81 @@ local function is_diff_empty(file_data)
   return before == after or (before == "" and after == "")
 end
 
+---Generate unified diff using vim.diff()
+---@param file_path string Path to the file
+---@param before string Original content
+---@param after string New content
+---@param additions number Number of additions
+---@param deletions number Number of deletions
+---@return string[] lines Lines of unified diff output
+local function generate_unified_diff(file_path, before, after, additions, deletions)
+  local lines = {}
+
+  -- Add diff header
+  table.insert(lines, string.format("diff --git a/%s b/%s", file_path, file_path))
+
+  -- Handle edge cases
+  local is_new_file = before == "" or before == nil
+  local is_deleted_file = after == "" or after == nil
+
+  if is_new_file then
+    table.insert(lines, "new file")
+    table.insert(lines, "--- /dev/null")
+    table.insert(lines, string.format("+++ b/%s", file_path))
+  elseif is_deleted_file then
+    table.insert(lines, "deleted file")
+    table.insert(lines, string.format("--- a/%s", file_path))
+    table.insert(lines, "+++ /dev/null")
+  else
+    table.insert(lines, string.format("--- a/%s", file_path))
+    table.insert(lines, string.format("+++ b/%s", file_path))
+  end
+
+  -- Add change stats
+  table.insert(lines, string.format("@@ +%d,-%d @@", additions or 0, deletions or 0))
+  table.insert(lines, "")
+
+  -- Generate unified diff using vim.diff()
+  if not is_new_file and not is_deleted_file then
+    local ok, diff_result = pcall(vim.diff, before, after, {
+      result_type = "unified",
+      algorithm = "histogram",
+      ctxlen = 3,
+      indent_heuristic = true,
+    })
+
+    if ok and diff_result and diff_result ~= "" then
+      -- vim.diff returns a string, split it into lines
+      for _, line in ipairs(vim.split(diff_result, "\n")) do
+        table.insert(lines, line)
+      end
+    else
+      -- Fallback: show simple line-by-line diff
+      table.insert(lines, "--- Original")
+      for _, line in ipairs(vim.split(before, "\n")) do
+        table.insert(lines, "- " .. line)
+      end
+      table.insert(lines, "")
+      table.insert(lines, "+++ Modified")
+      for _, line in ipairs(vim.split(after, "\n")) do
+        table.insert(lines, "+ " .. line)
+      end
+    end
+  elseif is_new_file and after then
+    -- New file: show all lines as additions
+    for _, line in ipairs(vim.split(after, "\n")) do
+      table.insert(lines, "+ " .. line)
+    end
+  elseif is_deleted_file and before then
+    -- Deleted file: show all lines as deletions
+    for _, line in ipairs(vim.split(before, "\n")) do
+      table.insert(lines, "- " .. line)
+    end
+  end
+
+  return lines
+end
+
 ---Show diff review for an assistant message
 ---@param message table Message info from message.updated event
 ---@param opts opencode.events.session_diff.Opts
@@ -243,32 +318,25 @@ function M.show_review(opts)
     vim.bo[bufnr].filetype = "diff"
   end
 
-  -- Build simple diff content
+  -- Build unified diff content
   local lines = {}
   table.insert(lines, string.format("=== OpenCode Changes Review [%d/%d] ===", diff_state.current_index, total_files))
   table.insert(lines, "")
   table.insert(lines, string.format("File: %s", current_file.file))
   table.insert(lines, string.format("Changes: +%d -%d", current_file.additions or 0, current_file.deletions or 0))
   table.insert(lines, "")
-  table.insert(lines, "--- Before")
-  table.insert(lines, "+++ After")
-  table.insert(lines, "")
 
-  -- Show a simple before/after
-  if current_file.before then
-    table.insert(lines, "=== BEFORE ===")
-    for _, line in ipairs(vim.split(current_file.before, "\n")) do
-      table.insert(lines, "- " .. line)
-    end
-  end
+  -- Generate and insert unified diff
+  local diff_lines = generate_unified_diff(
+    current_file.file,
+    current_file.before or "",
+    current_file.after or "",
+    current_file.additions,
+    current_file.deletions
+  )
 
-  table.insert(lines, "")
-
-  if current_file.after then
-    table.insert(lines, "=== AFTER ===")
-    for _, line in ipairs(vim.split(current_file.after, "\n")) do
-      table.insert(lines, "+ " .. line)
-    end
+  for _, line in ipairs(diff_lines) do
+    table.insert(lines, line)
   end
 
   table.insert(lines, "")
