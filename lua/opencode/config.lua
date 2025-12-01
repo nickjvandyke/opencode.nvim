@@ -135,7 +135,10 @@ local defaults = {
     },
     session_diff = {
       enabled = true, -- Show session review for session.diff events
-      use_enhanced_diff = true, -- Use enhanced diff view with vim diff-mode (side-by-side)
+      -- Diff mode: "enhanced" | "unified"
+      -- "enhanced": Use vim diff-mode side-by-side with file panel (default)
+      -- "unified": Simple unified diff view (minimal, fallback option)
+      diff_mode = "enhanced",
       open_in_tab = false, -- Open review in a new tab (and reuse the same tab for navigation)
     },
   },

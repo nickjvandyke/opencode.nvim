@@ -646,6 +646,264 @@ function M.cleanup_enhanced_diff()
   vim.notify("Closed OpenCode diff", vim.log.levels.INFO, { title = "opencode" })
 end
 
+---Open changes in Diffview.nvim
+---@param session_diff table Session diff data with files
+function M.open_diffview(session_diff)
+  -- Check if Diffview is available
+  if not has_diffview() then
+    vim.notify(
+      "Diffview.nvim not found. Falling back to enhanced diff mode.",
+      vim.log.levels.WARN,
+      { title = "opencode" }
+    )
+    M.open_enhanced_diff(session_diff)
+    return
+  end
+
+  -- Load Diffview modules
+  local ok, diff_view_module = pcall(require, "diffview.api.views.diff.diff_view")
+  if not ok then
+    vim.notify(
+      "Failed to load Diffview API. Falling back to enhanced diff.",
+      vim.log.levels.WARN,
+      { title = "opencode" }
+    )
+    M.open_enhanced_diff(session_diff)
+    return
+  end
+
+  local CDiffView = diff_view_module.CDiffView
+  local Rev = require("diffview.vcs.adapters.git.rev").GitRev
+  local RevType = require("diffview.vcs.rev").RevType
+  local lib = require("diffview.lib")
+
+  -- If we already have a Diffview instance, close it first
+  if M.state.diffview_instance then
+    vim.notify("Closing existing Diffview to show new changes...", vim.log.levels.INFO, { title = "opencode" })
+    M.cleanup_diffview()
+    -- Give Diffview time to clean up
+    vim.defer_fn(function()
+      M.open_diffview(session_diff)
+    end, 100)
+    return
+  end
+
+  -- Create temp directory for "before" content
+  local temp_dir = vim.fn.tempname() .. "_opencode_diff"
+  vim.fn.mkdir(temp_dir, "p")
+
+  -- Store temp data in memory for the callback
+  local temp_data = {} -- { [filepath] = lines_array }
+
+  -- Build file list for Diffview
+  local files = {
+    working = {},
+  }
+
+  for _, file_data in ipairs(session_diff.files) do
+    -- Write BOTH before and after to temp files
+    local filename = vim.fn.fnamemodify(file_data.file, ":t")
+    local temp_before = temp_dir .. "/" .. filename .. ".before"
+    local temp_after = temp_dir .. "/" .. filename .. ".after"
+    
+    local before_lines = vim.split(file_data.before or "", "\n")
+    local after_lines = vim.split(file_data.after or "", "\n")
+    
+    vim.fn.writefile(before_lines, temp_before)
+    vim.fn.writefile(after_lines, temp_after)
+
+    -- Store paths for reference
+    temp_data[file_data.file] = {
+      before_file = temp_before,
+      after_file = temp_after,
+    }
+    
+    -- Debug: log what we created
+    vim.notify(
+      string.format("Created temp files:\n  before: %s (%d lines)\n  after: %s (%d lines)", 
+        temp_before, #before_lines, temp_after, #after_lines),
+      vim.log.levels.INFO,
+      { title = "opencode" }
+    )
+
+    -- Add to file list - use actual file paths, not temp paths!
+    table.insert(files.working, {
+      path = file_data.file,  -- Use actual file path
+      oldpath = nil,
+      status = "M",
+      stats = {
+        additions = file_data.additions or 0,
+        deletions = file_data.deletions or 0,
+      },
+      selected = (#files.working == 0), -- First file selected
+    })
+  end
+
+  -- Callback to provide file data
+  local get_file_data = function(kind, path, split)
+    -- Force print to see if this is even called
+    print(string.format(">>> get_file_data called: kind=%s, path=%s, split=%s", kind, path, split))
+    
+    -- Find the temp files for this path
+    if temp_data[path] then
+      local file_to_read = nil
+      if split == "left" then
+        file_to_read = temp_data[path].before_file
+      elseif split == "right" then
+        file_to_read = temp_data[path].after_file
+      end
+      
+      if file_to_read and vim.fn.filereadable(file_to_read) == 1 then
+        local lines = vim.fn.readfile(file_to_read)
+        print(string.format(">>> Returning %d lines from %s", #lines, file_to_read))
+        return lines
+      end
+    end
+    
+    print(string.format(">>> NO DATA for path=%s, split=%s", path, split))
+    return nil
+  end
+
+  -- Callback to update files (required by CDiffView)
+  local update_files = function(view)
+    return files
+  end
+
+  -- Create the custom diff view
+  -- Use CUSTOM for both sides - we provide temp files via callback
+  local view = CDiffView({
+    git_root = vim.fn.getcwd(),
+    left = Rev(RevType.CUSTOM, "before"),
+    right = Rev(RevType.CUSTOM, "after"),
+    files = files,
+    update_files = update_files,
+    get_file_data = get_file_data,
+  })
+
+  -- Store state for cleanup
+  M.state.diffview_instance = view
+  M.state.diffview_temp_dir = temp_dir
+  M.state.diffview_temp_data = temp_data
+  M.state.diffview_session = session_diff
+
+  -- Add view to Diffview lib and open it
+  lib.add_view(view)
+  view:open()
+
+  -- Setup custom keymaps via autocmd on diff buffers
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = "diff",
+    callback = function(args)
+      -- Only apply to Diffview buffers
+      local bufnr = args.buf
+      local bufname = vim.api.nvim_buf_get_name(bufnr)
+      if not bufname:match("^diffview://") then
+        return
+      end
+
+      -- Add per-hunk staging keymaps
+      vim.keymap.set("n", "a", function()
+        M.diffview_accept_hunk()
+      end, { buffer = bufnr, nowait = true, silent = true, desc = "Accept current hunk" })
+
+      vim.keymap.set("n", "r", function()
+        M.diffview_reject_hunk()
+      end, { buffer = bufnr, nowait = true, silent = true, desc = "Reject current hunk" })
+
+      vim.keymap.set("n", "A", function()
+        M.diffview_accept_all_hunks()
+      end, { buffer = bufnr, nowait = true, silent = true, desc = "Accept all hunks in file" })
+    end,
+    once = false,
+    desc = "OpenCode Diffview custom keymaps",
+  })
+
+  vim.notify("Opened diff with Diffview.nvim (a/r=accept/reject hunk)", vim.log.levels.INFO, { title = "opencode" })
+end
+
+---Accept current hunk in Diffview (using diffput)
+function M.diffview_accept_hunk()
+  -- Determine which window we're in
+  local winnr = vim.api.nvim_get_current_win()
+  local bufnr = vim.api.nvim_win_get_buf(winnr)
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+  -- In Diffview, "b" is typically the right side (working tree)
+  -- We want to push changes from right to left
+  if bufname:match("diffview://.*//b/") then
+    -- We're in the right window, push to left
+    vim.cmd("diffput")
+    vim.notify("Accepted hunk", vim.log.levels.INFO, { title = "opencode" })
+  else
+    vim.notify("Navigate to the right-side diff buffer to accept hunks", vim.log.levels.WARN, { title = "opencode" })
+  end
+end
+
+---Reject current hunk in Diffview (using diffget)
+function M.diffview_reject_hunk()
+  -- Determine which window we're in
+  local winnr = vim.api.nvim_get_current_win()
+  local bufnr = vim.api.nvim_win_get_buf(winnr)
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+  -- In Diffview, "b" is typically the right side (working tree)
+  -- We want to pull changes from left to right
+  if bufname:match("diffview://.*//b/") then
+    -- We're in the right window, pull from left
+    vim.cmd("diffget")
+    vim.cmd("write") -- Save the actual file
+    vim.notify("Rejected hunk", vim.log.levels.INFO, { title = "opencode" })
+  else
+    vim.notify("Navigate to the right-side diff buffer to reject hunks", vim.log.levels.WARN, { title = "opencode" })
+  end
+end
+
+---Accept all hunks in current file (Diffview)
+function M.diffview_accept_all_hunks()
+  local winnr = vim.api.nvim_get_current_win()
+  local bufnr = vim.api.nvim_win_get_buf(winnr)
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+
+  if bufname:match("diffview://.*//b/") then
+    -- Get all content from right buffer and put to left
+    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+    -- Find the corresponding left buffer and update it
+    -- This is a simplified approach - in practice we'd need to find the paired buffer
+    vim.notify(
+      "Accept all: Please use 'Stage Entry' from file panel or manually accept each hunk",
+      vim.log.levels.INFO,
+      { title = "opencode" }
+    )
+  else
+    vim.notify("Navigate to the right-side diff buffer", vim.log.levels.WARN, { title = "opencode" })
+  end
+end
+
+---Clean up Diffview temp files and state
+function M.cleanup_diffview()
+  if M.state.diffview_instance then
+    -- Try to close the view properly
+    local ok, lib = pcall(require, "diffview.lib")
+    if ok then
+      -- Get the current view and close it
+      local view = M.state.diffview_instance
+      if view and view.close then
+        pcall(view.close, view)
+      end
+    end
+  end
+
+  -- Clean up temp files
+  if M.state.diffview_temp_dir and vim.fn.isdirectory(M.state.diffview_temp_dir) == 1 then
+    vim.fn.delete(M.state.diffview_temp_dir, "rf")
+  end
+
+  -- Clear state
+  M.state.diffview_instance = nil
+  M.state.diffview_temp_dir = nil
+  M.state.diffview_temp_data = nil
+  M.state.diffview_session = nil
+end
 
 ---Show diff review for an assistant message
 ---@param message table Message info from message.updated event
@@ -688,7 +946,9 @@ function M.show_message_diff(message, opts)
   local diff_mode = opts.diff_mode or "enhanced"
 
   -- Route to appropriate diff viewer
-  if diff_mode == "enhanced" then
+  if diff_mode == "diffview" then
+    M.open_diffview(session_diff)
+  elseif diff_mode == "enhanced" then
     M.open_enhanced_diff(session_diff)
   elseif diff_mode == "unified" then
     -- Use the simple unified diff view
