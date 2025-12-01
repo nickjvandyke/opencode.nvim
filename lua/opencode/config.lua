@@ -135,6 +135,7 @@ local defaults = {
     },
     session_diff = {
       enabled = true, -- Show session review for session.diff events
+      use_enhanced_diff = true, -- Use enhanced diff view with vim diff-mode (side-by-side)
       open_in_tab = false, -- Open review in a new tab (and reuse the same tab for navigation)
     },
   },
