@@ -269,6 +269,9 @@ function M.enhanced_diff_show_panel()
   table.insert(lines, "  <S-Tab>  Previous file")
   table.insert(lines, "  ]x       Next hunk")
   table.insert(lines, "  [x       Previous hunk")
+  table.insert(lines, "  a        Accept hunk")
+  table.insert(lines, "  r        Reject hunk")
+  table.insert(lines, "  A        Accept all hunks")
   table.insert(lines, "  gp       Toggle panel")
   table.insert(lines, "  R        Revert file")
   table.insert(lines, "  q        Close diff")
@@ -461,6 +464,19 @@ function M.enhanced_diff_show_file(index)
     vim.keymap.set("n", "R", function()
       M.enhanced_diff_revert_current()
     end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Revert current file" }))
+
+    -- Per-hunk staging keymaps
+    vim.keymap.set("n", "a", function()
+      M.enhanced_diff_accept_hunk()
+    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Accept current hunk" }))
+
+    vim.keymap.set("n", "r", function()
+      M.enhanced_diff_reject_hunk()
+    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Reject current hunk" }))
+
+    vim.keymap.set("n", "A", function()
+      M.enhanced_diff_accept_all_hunks()
+    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Accept all hunks" }))
   end
 
   -- Restore panel if it was visible
@@ -470,7 +486,7 @@ function M.enhanced_diff_show_file(index)
 
   vim.notify(
     string.format(
-      "OpenCode Diff [%d/%d]: %s (]x/[x=hunks, gp=panel, Tab/S-Tab=files)",
+      "OpenCode Diff [%d/%d]: %s (]x/[x=hunks, a/r=accept/reject, gp=panel, Tab/S-Tab=files)",
       index,
       #M.state.enhanced_diff_files,
       vim.fn.fnamemodify(file_entry.path, ":t")
@@ -478,6 +494,99 @@ function M.enhanced_diff_show_file(index)
     vim.log.levels.INFO,
     { title = "opencode" }
   )
+end
+
+---Accept current hunk under cursor (keep the change)
+---Uses diffput to push changes from "after" (right) to "before" (left) buffer
+function M.enhanced_diff_accept_hunk()
+  if not M.state.enhanced_diff_current_index or not M.state.enhanced_diff_files then
+    return
+  end
+
+  local file_entry = M.state.enhanced_diff_files[M.state.enhanced_diff_current_index]
+  if not file_entry then
+    return
+  end
+
+  -- Get current window to determine which buffer we're in
+  local current_win = vim.api.nvim_get_current_win()
+  local is_in_right = (current_win == M.state.enhanced_diff_right_win)
+
+  -- We need to be in the "after" (right) window to push changes
+  if not is_in_right then
+    vim.api.nvim_set_current_win(M.state.enhanced_diff_right_win)
+  end
+
+  -- Use diffput to push current hunk to the "before" (left) buffer
+  vim.cmd("diffput")
+
+  -- Write the "before" buffer back to temp file to persist the change
+  local before_buf = vim.api.nvim_win_get_buf(M.state.enhanced_diff_left_win)
+  local before_lines = vim.api.nvim_buf_get_lines(before_buf, 0, -1, false)
+  vim.fn.writefile(before_lines, file_entry.temp_before)
+
+  vim.notify("Accepted hunk", vim.log.levels.INFO, { title = "opencode" })
+end
+
+---Reject current hunk under cursor (revert the change)
+---Uses diffget to pull original content from "before" (left) to "after" (right) buffer
+function M.enhanced_diff_reject_hunk()
+  if not M.state.enhanced_diff_current_index or not M.state.enhanced_diff_files then
+    return
+  end
+
+  local file_entry = M.state.enhanced_diff_files[M.state.enhanced_diff_current_index]
+  if not file_entry then
+    return
+  end
+
+  -- Get current window to determine which buffer we're in
+  local current_win = vim.api.nvim_get_current_win()
+  local is_in_right = (current_win == M.state.enhanced_diff_right_win)
+
+  -- We need to be in the "after" (right) window to pull changes
+  if not is_in_right then
+    vim.api.nvim_set_current_win(M.state.enhanced_diff_right_win)
+  end
+
+  -- Use diffget to pull original content from "before" (left) buffer
+  vim.cmd("diffget")
+
+  -- Save the "after" buffer (actual file) since it's been modified
+  local after_buf = vim.api.nvim_win_get_buf(M.state.enhanced_diff_right_win)
+  vim.api.nvim_buf_call(after_buf, function()
+    vim.cmd("write")
+  end)
+
+  vim.notify("Rejected hunk", vim.log.levels.INFO, { title = "opencode" })
+end
+
+---Accept all remaining hunks in the current file
+function M.enhanced_diff_accept_all_hunks()
+  if not M.state.enhanced_diff_current_index or not M.state.enhanced_diff_files then
+    return
+  end
+
+  local file_entry = M.state.enhanced_diff_files[M.state.enhanced_diff_current_index]
+  if not file_entry then
+    return
+  end
+
+  -- Switch to "after" (right) window
+  vim.api.nvim_set_current_win(M.state.enhanced_diff_right_win)
+
+  -- Get the "after" buffer content (this has all the changes we want to keep)
+  local after_buf = vim.api.nvim_win_get_buf(M.state.enhanced_diff_right_win)
+  local after_lines = vim.api.nvim_buf_get_lines(after_buf, 0, -1, false)
+
+  -- Write it to the "before" buffer
+  local before_buf = vim.api.nvim_win_get_buf(M.state.enhanced_diff_left_win)
+  vim.api.nvim_buf_set_lines(before_buf, 0, -1, false, after_lines)
+
+  -- Write the "before" buffer to temp file to persist
+  vim.fn.writefile(after_lines, file_entry.temp_before)
+
+  vim.notify("Accepted all hunks in current file", vim.log.levels.INFO, { title = "opencode" })
 end
 
 ---Revert the current file being viewed
