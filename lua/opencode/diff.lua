@@ -443,18 +443,14 @@ function M.enhanced_diff_show_file(index)
     vim.keymap.set(
       "n",
       "]x",
-      "]c",
-      vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true, remap = true }, { desc = "Next hunk" })
+      "<Cmd>execute 'normal! ]c'<CR>",
+      vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Next hunk" })
     )
     vim.keymap.set(
       "n",
       "[x",
-      "[c",
-      vim.tbl_extend(
-        "force",
-        { buffer = bufnr, nowait = true, silent = true, remap = true },
-        { desc = "Previous hunk" }
-      )
+      "<Cmd>execute 'normal! [c'<CR>",
+      vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Previous hunk" })
     )
 
     vim.keymap.set("n", "gp", function()
