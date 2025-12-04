@@ -265,16 +265,16 @@ function M.enhanced_diff_show_panel()
   table.insert(lines, string.rep("─", 40))
   table.insert(lines, "Keymaps:")
   table.insert(lines, "  <Enter>  Jump to file")
-  table.insert(lines, "  <Tab>    Next file")
-  table.insert(lines, "  <S-Tab>  Previous file")
-  table.insert(lines, "  ]x       Next hunk")
-  table.insert(lines, "  [x       Previous hunk")
-  table.insert(lines, "  a        Accept hunk")
-  table.insert(lines, "  r        Reject hunk")
-  table.insert(lines, "  A        Accept all hunks")
-  table.insert(lines, "  gp       Toggle panel")
-  table.insert(lines, "  R        Revert file")
-  table.insert(lines, "  q        Close diff")
+  table.insert(lines, "  }        Next file")
+  table.insert(lines, "  {        Previous file")
+  table.insert(lines, "  ]c       Next hunk")
+  table.insert(lines, "  [c       Previous hunk")
+  table.insert(lines, "  do       Accept hunk (obtain)")
+  table.insert(lines, "  dp       Reject hunk (put)")
+  table.insert(lines, "  <leader>da  Accept all hunks")
+  table.insert(lines, "  <leader>dp  Toggle panel")
+  table.insert(lines, "  <leader>dr  Revert file")
+  table.insert(lines, "  <leader>dq  Close diff")
 
   vim.bo[panel_buf].modifiable = true
   vim.api.nvim_buf_set_lines(panel_buf, 0, -1, false, lines)
@@ -308,15 +308,25 @@ function M.enhanced_diff_show_panel()
   -- Set up panel keybindings
   local keymap_opts = { buffer = panel_buf, nowait = true, silent = true }
 
+  -- Add autocmd to clear keymaps when buffer is deleted
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = panel_buf,
+    callback = function()
+      -- Keymaps are automatically cleared when buffer is wiped
+    end,
+    once = true,
+    desc = "Cleanup OpenCode diff panel keymaps",
+  })
+
   vim.keymap.set("n", "<CR>", function()
     M.enhanced_diff_panel_select()
   end, vim.tbl_extend("force", keymap_opts, { desc = "Jump to selected file" }))
 
-  vim.keymap.set("n", "gp", function()
+  vim.keymap.set("n", "<leader>dp", function()
     M.enhanced_diff_hide_panel()
   end, vim.tbl_extend("force", keymap_opts, { desc = "Close file panel" }))
 
-  vim.keymap.set("n", "q", function()
+  vim.keymap.set("n", "<leader>dq", function()
     M.cleanup_enhanced_diff()
   end, vim.tbl_extend("force", keymap_opts, { desc = "Close OpenCode diff" }))
 
@@ -417,9 +427,20 @@ function M.enhanced_diff_show_file(index)
     vim.api.nvim_win_get_buf(M.state.enhanced_diff_left_win),
     vim.api.nvim_win_get_buf(M.state.enhanced_diff_right_win),
   }) do
+    -- Add autocmd to clear keymaps when buffer is deleted
+    vim.api.nvim_create_autocmd("BufWipeout", {
+      buffer = bufnr,
+      callback = function()
+        -- Keymaps are automatically cleared when buffer is wiped
+        -- This callback is just for logging/debugging if needed
+      end,
+      once = true,
+      desc = "Cleanup OpenCode diff keymaps",
+    })
+
     vim.keymap.set(
       "n",
-      "<Tab>",
+      "}",
       function()
         M.enhanced_diff_next_file()
       end,
@@ -428,7 +449,7 @@ function M.enhanced_diff_show_file(index)
 
     vim.keymap.set(
       "n",
-      "<S-Tab>",
+      "{",
       function()
         M.enhanced_diff_prev_file()
       end,
@@ -439,42 +460,42 @@ function M.enhanced_diff_show_file(index)
       )
     )
 
-    -- Hunk navigation with ]x and [x
+    -- Hunk navigation with ]c and [c (standard vim diff navigation)
     vim.keymap.set(
       "n",
-      "]x",
-      "<Cmd>execute 'normal! ]c'<CR>",
+      "]c",
+      "]c",
       vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Next hunk" })
     )
     vim.keymap.set(
       "n",
-      "[x",
-      "<Cmd>execute 'normal! [c'<CR>",
+      "[c",
+      "[c",
       vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Previous hunk" })
     )
 
-    vim.keymap.set("n", "gp", function()
+    vim.keymap.set("n", "<leader>dp", function()
       M.enhanced_diff_toggle_panel()
     end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Toggle file panel" }))
 
-    vim.keymap.set("n", "q", function()
+    vim.keymap.set("n", "<leader>dq", function()
       M.cleanup_enhanced_diff()
     end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Close OpenCode diff" }))
 
-    vim.keymap.set("n", "R", function()
+    vim.keymap.set("n", "<leader>dr", function()
       M.enhanced_diff_revert_current()
     end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Revert current file" }))
 
-    -- Per-hunk staging keymaps
-    vim.keymap.set("n", "a", function()
+    -- Per-hunk staging keymaps using standard vim diff commands
+    vim.keymap.set("n", "do", function()
       M.enhanced_diff_accept_hunk()
-    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Accept current hunk" }))
+    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Accept current hunk (obtain)" }))
 
-    vim.keymap.set("n", "r", function()
+    vim.keymap.set("n", "dp", function()
       M.enhanced_diff_reject_hunk()
-    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Reject current hunk" }))
+    end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Reject current hunk (put)" }))
 
-    vim.keymap.set("n", "A", function()
+    vim.keymap.set("n", "<leader>da", function()
       M.enhanced_diff_accept_all_hunks()
     end, vim.tbl_extend("force", { buffer = bufnr, nowait = true, silent = true }, { desc = "Accept all hunks" }))
   end
@@ -486,7 +507,7 @@ function M.enhanced_diff_show_file(index)
 
   vim.notify(
     string.format(
-      "OpenCode Diff [%d/%d]: %s (]x/[x=hunks, a/r=accept/reject, gp=panel, Tab/S-Tab=files)",
+      "OpenCode Diff [%d/%d]: %s (]c/[c=hunks, do/dp=accept/reject, <leader>dp=panel, }/{ =files)",
       index,
       #M.state.enhanced_diff_files,
       vim.fn.fnamemodify(file_entry.path, ":t")
@@ -888,10 +909,10 @@ function M.show_review(opts)
 
   table.insert(lines, "")
   table.insert(lines, "=== Keybindings ===")
-  table.insert(lines, "<n> next file  | <p> prev file")
-  table.insert(lines, "<a> accept this file | <r> reject this file")
-  table.insert(lines, "<A> accept all | <R> reject all")
-  table.insert(lines, "<q> close review")
+  table.insert(lines, "}  next file  |  {  prev file")
+  table.insert(lines, "<leader>da  accept this file  |  <leader>dr  reject this file")
+  table.insert(lines, "<leader>dA  accept all  |  <leader>dR  reject all")
+  table.insert(lines, "<leader>dq  close review")
 
   -- Set buffer content
   vim.bo[bufnr].modifiable = true
@@ -941,21 +962,31 @@ function M.show_review(opts)
   -- Set up keybindings (need to wrap opts in closures)
   local keymap_opts = { buffer = bufnr, nowait = true, silent = true }
 
-  vim.keymap.set("n", "n", function()
+  -- Add autocmd to clear keymaps when buffer is deleted
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = bufnr,
+    callback = function()
+      -- Keymaps are automatically cleared when buffer is wiped
+    end,
+    once = true,
+    desc = "Cleanup OpenCode unified diff keymaps",
+  })
+
+  vim.keymap.set("n", "}", function()
     M.next_file(opts)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Next file" }))
-  vim.keymap.set("n", "p", function()
+  vim.keymap.set("n", "{", function()
     M.prev_file(opts)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Previous file" }))
-  vim.keymap.set("n", "a", function()
+  vim.keymap.set("n", "<leader>da", function()
     M.accept_current_file(opts)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Accept this file" }))
-  vim.keymap.set("n", "r", function()
+  vim.keymap.set("n", "<leader>dr", function()
     M.reject_current_file(opts)
   end, vim.tbl_extend("force", keymap_opts, { desc = "Reject this file" }))
-  vim.keymap.set("n", "A", M.accept_all_changes, vim.tbl_extend("force", keymap_opts, { desc = "Accept all" }))
-  vim.keymap.set("n", "R", M.reject_all_changes, vim.tbl_extend("force", keymap_opts, { desc = "Reject all" }))
-  vim.keymap.set("n", "q", M.cleanup_session_diff, vim.tbl_extend("force", keymap_opts, { desc = "Close review" }))
+  vim.keymap.set("n", "<leader>dA", M.accept_all_changes, vim.tbl_extend("force", keymap_opts, { desc = "Accept all" }))
+  vim.keymap.set("n", "<leader>dR", M.reject_all_changes, vim.tbl_extend("force", keymap_opts, { desc = "Reject all" }))
+  vim.keymap.set("n", "<leader>dq", M.cleanup_session_diff, vim.tbl_extend("force", keymap_opts, { desc = "Close review" }))
 
   vim.notify(
     string.format("Review [%d/%d]: %s", diff_state.current_index, total_files, current_file.file),
