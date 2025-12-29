@@ -137,7 +137,8 @@ function M.open_enhanced_diff(session_diff)
     vim.fn.writefile(vim.split(file_data.before or "", "\n"), temp_before)
 
     -- Use actual file for after (it already has new content from OpenCode)
-    local actual_file = file_data.file
+    -- Resolve symlinks and convert to absolute path to prevent buffer duplication
+    local actual_file = vim.fn.resolve(vim.fn.fnamemodify(file_data.file, ":p"))
 
     -- Store mapping for cleanup
     if not M.state.enhanced_diff_temp_files then
