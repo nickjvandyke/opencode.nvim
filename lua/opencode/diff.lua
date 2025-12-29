@@ -408,6 +408,18 @@ function M.enhanced_diff_show_file(index)
   -- Open the before buffer on the left
   vim.api.nvim_set_current_buf(before_buf)
 
+  -- Force reload if buffer already loaded to ensure FileType event fires
+  -- This ensures Treesitter highlighting attaches properly
+  local buf_exists = vim.fn.bufexists(file_entry.actual_file) == 1
+  if buf_exists then
+    local existing_buf = vim.fn.bufnr(file_entry.actual_file)
+    if vim.api.nvim_buf_is_loaded(existing_buf) then
+      vim.api.nvim_buf_call(existing_buf, function()
+        vim.cmd("edit!")
+      end)
+    end
+  end
+
   -- Open the actual file (after) on the right
   vim.cmd("rightbelow vertical diffsplit " .. vim.fn.fnameescape(file_entry.actual_file))
 
