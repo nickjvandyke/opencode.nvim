@@ -408,30 +408,35 @@ function M.enhanced_diff_show_file(index)
   -- Open the before buffer on the left
   vim.api.nvim_set_current_buf(before_buf)
 
-  -- Force reload if buffer already loaded to ensure FileType event fires
-  -- This ensures Treesitter highlighting attaches properly
-  local buf_exists = vim.fn.bufexists(file_entry.actual_file) == 1
-  if buf_exists then
-    local existing_buf = vim.fn.bufnr(file_entry.actual_file)
-    if vim.api.nvim_buf_is_loaded(existing_buf) then
-      vim.api.nvim_buf_call(existing_buf, function()
-        vim.cmd("edit!")
-      end)
-    end
-  end
-
   -- Open the actual file (after) on the right
   vim.cmd("rightbelow vertical diffsplit " .. vim.fn.fnameescape(file_entry.actual_file))
+
+  -- Store window references (do this before enabling diff mode)
+  M.state.enhanced_diff_left_win = vim.fn.win_getid(vim.fn.winnr("h"))
+  M.state.enhanced_diff_right_win = vim.fn.win_getid()
+
+  -- Ensure filetype is set and Treesitter attaches to the right buffer
+  local after_buf = vim.api.nvim_win_get_buf(M.state.enhanced_diff_right_win)
+  vim.api.nvim_buf_call(after_buf, function()
+    -- Force filetype detection
+    vim.cmd("filetype detect")
+    
+    -- Explicitly start Treesitter if available
+    local ft = vim.bo[after_buf].filetype
+    if ft and ft ~= "" then
+      local has_ts, ts_start = pcall(require, "vim.treesitter")
+      if has_ts then
+        local lang = vim.treesitter.language.get_lang(ft) or ft
+        pcall(vim.treesitter.start, after_buf, lang)
+      end
+    end
+  end)
 
   -- Enable diff mode
   vim.cmd("wincmd p")
   vim.cmd("diffthis")
   vim.cmd("wincmd p")
   vim.cmd("diffthis")
-
-  -- Store window references
-  M.state.enhanced_diff_left_win = vim.fn.win_getid(vim.fn.winnr("h"))
-  M.state.enhanced_diff_right_win = vim.fn.win_getid()
 
   -- Set up keybindings for both diff windows
   local keymap_opts = { buffer = true, nowait = true, silent = true }
