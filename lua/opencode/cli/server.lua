@@ -38,14 +38,14 @@ local function get_processes_unix()
   assert(vim.fn.executable("lsof") == 1, "`lsof` executable not found")
 
   -- Find PIDs by command line pattern (handles process names like 'bun', 'node', etc.)
-  local pgrep_output = exec("pgrep -f 'opencode' 2>/dev/null || true")
+  local pgrep_output = exec("pgrep -lfa 'opencode' | grep '[-]-port' 2>/dev/null || true")
   if pgrep_output == "" then
     return {}
   end
 
   local processes = {}
   for pid_str in pgrep_output:gmatch("[^\r\n]+") do
-    local pid = tonumber(pid_str)
+    local pid = tonumber(vim.split(pid_str, "%s+")[1])
     if pid then
       local lsof_output = exec("lsof -w -iTCP -sTCP:LISTEN -P -n -a -p " .. pid .. " 2>/dev/null || true")
 
