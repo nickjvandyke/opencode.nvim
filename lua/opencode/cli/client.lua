@@ -214,6 +214,29 @@ function M.get_commands(port, callback)
   M.call(port, "/command", "GET", nil, callback)
 end
 
+---@class opencode.cli.client.SessionTime
+---@field created integer
+---@field updated integer
+
+---@class opencode.cli.client.Session
+---@field id string
+---@field title string
+---@field time opencode.cli.client.SessionTime
+
+---Get sessions from `opencode`.
+---
+---@param port number
+---@param callback fun(sessions: opencode.cli.client.Session[])
+function M.get_sessions(port, callback)
+  M.call(port, "/session", "GET", nil, callback)
+end
+
+---Select session in `opencode`.
+---
+function M.select_session(port, session_id)
+  M.call(port, "/tui/select-session", "POST", { sessionID = session_id }, nil)
+end
+
 ---@class opencode.cli.client.PathResponse
 ---@field directory string
 ---@field worktree string

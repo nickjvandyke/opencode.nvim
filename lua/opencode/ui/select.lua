@@ -221,7 +221,11 @@ function M.select(opts)
             require("opencode").prompt(prompt.prompt, prompt)
           end
         elseif choice.__type == "command" then
-          require("opencode").command(choice.name)
+          if choice.name == "session.select" then
+            require("opencode").select_session()
+          else
+            require("opencode").command(choice.name)
+          end
         elseif choice.__type == "provider" then
           if choice.name == "toggle" then
             require("opencode").toggle()
