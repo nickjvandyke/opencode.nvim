@@ -131,7 +131,10 @@ function Kitty:start()
     table.insert(launch_cmd, "--location=" .. location)
   end
 
-  table.insert(launch_cmd, self.cmd)
+  -- Split cmd string into separate arguments for kitty launch
+  for arg in self.cmd:gmatch("%S+") do
+    table.insert(launch_cmd, arg)
+  end
 
   local stdout, code = self:kitty_exec(launch_cmd)
 
