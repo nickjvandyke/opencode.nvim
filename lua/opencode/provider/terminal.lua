@@ -48,7 +48,20 @@ function Terminal:start()
 
     self.bufnr = vim.api.nvim_create_buf(true, false)
     self.winid = vim.api.nvim_open_win(self.bufnr, true, self.opts)
-    -- FIX: There's a few empty columns on the right side of the terminal until it's redrawn, at least for me.
+
+    local auid
+    auid = vim.api.nvim_create_autocmd("TermRequest", {
+      buffer = self.bufnr,
+      callback = function(ev)
+        if ev.data.cursor[1] > 1 then
+          -- Trigger terminal buffer redrawing.
+          vim.api.nvim_del_autocmd(auid)
+          vim.api.nvim_set_current_win(self.winid)
+          vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+        end
+      end,
+    })
+
     vim.fn.jobstart(self.cmd, {
       term = true,
       on_exit = function()
