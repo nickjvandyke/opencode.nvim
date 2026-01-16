@@ -118,16 +118,13 @@ local defaults = {
   },
   provider = {
     cmd = "opencode --port",
-    enabled = (function()
-      for _, provider in ipairs(require("opencode.provider").list()) do
-        local ok, _ = provider.health()
-        if ok == true then
-          return provider.name
-        end
-      end
-
-      return false
-    end)(),
+    enabled = vim.tbl_filter(
+      ---@param provider opencode.Provider
+      function(provider)
+        return provider.health() == true
+      end,
+      require("opencode.provider").list()
+    )[1].name,
     terminal = {
       split = "right",
       width = math.floor(vim.o.columns * 0.35),
