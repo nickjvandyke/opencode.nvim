@@ -91,6 +91,18 @@ programs.nixvim = {
 | `@marks`         | Global marks                                                |
 | `@grapple`       | [grapple.nvim](https://github.com/cbochs/grapple.nvim) tags |
 
+#### Absolute Paths
+
+By default, file paths in contexts are relative to Neovim's working directory. If `opencode` is running in a different directory, these relative paths may not resolve correctly.
+
+Set `absolute_paths = true` to use absolute file paths instead:
+
+```lua
+vim.g.opencode_opts = {
+  absolute_paths = true,
+}
+```
+
 ### Prompts
 
 Select or reference prompts to review, explain, and improve your code:

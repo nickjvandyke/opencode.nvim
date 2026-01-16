@@ -18,6 +18,10 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---If set, `opencode.nvim` will append `--port <port>` to `provider.cmd` if not already present.
 ---@field port? number
 ---
+---Use absolute file paths instead of paths relative to Neovim's CWD.
+---Useful when `opencode` is running in a different directory than Neovim.
+---@field absolute_paths? boolean
+---
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
 ---
@@ -45,6 +49,7 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@type opencode.Opts
 local defaults = {
   port = nil,
+  absolute_paths = false,
   -- stylua: ignore
   contexts = {
     ["@this"] = function(context) return context:this() end,
