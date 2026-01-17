@@ -114,6 +114,20 @@ local defaults = {
     permissions = {
       enabled = true,
       idle_delay_ms = 1000,
+      confirm = {
+        enabled = false,
+        window = {
+          config = {},
+          options = {},
+          mappings = {
+            ["a"] = "Once",
+            ["<CR>"] = "Once",
+            ["A"] = "Always",
+            ["r"] = "Reject",
+            ["q"] = "Close",
+          },
+        },
+      },
     },
   },
   provider = {
