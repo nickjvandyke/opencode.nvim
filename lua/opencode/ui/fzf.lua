@@ -6,6 +6,14 @@ local function is_buf_valid(buf)
   return vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" and vim.api.nvim_buf_get_name(buf) ~= ""
 end
 
+local function escape_terminal_mode()
+  local mode = vim.api.nvim_get_mode().mode
+  if mode:match("^[it]") then
+    vim.cmd("stopinsert")
+    vim.fn.feedkeys("\27", "n")
+  end
+end
+
 local function strip_ansi_codes(str)
   local result = str
   result = result:gsub("\27%[[0-9;]*m", "")
@@ -54,6 +62,8 @@ local function send_files_to_opencode(files, prompt_prefix)
 end
 
 function M.select_buffers(prompt_prefix)
+  escape_terminal_mode()
+
   local ok, fzf = pcall(require, "fzf-lua")
   if not ok then
     vim.notify("fzf-lua not found. Please install fzf-lua to use this feature.", vim.log.levels.ERROR)
@@ -109,6 +119,7 @@ function M.select_buffers(prompt_prefix)
 end
 
 function M.select_files(prompt_prefix, opts)
+  escape_terminal_mode()
   opts = opts or {}
 
   local ok, fzf = pcall(require, "fzf-lua")
@@ -145,6 +156,8 @@ function M.select_files(prompt_prefix, opts)
 end
 
 function M.ask_with_files(prompt_text)
+  escape_terminal_mode()
+
   local ok, fzf = pcall(require, "fzf-lua")
   if not ok then
     vim.notify("fzf-lua not found. Please install fzf-lua to use this feature.", vim.log.levels.ERROR)
@@ -169,6 +182,8 @@ function M.ask_with_files(prompt_text)
 end
 
 function M.append_files_to_current_prompt()
+  escape_terminal_mode()
+
   local ok, fzf = pcall(require, "fzf-lua")
   if not ok then
     vim.notify("fzf-lua not found. Please install fzf-lua to use this feature.", vim.log.levels.ERROR)
