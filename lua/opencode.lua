@@ -3,6 +3,7 @@ local M = {}
 
 M.ask = require("opencode.ui.ask").ask
 M.select = require("opencode.ui.select").select
+M.fzf = require("opencode.ui.fzf")
 
 M.prompt = require("opencode.api.prompt").prompt
 M.operator = require("opencode.api.operator").operator
