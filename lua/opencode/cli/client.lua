@@ -233,6 +233,8 @@ end
 
 ---Select session in `opencode`.
 ---
+---@param port number
+---@param session_id number
 function M.select_session(port, session_id)
   M.call(port, "/tui/select-session", "POST", { sessionID = session_id }, nil)
 end
