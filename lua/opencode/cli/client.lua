@@ -101,6 +101,7 @@ local function curl(url, method, body, callback)
   end
 
   local stderr_lines = {}
+  -- Would prefer `vim.system`, but it seems unable to handle rapid SSEs currently and occasionally drops them.
   return vim.fn.jobstart(command, {
     on_stdout = function(_, data)
       if not data then
