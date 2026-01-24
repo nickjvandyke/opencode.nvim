@@ -1,5 +1,15 @@
 local M = {}
 
+local function ellipsize(s, max_len)
+  if vim.fn.strdisplaywidth(s) <= max_len then
+    return s
+  end
+  local truncated = vim.fn.strcharpart(s, 0, max_len - 3)
+  truncated = truncated:gsub("%s+%S*$", "")
+
+  return truncated .. "..."
+end
+
 function M.select_session()
   require("opencode.cli.server")
     .get_port()
@@ -21,7 +31,7 @@ function M.select_session()
         format_item = function(item)
           local title_length = 60
           local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
-          local title = M.ellipsize(item.title, title_length)
+          local title = ellipsize(item.title, title_length)
           return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
         end,
       }, function(choice)
@@ -33,16 +43,6 @@ function M.select_session()
     :catch(function(err)
       vim.notify(err, vim.log.levels.ERROR)
     end)
-end
-
-function M.ellipsize(s, max_len)
-  if vim.fn.strdisplaywidth(s) <= max_len then
-    return s
-  end
-  local truncated = vim.fn.strcharpart(s, 0, max_len - 3)
-  truncated = truncated:gsub("%s+%S*$", "")
-
-  return truncated .. "..."
 end
 
 return M
