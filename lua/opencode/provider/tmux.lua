@@ -73,9 +73,9 @@ end
 function Tmux:start()
   local pane_id = self:get_pane_id()
   if not pane_id then
-    -- Create new pane
+    -- Create new pane and make it active to prevent OSC responses from leaking to Neovim
     self.pane_id =
-      vim.fn.system(string.format("tmux split-window -d -P -F '#{pane_id}' %s '%s'", self.opts.options, self.cmd))
+      vim.fn.system(string.format("tmux split-window -P -F '#{pane_id}' %s '%s'", self.opts.options or "", self.cmd))
   end
 end
 
