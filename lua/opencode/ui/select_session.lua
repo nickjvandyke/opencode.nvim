@@ -11,20 +11,7 @@ function M.select_session()
       end)
     end)
     :next(function(session_data)
-      local sessions = {}
-      for _, session in ipairs(session_data.sessions) do
-        ---@type opencode.cli.client.Session
-        local item = {
-          id = session.id,
-          title = session.title,
-          time = {
-            created = session.time.created,
-            updated = session.time.updated,
-          },
-        }
-        table.insert(sessions, item)
-      end
-
+      local sessions = session_data.sessions
       table.sort(sessions, function(a, b)
         return a.time.updated > b.time.updated
       end)
