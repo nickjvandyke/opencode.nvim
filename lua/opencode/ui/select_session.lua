@@ -18,22 +18,22 @@ function M.select_session()
           id = session.id,
           title = session.title,
           time = {
-            created = math.floor(session.time.created),
-            updated = math.floor(session.time.updated),
+            created_ms = math.floor(session.time.created),
+            updated_ms = math.floor(session.time.updated),
           },
         }
         table.insert(sessions, item)
       end
 
       table.sort(sessions, function(a, b)
-        return a.time.updated > b.time.updated
+        return a.time.updated_ms > b.time.updated_ms
       end)
 
       vim.ui.select(sessions, {
         prompt = "Select session (recently updated first):",
         format_item = function(item)
           local title_length = 60
-          local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
+          local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated_ms / 1000)
           local title = M.ellipsize(item.title, title_length)
           return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
         end,

@@ -227,8 +227,8 @@ function M.get_commands(port, callback)
 end
 
 ---@class opencode.cli.client.SessionTime
----@field created integer
----@field updated integer
+---@field created_ms integer
+---@field updated_ms integer
 
 ---@class opencode.cli.client.Session
 ---@field id string
