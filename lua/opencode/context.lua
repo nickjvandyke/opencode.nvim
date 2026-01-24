@@ -385,16 +385,12 @@ end
 
 ---The git diff (unified diff format).
 function Context:git_diff()
-  local handle = io.popen("git --no-pager diff")
-  if not handle then
+  local result = vim.system({ "git", "--no-pager", "diff" }, { text = true }):wait()
+  require("opencode.util").check_system_call(result, "git diff")
+  if result.stdout == "" then
     return nil
   end
-  local result = handle:read("*a")
-  handle:close()
-  if result and result ~= "" then
-    return result
-  end
-  return nil
+  return result.stdout
 end
 
 ---Global marks.

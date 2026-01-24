@@ -17,49 +17,29 @@ local function is_windows()
   return vim.fn.has("win32") == 1
 end
 
----@param command string
----@return string
-local function exec(command)
-  -- TODO: Use vim.fn.jobstart for async, and to capture stderr (to throw error instead of it writing to the buffer).
-  -- (or the newer `vim.system`?)
-  local handle = io.popen(command)
-  if not handle then
-    error("Couldn't execute command: " .. command, 0)
-  end
-
-  local output = handle:read("*a")
-  handle:close()
-  return output
-end
-
 ---@return opencode.cli.server.Process[]
 local function get_processes_unix()
-  assert(vim.fn.executable("pgrep") == 1, "`pgrep` executable not found")
-  assert(vim.fn.executable("lsof") == 1, "`lsof` executable not found")
-
-  -- Find PIDs by command line pattern (handles process names like 'bun', 'node', etc. starting `opencode`).
-  -- We filter for `--port` to avoid matching other `opencode`-related processes (LSPs etc.) and find only servers.
-  -- While the later CWD check will filter those out too, this is much faster.
-  local pgrep_output = exec("pgrep -f 'opencode.*--port' 2>/dev/null || true")
-  if pgrep_output == "" then
-    return {}
-  end
+  -- Find PIDs by command line pattern.
+  -- We filter for `--port` to avoid matching other `opencode`-related processes (LSPs etc.)
+  local pgrep = vim.system({ "pgrep", "-f", "opencode.*--port" }, { text = true }):wait()
+  require("opencode.util").check_system_call(pgrep, "pgrep")
 
   local processes = {}
-  for pgrep_line in pgrep_output:gmatch("[^\r\n]+") do
+  for pgrep_line in pgrep.stdout:gmatch("[^\r\n]+") do
     local pid = tonumber(pgrep_line)
     if pid then
-      local lsof_output = exec("lsof -w -iTCP -sTCP:LISTEN -P -n -a -p " .. pid .. " 2>/dev/null || true")
-
-      if lsof_output ~= "" then
-        for line in lsof_output:gmatch("[^\r\n]+") do
-          local parts = vim.split(line, "%s+")
-
-          if parts[1] ~= "COMMAND" then -- Skip header
-            local port = parts[9] and parts[9]:match(":(%d+)$") -- e.g. "127.0.0.1:12345" -> "12345"
+      -- Get the port for the PID
+      local lsof = vim
+        .system({ "lsof", "-w", "-iTCP", "-sTCP:LISTEN", "-P", "-n", "-a", "-p", tostring(pid) }, { text = true })
+        :wait()
+      require("opencode.util").check_system_call(lsof, "lsof")
+      for line in lsof.stdout:gmatch("[^\r\n]+") do
+        local parts = vim.split(line, "%s+")
+        if parts[1] ~= "COMMAND" then -- Skip header
+          local port_str = parts[9] and parts[9]:match(":(%d+)$") -- e.g. "127.0.0.1:12345" -> "12345"
+          if port_str then
+            local port = tonumber(port_str)
             if port then
-              port = tonumber(port)
-
               table.insert(processes, {
                 pid = pid,
                 port = port,
@@ -70,7 +50,6 @@ local function get_processes_unix()
       end
     end
   end
-
   return processes
 end
 
@@ -87,30 +66,20 @@ ForEach-Object {
   }
 } | ConvertTo-Json -Compress
 ]]
-
-  -- Execute PowerShell synchronously, but this doesn't hold up the UI since
-  -- this gets called from a function that returns a promise.
-  local ps_result = vim.system({ "powershell", "-NoProfile", "-Command", ps_script }):wait()
-
-  if ps_result.code ~= 0 then
-    error("PowerShell command failed with code: " .. ps_result.code, 0)
-  end
-
-  if not ps_result.stdout or ps_result.stdout == "" then
+  local ps = vim.system({ "powershell", "-NoProfile", "-Command", ps_script }):wait()
+  require("opencode.util").check_system_call(ps, "PowerShell")
+  if ps.stdout == "" then
     return {}
   end
-
   -- The Powershell script should return the response as JSON to ease parsing.
-  local ok, processes = pcall(vim.fn.json_decode, ps_result.stdout)
+  local ok, processes = pcall(vim.fn.json_decode, ps.stdout)
   if not ok then
     error("Failed to parse PowerShell output: " .. tostring(processes), 0)
   end
-
   if processes.pid then
     -- A single process was found, so wrap it in a table.
     processes = { processes }
   end
-
   return processes
 end
 
@@ -125,7 +94,6 @@ local function find_servers()
   if #processes == 0 then
     error("No `opencode` processes found", 0)
   end
-
   -- Filter out processes that aren't valid opencode servers.
   -- pgrep -f 'opencode' may match other processes (e.g., language servers
   -- started by opencode) that have 'opencode' in their path or arguments.
@@ -148,28 +116,24 @@ local function find_servers()
 end
 
 local function is_descendant_of_neovim(pid)
-  assert(vim.fn.executable("ps") == 1, "`ps` executable not found")
-
   local neovim_pid = vim.fn.getpid()
   local current_pid = pid
-
   -- Walk up because the way some shells launch processes,
   -- Neovim will not be the direct parent.
   for _ = 1, 10 do -- limit to 10 steps to avoid infinite loop
-    local parent_pid = tonumber(exec("ps -o ppid= -p " .. current_pid))
+    local ps = vim.system({ "ps", "-o", "ppid=", "-p", tostring(current_pid) }, { text = true }):wait()
+    require("opencode.util").check_system_call(ps, "ps")
+    local parent_pid = tonumber(ps.stdout)
     if not parent_pid then
-      error("Couldn't determine parent PID for: " .. current_pid, 0)
+      return false
     end
-
     if parent_pid == 1 then
       return false
     elseif parent_pid == neovim_pid then
       return true
     end
-
     current_pid = parent_pid
   end
-
   return false
 end
 
@@ -180,13 +144,11 @@ local function find_server_inside_nvim_cwd()
   for _, server in ipairs(find_servers()) do
     local normalized_server_cwd = server.cwd
     local normalized_nvim_cwd = nvim_cwd
-
     if is_windows() then
       -- On Windows, normalize to backslashes for consistent comparison
       normalized_server_cwd = server.cwd:gsub("/", "\\")
       normalized_nvim_cwd = nvim_cwd:gsub("/", "\\")
     end
-
     -- CWDs match exactly, or `opencode`'s CWD is under neovim's CWD.
     if normalized_server_cwd:find(normalized_nvim_cwd, 1, true) == 1 then
       found_server = server
@@ -196,11 +158,9 @@ local function find_server_inside_nvim_cwd()
       end
     end
   end
-
   if not found_server then
     error("No `opencode` servers inside Neovim's CWD", 0)
   end
-
   return found_server
 end
 
@@ -209,12 +169,10 @@ end
 local function poll_for_port(fn, callback)
   local retries = 0
   local timer = vim.uv.new_timer()
-
   if not timer then
     callback(false, "Failed to create timer for polling `opencode` port")
     return
   end
-
   local timer_closed = false
   -- TODO: Suddenly with opentui release,
   -- on startup it seems the port can be available but too quickly calling it will no-op?
@@ -247,7 +205,6 @@ end
 ---@param launch boolean? Whether to launch a new server if none found. Defaults to true.
 function M.get_port(launch)
   launch = launch ~= false
-
   return require("opencode.promise").new(function(resolve, reject)
     local configured_port = require("opencode.config").opts.port
     local find_port_fn = function()
@@ -263,23 +220,19 @@ function M.get_port(launch)
         return find_server_inside_nvim_cwd().port
       end
     end
-
     local initial_ok, initial_result = pcall(find_port_fn)
     if initial_ok then
       resolve(initial_result)
       return
     end
-
     if launch then
       vim.notify(initial_result .. " — starting `opencode`…", vim.log.levels.INFO, { title = "opencode" })
-
       local start_ok, start_result = pcall(require("opencode.provider").start)
       if not start_ok then
         reject("Error starting `opencode`: " .. start_result)
         return
       end
     end
-
     poll_for_port(find_port_fn, function(ok, result)
       if ok then
         resolve(result)

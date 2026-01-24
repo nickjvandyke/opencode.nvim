@@ -6,8 +6,8 @@ local M = {}
 local sse_state = {
   -- Track the port - `opencode` may have restarted, usually on a new port
   port = nil,
-  ---@type vim.SystemObj|nil
-  system_object = nil,
+  ---@type number|nil
+  job_id = nil,
 }
 
 ---Generate a UUID v4 (cross-platform, no external dependencies)
@@ -52,7 +52,7 @@ end
 ---@param method string
 ---@param body table|nil
 ---@param callback fun(response: table)|nil
----@return vim.SystemObj
+---@return number job_id
 local function curl(url, method, body, callback)
   local command = {
     "curl",
@@ -68,19 +68,21 @@ local function curl(url, method, body, callback)
     "-H",
     "Accept: text/event-stream",
     "-N", -- No buffering, for streaming SSEs
-    body and "-d" or nil,
-    body and vim.fn.json_encode(body) or nil,
-    url,
   }
+
+  if body then
+    table.insert(command, "-d")
+    table.insert(command, vim.fn.json_encode(body))
+  end
+
+  table.insert(command, url)
 
   -- Buffer the response outside of the job callbacks - they may be called multiple times
   local response_buffer = {}
   local function process_response_buffer()
     if #response_buffer > 0 then
       local full_event = table.concat(response_buffer)
-      for k in pairs(response_buffer) do
-        response_buffer[k] = nil
-      end
+      response_buffer = {}
       vim.schedule(function()
         local ok, response = pcall(vim.fn.json_decode, full_event)
         if ok then
@@ -98,13 +100,14 @@ local function curl(url, method, body, callback)
     end
   end
 
-  return vim.system(command, {
-    text = true,
-    stdout = function(_, data)
+  local stderr_lines = {}
+  -- Would prefer `vim.system`, but it seems unable to handle rapid SSEs currently and occasionally drops them.
+  return vim.fn.jobstart(command, {
+    on_stdout = function(_, data)
       if not data then
         return
       end
-      for _, line in ipairs(vim.split(data, "\n")) do
+      for _, line in ipairs(data) do
         if line == "" then
           -- Blank line indicates end of SSE event
           process_response_buffer()
@@ -115,20 +118,29 @@ local function curl(url, method, body, callback)
         end
       end
     end,
-  }, function(obj)
-    if obj.code == 0 then
-      -- Process any remaining buffered data.
-      -- Particularly import for non-SSE responses which won't have a trailing blank line.
-      process_response_buffer()
-    elseif obj.code ~= 18 then
-      -- 18 above means connection closed while there was more data to read, which happens occasionally with SSEs when we quit opencode. nbd.
-      local error_message = "curl command failed with exit code: "
-        .. obj.code
-        .. "\nstderr:\n"
-        .. (obj.stderr or "<none>")
-      vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
-    end
-  end)
+    on_stderr = function(_, data)
+      if data then
+        for _, line in ipairs(data) do
+          if line ~= "" then
+            table.insert(stderr_lines, line)
+          end
+        end
+      end
+    end,
+    on_exit = function(_, code)
+      if code == 0 then
+        -- Process any remaining buffered data.
+        process_response_buffer()
+      elseif code ~= 18 and code ~= 143 then
+        -- 18 = connection closed, 143 = SIGTERM (manual disconnect)
+        local error_message = "curl command failed with exit code: "
+          .. code
+          .. "\nstderr:\n"
+          .. (#stderr_lines > 0 and table.concat(stderr_lines, "\n") or "<none>")
+        vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
+      end
+    end,
+  })
 end
 
 ---Call an opencode server endpoint.
@@ -137,7 +149,7 @@ end
 ---@param method "GET"|"POST"
 ---@param body table|nil
 ---@param callback fun(response: table)|nil
----@return vim.SystemObj
+---@return number job_id
 function M.call(port, path, method, body, callback)
   return curl("http://localhost:" .. port .. path, method, body, callback)
 end
@@ -246,8 +258,6 @@ end
 ---@param port number
 ---@return opencode.cli.client.PathResponse
 function M.get_path(port)
-  assert(vim.fn.executable("curl") == 1, "`curl` executable not found")
-
   -- Query each port synchronously for working directory
   -- TODO: Migrate to align with async paradigm used elsewhere
   local curl_result = vim
@@ -259,15 +269,14 @@ function M.get_path(port)
       "http://localhost:" .. port .. "/path",
     })
     :wait()
+  require("opencode.util").check_system_call(curl_result, "curl")
 
-  if curl_result.code == 0 and curl_result.stdout and curl_result.stdout ~= "" then
-    local path_ok, path_data = pcall(vim.fn.json_decode, curl_result.stdout)
-    if path_ok and (path_data.directory or path_data.worktree) then
-      return path_data
-    end
+  local path_ok, path_data = pcall(vim.fn.json_decode, curl_result.stdout)
+  if path_ok and (path_data.directory or path_data.worktree) then
+    return path_data
+  else
+    error("Failed to parse `opencode` CWD data: " .. curl_result.stdout, 0)
   end
-
-  error("Failed to get working directory for `opencode` port: " .. port, 0)
 end
 
 ---@class opencode.cli.client.Event
@@ -281,25 +290,25 @@ end
 ---@param callback fun(response: opencode.cli.client.Event)|nil
 function M.sse_subscribe(port, callback)
   if sse_state.port ~= port then
-    if sse_state.system_object then
-      sse_state.system_object:kill(9)
+    if sse_state.job_id then
+      vim.fn.jobstop(sse_state.job_id)
     end
 
     sse_state = {
       port = port,
-      system_object = M.call(port, "/event", "GET", nil, callback),
+      job_id = M.call(port, "/event", "GET", nil, callback),
     }
   end
 end
 
 function M.sse_unsubscribe()
-  if sse_state.system_object then
-    sse_state.system_object:kill(9)
+  if sse_state.job_id then
+    vim.fn.jobstop(sse_state.job_id)
   end
 
   sse_state = {
     port = nil,
-    system_object = nil,
+    job_id = nil,
   }
 end
 

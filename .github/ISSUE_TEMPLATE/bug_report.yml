@@ -6,24 +6,22 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Before** reporting an issue, make sure to read the documentation and search existing issues. Usage questions such as ***"How do I...?"*** belong in Discussions and will be closed.
+        **Before** reporting an issue, make sure to read the documentation and search [existing issues](https://github.com/NickvanDyke/opencode.nvim/issues).
+
+        Usage questions such as ***"How do I...?"*** belong in [Discussions](https://github.com/NickvanDyke/opencode.nvim/discussions) and will be closed.
   - type: checkboxes
     attributes:
       label: Did you check docs and existing issues?
       description: Make sure you checked all of the below before submitting an issue
       options:
-        - label: I have read all the plugin docs
+        - label: I have read the plugin docs
           required: true
-        - label: I have searched the existing issues
+        - label: I have read the [opencode docs](https://opencode.ai/docs)
+          required: true
+        - label: I have searched the existing plugin issues
           required: true
         - label: I have searched the existing [opencode issues](https://github.com/sst/opencode/issues)
           required: true
-  - type: input
-    attributes:
-      label: "Operating system/version"
-      placeholder: "MacOS 11.5"
-    validations:
-      required: true
   - type: input
     attributes:
       label: "`:checkhealth opencode` output"
