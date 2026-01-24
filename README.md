@@ -286,6 +286,7 @@ Command `opencode`:
 | ------------------------ | -------------------------------------------------- |
 | `session.list`           | List sessions                                      |
 | `session.new`            | Start a new session                                |
+| `session.select`         | Select a session                                   |
 | `session.share`          | Share the current session                          |
 | `session.interrupt`      | Interrupt the current session                      |
 | `session.compact`        | Compact the current session (reduce context size)  |
