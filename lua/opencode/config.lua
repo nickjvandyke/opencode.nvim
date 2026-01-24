@@ -32,6 +32,9 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Supports [`snacks.picker`](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---@field select? opencode.select.Opts
 ---
+---Options for `fzf` integration.
+---@field fzf? opencode.fzf.Opts
+---
 ---Options for `opencode` event handling.
 ---@field events? opencode.events.Opts
 ---
@@ -41,6 +44,19 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@class opencode.Prompt : opencode.api.prompt.Opts
 ---@field prompt string The prompt to send to `opencode`.
 ---@field ask? boolean Call `ask(prompt)` instead of `prompt(prompt)`. Useful for prompts that expect additional user input.
+
+---@class opencode.fzf.Opts
+---
+---Options for file search using fzf-lua.
+---Passed to fzf-lua's files() function.
+---@field files? table
+---
+---Options for buffer search using fzf-lua.
+---Passed to fzf-lua's buffers() function.
+---@field buffers? table
+---
+---Default prompt prefix when selecting files/buffers.
+---@field prompt_prefix? string
 
 ---@type opencode.Opts
 local defaults = {
@@ -107,6 +123,11 @@ local defaults = {
         hidden = {}, -- preview is hidden by default in `vim.ui.select`
       },
     },
+  },
+  fzf = {
+    files = {},
+    buffers = {},
+    prompt_prefix = "",
   },
   events = {
     enabled = true,
