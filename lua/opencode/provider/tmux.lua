@@ -13,6 +13,14 @@ Tmux.name = "tmux"
 ---
 ---`tmux` options for creating the pane.
 ---@field options? string
+---
+---Focus the opencode pane when created. Default: `false`
+---@field focus? boolean
+--
+---Disable `allow-passthrough` on the opencode pane.
+-- Prevents leaking escape sequences when allow-passthrough is on in tmux.
+---Default: `true`
+---@field disable_passthrough? boolean
 
 ---@param opts? opencode.provider.tmux.Opts
 ---@return opencode.provider.Tmux
@@ -74,8 +82,14 @@ function Tmux:start()
   local pane_id = self:get_pane_id()
   if not pane_id then
     -- Create new pane
-    self.pane_id =
-      vim.fn.system(string.format("tmux split-window -d -P -F '#{pane_id}' %s '%s'", self.opts.options, self.cmd))
+    local detach_flag = self.opts.focus and "" or "-d"
+    self.pane_id = vim.fn.system(
+      string.format("tmux split-window %s -P -F '#{pane_id}' %s '%s'", detach_flag, self.opts.options or "", self.cmd)
+    )
+    local disable_passthrough = self.opts.disable_passthrough ~= false -- default true
+    if disable_passthrough and self.pane_id and self.pane_id ~= "" then
+      vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", vim.trim(self.pane_id)))
+    end
   end
 end
 
