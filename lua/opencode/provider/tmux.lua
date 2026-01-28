@@ -113,4 +113,40 @@ function Tmux:stop()
   end
 end
 
+---Find an `opencode` server running in a sibling pane of the current tmux window.
+---@return opencode.cli.server.Server|nil
+function Tmux:find_server()
+  if self.health() ~= true then
+    return nil
+  end
+
+  local session_window = vim.fn.system("tmux display-message -p '#{session_name}:#{window_index}'"):gsub("\n", "")
+  local panes_output = vim.fn.system(string.format("tmux list-panes -t '%s' -F '#{pane_tty}'", session_window))
+
+  for tty in panes_output:gmatch("[^\r\n]+") do
+    local tty_short = tty:gsub("^/dev/", "")
+    local ps_output = vim.fn.system(string.format("ps -t %s -o pid,command", tty_short))
+
+    for line in ps_output:gmatch("[^\r\n]+") do
+      local pid = line:match("^%s*(%d+).*opencode")
+      if pid then
+        local lsof = vim.fn.system(string.format("lsof -w -iTCP -sTCP:LISTEN -P -n -a -p %s", pid))
+        local port = lsof:match(":(%d+) %(LISTEN%)")
+        if port then
+          local ok, path = pcall(require("opencode.cli.client").get_path, tonumber(port))
+          if ok then
+            return {
+              pid = tonumber(pid),
+              port = tonumber(port),
+              cwd = path.directory or path.worktree,
+            }
+          end
+        end
+      end
+    end
+  end
+
+  return nil
+end
+
 return Tmux
