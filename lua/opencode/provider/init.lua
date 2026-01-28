@@ -33,6 +33,10 @@
 ---Should return `true` if the provider is available,
 ---else a reason string and optional advice (for `vim.health.warn`).
 ---@field health? fun(): boolean|string, ...string|string[]
+---
+---Find an existing `opencode` server via provider-specific discovery.
+---Called as a fallback when CWD-based discovery fails.
+---@field find_server? fun(self: opencode.Provider): opencode.cli.server.Server|nil
 
 ---Configure and enable built-in providers.
 ---@class opencode.provider.Opts

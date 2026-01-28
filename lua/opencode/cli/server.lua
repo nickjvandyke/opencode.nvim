@@ -158,6 +158,15 @@ local function find_server_inside_nvim_cwd()
       end
     end
   end
+
+  -- Fallback: try provider-specific discovery
+  if not found_server then
+    local provider = require("opencode.config").provider
+    if provider and provider.find_server then
+      found_server = provider:find_server()
+    end
+  end
+
   if not found_server then
     error("No `opencode` servers inside Neovim's CWD", 0)
   end
