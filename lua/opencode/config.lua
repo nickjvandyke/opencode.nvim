@@ -159,7 +159,9 @@ local defaults = {
     tmux = {
       options = "-h", -- Open in a horizontal split
       focus = false, -- Keep focus in Neovim
-      disable_passthrough = true, -- Prevent OSC response leak (e.g. "=31337;OK")
+      -- Disables allow-passthrough in the tmux split 
+      -- preventing OSC escape sequences from leaking into the nvim buffer
+      allow_passthrough = false,
     },
   },
 }
