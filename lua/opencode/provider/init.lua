@@ -1,8 +1,8 @@
 ---@module 'snacks.terminal'
 
 ---Provide an integrated `opencode`.
----Providers should ignore manually-started `opencode` instances,
----operating only on those they start themselves.
+---`start`/`stop`/`toggle` should only operate on provider-managed instances.
+---`find_server` may attach to any existing instance for connection purposes.
 ---@class opencode.Provider
 ---
 ---The name of the provider.
@@ -35,6 +35,7 @@
 ---@field health? fun(): boolean|string, ...string|string[]
 ---
 ---Find an existing `opencode` server via provider-specific discovery.
+---Unlike other methods, may return servers not started by the provider.
 ---Called as a fallback when CWD-based discovery fails.
 ---@field find_server? fun(self: opencode.Provider): opencode.cli.server.Server|nil
 
