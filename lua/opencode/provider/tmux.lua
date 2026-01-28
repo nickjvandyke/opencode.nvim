@@ -18,9 +18,14 @@ Tmux.name = "tmux"
 ---@field focus? boolean
 --
 ---Allow `allow-passthrough` on the opencode pane.
--- When enabled, opencode will NOT disable the tmux `allow-passthrough` option on its pane.
+-- When enabled, opencode.nvim will use your configured tmux `allow-passthrough` option on its pane.
 -- This allows opencode to use OSC escape sequences, but may leak escape codes to the terminal
 -- (e.g., "=31337;OK" appearing in your terminal output).
+--
+-- Limitations of having allow-passthrough disabled in the opencode pane:
+-- - can't display images
+-- - can't use special (terminal specific; non-system) clipboards
+-- - may have issues setting window properties like the title from the pane
 --
 -- If you enable this, consider also enabling `focus` to auto-focus the pane on creation,
 -- which can help avoid OSC code leakage while opencode is sending escape sequences on startup.
