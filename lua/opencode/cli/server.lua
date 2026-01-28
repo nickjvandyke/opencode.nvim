@@ -209,7 +209,8 @@ end
 ---Attempt to get the `opencode` server's port. Tries, in order:
 ---1. A process responding on `opts.port`.
 ---2. Any `opencode` process running inside Neovim's CWD. Prioritizes embedded.
----3. Calling `opts.provider.start` and polling for the port.
+---3. Provider-specific discovery (e.g., tmux sibling panes).
+---4. Calling `opts.provider.start` and polling for the port.
 ---
 ---@param launch boolean? Whether to launch a new server if none found. Defaults to true.
 function M.get_port(launch)
