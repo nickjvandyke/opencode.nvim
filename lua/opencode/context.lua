@@ -236,9 +236,12 @@ end
 function Context.format(args)
   local result = ""
   if (args.buf and is_buf_valid(args.buf)) or args.path then
-    local rel_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":.")
+    local raw_path = args.path or vim.api.nvim_buf_get_name(args.buf)
+    local use_absolute = require("opencode.config").opts.absolute_paths
+    -- `:p` expands to full path, `:." makes relative to CWD
+    local path = vim.fn.fnamemodify(raw_path, use_absolute and ":p" or ":.")
     -- Must be preceeded by @ and followed by space for `opencode` to parse as a file reference
-    result = "@" .. rel_path .. " "
+    result = "@" .. path .. " "
   end
   if args.start_line and args.end_line and args.start_line > args.end_line then
     args.start_line, args.end_line = args.end_line, args.start_line
