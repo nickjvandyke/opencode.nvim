@@ -19,8 +19,8 @@ Tmux.name = "tmux"
 --
 ---Allow `allow-passthrough` on the opencode pane.
 -- When enabled, opencode.nvim will use your configured tmux `allow-passthrough` option on its pane.
--- This allows opencode to use OSC escape sequences, but may leak escape codes to the terminal
--- (e.g., "=31337;OK" appearing in your terminal output).
+-- This allows opencode to use OSC escape sequences, but may leak escape codes to the buffer
+-- (e.g., "=31337;OK" appearing in your buffer).
 --
 -- Limitations of having allow-passthrough disabled in the opencode pane:
 -- - can't display images
