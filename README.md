@@ -246,6 +246,64 @@ Please submit PRs adding new providers! 🙂
 
 ## 🚀 Usage
 
+### 💬 Chat — `require("opencode").chat()`
+
+Open a custom Neovim frontend for `opencode` with a floating window chat interface.
+
+- **Pure Neovim UI** — no terminal needed
+- **Real-time streaming** — see AI responses as they're generated
+- **Vim keybindings** — navigate with hjkl, yank messages, and more
+- **Session management** — create new sessions, interrupt responses
+- **Markdown rendering** — syntax highlighting for code blocks
+- **Configurable** — customize keymaps, provider, model, and window size
+
+#### Configuration
+
+Enable the chat frontend and configure it in your `vim.g.opencode_opts`:
+
+```lua
+vim.g.opencode_opts = {
+  chat = {
+    enabled = true,  -- Enable custom chat UI instead of terminal TUI (default: false)
+    provider_id = "anthropic",  -- AI provider (default: "anthropic")
+    model_id = "claude-3-5-sonnet-20241022",  -- AI model (default: "claude-3-5-sonnet-20241022")
+    width = 0.6,  -- Window width as fraction of editor width (default: 0.6)
+    height = 0.7,  -- Window height as fraction of editor height (default: 0.7)
+    keymaps = {
+      open = "<leader>oc",  -- Keymap to open chat (default: "<leader>oc")
+      send = { "i", "a" },  -- Keymaps to send message (default: {"i", "a"})
+      close = { "q", "<Esc>" },  -- Keymaps to close chat (default: {"q", "<Esc>"})
+      new_session = "n",  -- Keymap for new session (default: "n")
+      interrupt = "<C-c>",  -- Keymap to interrupt (default: "<C-c>")
+      yank = "yy",  -- Keymap to yank message (default: "yy")
+    }
+  }
+}
+```
+
+When `enabled = true`, the global keymap will be automatically set up. You can also manually call the chat function:
+
+```lua
+vim.keymap.set('n', '<leader>oc', function()
+  require('opencode').chat()
+end, { desc = "Open OpenCode Chat" })
+```
+
+#### Keybindings
+
+Default keybindings in the chat window (all configurable):
+
+| Key | Action |
+| --- | ------ |
+| `<leader>oc` | Open chat window (global) |
+| `i` or `a` | Send a message |
+| `n` | Start a new session |
+| `q` or `<Esc>` | Close chat window |
+| `yy` | Yank current message to clipboard |
+| `<C-c>` | Interrupt current response |
+| `j`/`k` | Navigate up/down |
+| `gg`/`G` | Jump to top/bottom |
+
 ### ✍️ Ask — `require("opencode").ask()`
 
 Input a prompt for `opencode`.

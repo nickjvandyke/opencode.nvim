@@ -15,4 +15,6 @@ M.stop = require("opencode.provider").stop
 
 M.statusline = require("opencode.status").statusline
 
+M.chat = require("opencode.ui.chat_init").start_chat
+
 return M

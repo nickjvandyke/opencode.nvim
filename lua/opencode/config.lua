@@ -32,11 +32,30 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Supports [`snacks.picker`](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---@field select? opencode.select.Opts
 ---
+---Options for `chat()`.
+---@field chat? opencode.chat.Opts
+---
 ---Options for `opencode` event handling.
 ---@field events? opencode.events.Opts
 ---
 ---Provide an integrated `opencode` when one is not found.
 ---@field provider? opencode.Provider|opencode.provider.Opts
+
+---@class opencode.chat.Opts
+---@field enabled? boolean Enable custom chat UI instead of terminal TUI (default: false)
+---@field provider_id? string AI provider to use (default: "anthropic")
+---@field model_id? string AI model to use (default: "claude-3-5-sonnet-20241022")
+---@field width? number Width of chat window as fraction of editor width (default: 0.6)
+---@field height? number Height of chat window as fraction of editor height (default: 0.7)
+---@field keymaps? opencode.chat.Keymaps Keymaps for chat window
+
+---@class opencode.chat.Keymaps
+---@field open? string|string[] Keymap(s) to open chat window (default: "<leader>oc")
+---@field send? string|string[] Keymap(s) to send message in chat (default: {"i", "a"})
+---@field close? string|string[] Keymap(s) to close chat window (default: {"q", "<Esc>"})
+---@field new_session? string Keymap to start new session (default: "n")
+---@field interrupt? string Keymap to interrupt response (default: "<C-c>")
+---@field yank? string Keymap to yank current message (default: "yy")
 
 ---@class opencode.Prompt : opencode.api.prompt.Opts
 ---@field prompt string The prompt to send to `opencode`.
@@ -107,6 +126,21 @@ local defaults = {
         preset = "vscode",
         hidden = {}, -- preview is hidden by default in `vim.ui.select`
       },
+    },
+  },
+  chat = {
+    enabled = false,
+    provider_id = "anthropic",
+    model_id = "claude-3-5-sonnet-20241022",
+    width = 0.6,
+    height = 0.7,
+    keymaps = {
+      open = "<leader>oc",
+      send = { "i", "a" },
+      close = { "q", "<Esc>" },
+      new_session = "n",
+      interrupt = "<C-c>",
+      yank = "yy",
     },
   },
   events = {
