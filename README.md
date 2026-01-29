@@ -6,7 +6,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 
 ## ✨ Features
 
-- Auto-connect to _any_ `opencode` running inside Neovim's CWD, or provide an integrated instance.
+- Auto-connect to _any_ `opencode` running in Neovim's CWD, or provide an integrated instance.
 - Share editor context (buffer, cursor, selection, diagnostics, etc.).
 - Input prompts with completions, highlights, and normal-mode support.
 - Select prompts from a library and define your own.
@@ -109,7 +109,7 @@ Select or reference prompts to review, explain, and improve your code:
 
 ### Provider
 
-You can manually run `opencode` inside Neovim's CWD however you like and `opencode.nvim` will find it!
+You can manually run `opencode` in Neovim's CWD however you like and `opencode.nvim` will find it!
 
 If `opencode.nvim` can't find an existing `opencode`, it uses the configured provider (defaulting based on availability) to manage one for you.
 
