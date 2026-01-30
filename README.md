@@ -48,6 +48,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
     vim.keymap.set({ "n", "x" }, "go",  function() return require("opencode").operator("@this ") end,        { desc = "Add range to opencode", expr = true })
     vim.keymap.set("n",          "goo", function() return require("opencode").operator("@this ") .. "_" end, { desc = "Add line to opencode", expr = true })
 
+    -- The default <C-u>/<C-d> keymaps will work in the normal mode but it is possible to scroll opencode from any buffer:
     vim.keymap.set("n", "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll opencode up" })
     vim.keymap.set("n", "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll opencode down" })
 
@@ -79,17 +80,17 @@ programs.nixvim = {
 
 `opencode.nvim` replaces placeholders in prompts with the corresponding context:
 
-| Placeholder    | Context                                                       |
-| -------------- | ------------------------------------------------------------- |
-| `@this`          | Operator range or visual selection if any, else cursor position |
-| `@buffer`        | Current buffer                                              |
-| `@buffers`       | Open buffers                                                |
-| `@visible`       | Visible text                                                |
-| `@diagnostics`   | Current buffer diagnostics                                  |
-| `@quickfix`      | Quickfix list                                               |
-| `@diff`          | Git diff                                                    |
-| `@marks`         | Global marks                                                |
-| `@grapple`       | [grapple.nvim](https://github.com/cbochs/grapple.nvim) tags |
+| Placeholder    | Context                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `@this`        | Operator range or visual selection if any, else cursor position |
+| `@buffer`      | Current buffer                                                  |
+| `@buffers`     | Open buffers                                                    |
+| `@visible`     | Visible text                                                    |
+| `@diagnostics` | Current buffer diagnostics                                      |
+| `@quickfix`    | Quickfix list                                                   |
+| `@diff`        | Git diff                                                        |
+| `@marks`       | Global marks                                                    |
+| `@grapple`     | [grapple.nvim](https://github.com/cbochs/grapple.nvim) tags     |
 
 ### Prompts
 
@@ -106,6 +107,37 @@ Select or reference prompts to review, explain, and improve your code:
 | `optimize`    | Optimize `@this` for performance and readability                       |
 | `review`      | Review `@this` for correctness and readability                         |
 | `test`        | Add tests for `@this`                                                  |
+
+### Keymaps
+
+`opencode.nvim` sets these buffer-local keymaps in opencode terminal buffers by default:
+
+| Keymap  | Command                  | Description                  |
+| ------- | ------------------------ | ---------------------------- |
+| `<C-u>` | `session.half.page.up`   | Scroll up half page          |
+| `<C-d>` | `session.half.page.down` | Scroll down half page        |
+| `<Esc>` | `session.interrupt`      | Interrup (same as esc press) |
+| `gg`    | `session.first`          | Go to first message          |
+| `G`     | `session.last`           | Go to last message           |
+
+You can customize or disable these keymaps:
+
+```lua
+vim.g.opencode_opts = {
+  -- Customize keymaps
+  keymaps = {
+    n = {
+      ["<C-u>"] = { "session.half.page.up", desc = "Scroll up" },
+      ["<C-d>"] = { "session.half.page.down", desc = "Scroll down" },
+      ["gg"] = false, -- Disable this keymap
+      -- Add custom keymaps
+      ["<C-n>"] = { "session.new", desc = "New session" },
+    },
+  },
+  -- Or disable all default keymaps
+  -- keymaps = false,
+}
+```
 
 ### Provider
 

@@ -25,7 +25,7 @@ function Snacks.health()
     return "`snacks.nvim` is not available.", {
       "Install `snacks.nvim` and enable `snacks.terminal.`",
     }
-  elseif not snacks.config.get("terminal", {}).enabled then
+  elseif not snacks and snacks.config.get("terminal", {}).enabled then
     return "`snacks.terminal` is not enabled.",
       {
         "Enable `snacks.terminal` in your `snacks.nvim` configuration.",

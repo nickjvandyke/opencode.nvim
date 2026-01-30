@@ -49,6 +49,8 @@ function Terminal:start()
     self.bufnr = vim.api.nvim_create_buf(true, false)
     self.winid = vim.api.nvim_open_win(self.bufnr, true, self.opts)
 
+    require("opencode.keymaps").apply(self.bufnr)
+
     -- Redraw terminal buffer on initial render.
     -- Fixes empty columns on the right side.
     local auid
