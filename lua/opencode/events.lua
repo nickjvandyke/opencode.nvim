@@ -10,6 +10,8 @@ local M = {}
 ---@field reload? boolean
 ---
 ---@field permissions? opencode.events.permissions.Opts
+---
+---@field session_diff? opencode.events.session_diff.Opts
 
 local heartbeat_timer = vim.uv.new_timer()
 local OPENCODE_HEARTBEAT_INTERVAL_MS = 30000
