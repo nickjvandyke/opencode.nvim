@@ -18,6 +18,14 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---If set, `opencode.nvim` will append `--port <port>` to `provider.cmd`.
 ---@field port? number
 ---
+---The hostname `opencode` server is running on.
+---Defaults to `127.0.0.1`.
+---@field hostname? string
+---
+---Authentication configuration for the `opencode` server.
+---If not set, will check for `OPENCODE_SERVER_PASSWORD` and `OPENCODE_SERVER_USERNAME` environment variables.
+---@field auth? opencode.auth.Opts
+---
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
 ---
@@ -38,6 +46,10 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Provide an integrated `opencode` when one is not found.
 ---@field provider? opencode.Provider|opencode.provider.Opts
 
+---@class opencode.auth.Opts
+---@field username? string The username for HTTP basic auth. Defaults to `opencode` if password is set.
+---@field password? string The password for HTTP basic auth.
+
 ---@class opencode.Prompt : opencode.api.prompt.Opts
 ---@field prompt string The prompt to send to `opencode`.
 ---@field ask? boolean Call `ask(prompt)` instead of `prompt(prompt)`. Useful for prompts that expect additional user input.
@@ -45,6 +57,8 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@type opencode.Opts
 local defaults = {
   port = nil,
+  hostname = "127.0.0.1",
+  auth = nil, -- Will check env vars if not set
   -- stylua: ignore
   contexts = {
     ["@this"] = function(context) return context:this() end,

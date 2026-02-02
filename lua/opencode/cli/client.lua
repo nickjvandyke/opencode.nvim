@@ -10,6 +10,39 @@ local sse_state = {
   job_id = nil,
 }
 
+---Get authentication credentials from config or environment variables.
+---@return { username: string, password: string }|nil
+local function get_auth()
+  local config = require("opencode.config")
+  local auth = config.opts.auth
+
+  -- Check config first
+  if auth and auth.password then
+    return {
+      username = auth.username or "opencode",
+      password = auth.password,
+    }
+  end
+
+  -- Fall back to environment variables
+  local env_password = vim.env.OPENCODE_SERVER_PASSWORD
+  if env_password and env_password ~= "" then
+    return {
+      username = vim.env.OPENCODE_SERVER_USERNAME or "opencode",
+      password = env_password,
+    }
+  end
+
+  return nil
+end
+
+---Get the configured hostname for the opencode server.
+---@return string
+local function get_hostname()
+  local config = require("opencode.config")
+  return config.opts.hostname or "127.0.0.1"
+end
+
 ---Generate a UUID v4 (cross-platform, no external dependencies)
 ---@return string UUID in format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 local function generate_uuid()
@@ -69,6 +102,13 @@ local function curl(url, method, body, callback)
     "Accept: text/event-stream",
     "-N", -- No buffering, for streaming SSEs
   }
+
+  -- Add basic auth if credentials are available
+  local auth = get_auth()
+  if auth then
+    table.insert(command, "-u")
+    table.insert(command, auth.username .. ":" .. auth.password)
+  end
 
   if body then
     table.insert(command, "-d")
@@ -151,7 +191,8 @@ end
 ---@param callback fun(response: table)|nil
 ---@return number job_id
 function M.call(port, path, method, body, callback)
-  return curl("http://localhost:" .. port .. path, method, body, callback)
+  local hostname = get_hostname()
+  return curl("http://" .. hostname .. ":" .. port .. path, method, body, callback)
 end
 
 ---@param text string
@@ -260,15 +301,24 @@ end
 function M.get_path(port)
   -- Query each port synchronously for working directory
   -- TODO: Migrate to align with async paradigm used elsewhere
-  local curl_result = vim
-    .system({
-      "curl",
-      "-s",
-      "--connect-timeout",
-      "1",
-      "http://localhost:" .. port .. "/path",
-    })
-    :wait()
+  local hostname = get_hostname()
+  local curl_cmd = {
+    "curl",
+    "-s",
+    "--connect-timeout",
+    "1",
+  }
+
+  -- Add basic auth if credentials are available
+  local auth = get_auth()
+  if auth then
+    table.insert(curl_cmd, "-u")
+    table.insert(curl_cmd, auth.username .. ":" .. auth.password)
+  end
+
+  table.insert(curl_cmd, "http://" .. hostname .. ":" .. port .. "/path")
+
+  local curl_result = vim.system(curl_cmd):wait()
   require("opencode.util").check_system_call(curl_result, "curl")
 
   local path_ok, path_data = pcall(vim.fn.json_decode, curl_result.stdout)
