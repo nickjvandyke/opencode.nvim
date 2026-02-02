@@ -3,45 +3,14 @@
 --- - [implementation](https://github.com/sst/opencode/blob/dev/packages/opencode/src/server/server.ts)
 local M = {}
 
+local config = require("opencode.config")
+
 local sse_state = {
   -- Track the port - `opencode` may have restarted, usually on a new port
   port = nil,
   ---@type number|nil
   job_id = nil,
 }
-
----Get authentication credentials from config or environment variables.
----@return { username: string, password: string }|nil
-local function get_auth()
-  local config = require("opencode.config")
-  local auth = config.opts.auth
-
-  -- Check config first
-  if auth and auth.password then
-    return {
-      username = auth.username or "opencode",
-      password = auth.password,
-    }
-  end
-
-  -- Fall back to environment variables
-  local env_password = vim.env.OPENCODE_SERVER_PASSWORD
-  if env_password and env_password ~= "" then
-    return {
-      username = vim.env.OPENCODE_SERVER_USERNAME or "opencode",
-      password = env_password,
-    }
-  end
-
-  return nil
-end
-
----Get the configured hostname for the opencode server.
----@return string
-local function get_hostname()
-  local config = require("opencode.config")
-  return config.opts.hostname or "127.0.0.1"
-end
 
 ---Generate a UUID v4 (cross-platform, no external dependencies)
 ---@return string UUID in format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
@@ -104,8 +73,8 @@ local function curl(url, method, body, callback)
   }
 
   -- Add basic auth if credentials are available
-  local auth = get_auth()
-  if auth then
+  local auth = config.opts.auth
+  if auth and auth.username and auth.password and auth.password ~= "" then
     table.insert(command, "-u")
     table.insert(command, auth.username .. ":" .. auth.password)
   end
@@ -191,7 +160,7 @@ end
 ---@param callback fun(response: table)|nil
 ---@return number job_id
 function M.call(port, path, method, body, callback)
-  local hostname = get_hostname()
+  local hostname = config.opts.hostname
   return curl("http://" .. hostname .. ":" .. port .. path, method, body, callback)
 end
 
@@ -301,7 +270,7 @@ end
 function M.get_path(port)
   -- Query each port synchronously for working directory
   -- TODO: Migrate to align with async paradigm used elsewhere
-  local hostname = get_hostname()
+  local hostname = config.opts.hostname
   local curl_cmd = {
     "curl",
     "-s",
@@ -310,8 +279,8 @@ function M.get_path(port)
   }
 
   -- Add basic auth if credentials are available
-  local auth = get_auth()
-  if auth then
+  local auth = config.opts.auth
+  if auth and auth.username and auth.password and auth.password ~= "" then
     table.insert(curl_cmd, "-u")
     table.insert(curl_cmd, auth.username .. ":" .. auth.password)
   end

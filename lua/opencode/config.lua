@@ -58,7 +58,10 @@ vim.g.opencode_opts = vim.g.opencode_opts
 local defaults = {
   port = nil,
   hostname = "127.0.0.1",
-  auth = nil, -- Will check env vars if not set
+  auth = vim.env.OPENCODE_SERVER_PASSWORD and {
+    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode",
+    password = vim.env.OPENCODE_SERVER_PASSWORD,
+  } or nil,
   -- stylua: ignore
   contexts = {
     ["@this"] = function(context) return context:this() end,
@@ -183,6 +186,14 @@ local defaults = {
 ---Plugin options, lazily merged from `defaults` and `vim.g.opencode_opts`.
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
+
+if M.opts.auth then
+  if not M.opts.auth.password or M.opts.auth.password == "" then
+    M.opts.auth = nil
+  elseif not M.opts.auth.username then
+    M.opts.auth.username = "opencode"
+  end
+end
 
 -- Allow removing default `contexts` and `prompts` by setting them to `false` in your user config.
 -- TODO: Add to type definition, and apply to `opts.select.commands`.
