@@ -16,6 +16,9 @@ Tmux.name = "tmux"
 ---
 ---Focus the opencode pane when created. Default: `false`
 ---@field focus? boolean
+---
+---Auto-close the tmux pane when opencode exits. Default: `true`
+---@field auto_close? boolean
 --
 ---Allow `allow-passthrough` on the opencode pane.
 -- When enabled, opencode.nvim will use your configured tmux `allow-passthrough` option on its pane.
@@ -107,7 +110,7 @@ end
 ---Kill the `opencode` pane.
 function Tmux:stop()
   local pane_id = self:get_pane_id()
-  if pane_id then
+  if pane_id and self.opts.auto_close ~= false then
     vim.fn.system("tmux kill-pane -t " .. pane_id)
     self.pane_id = nil
   end

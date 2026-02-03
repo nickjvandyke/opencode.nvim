@@ -162,6 +162,7 @@ local defaults = {
       -- Disables allow-passthrough in the tmux split
       -- preventing OSC escape sequences from leaking into the nvim buffer
       allow_passthrough = false,
+      auto_close = true, -- Auto-close the tmux pane when opencode exits
     },
   },
 }
