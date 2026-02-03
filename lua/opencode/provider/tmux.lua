@@ -42,7 +42,7 @@ function Tmux.new(opts)
   return self
 end
 
----Check if we're running inside a `tmux` session.
+---Check if we're running in a `tmux` session.
 function Tmux.health()
   if vim.fn.executable("tmux") ~= 1 then
     return "`tmux` executable not found in `$PATH`.", {
@@ -51,8 +51,8 @@ function Tmux.health()
   end
 
   if not vim.env.TMUX then
-    return "Not running inside a `tmux` session.", {
-      "Launch Neovim inside a `tmux` session.",
+    return "Not running in a `tmux` session.", {
+      "Launch Neovim in a `tmux` session.",
     }
   end
 

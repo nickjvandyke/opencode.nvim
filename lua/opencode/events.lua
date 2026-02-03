@@ -22,27 +22,23 @@ function M.subscribe()
 
   require("opencode.cli.server")
     .get_port(false)
-    :next(function(port)
-      require("opencode.cli.client").sse_subscribe(
-        port,
-        ---@param response opencode.cli.client.Event
-        function(response)
-          heartbeat_timer:stop()
-          heartbeat_timer:start(
-            OPENCODE_HEARTBEAT_INTERVAL_MS + 5000,
-            0,
-            vim.schedule_wrap(require("opencode.events").unsubscribe)
-          )
+    :next(function(port) ---@param port number
+      require("opencode.cli.client").sse_subscribe(port, function(response) ---@param response opencode.cli.client.Event
+        heartbeat_timer:stop()
+        heartbeat_timer:start(
+          OPENCODE_HEARTBEAT_INTERVAL_MS + 5000,
+          0,
+          vim.schedule_wrap(require("opencode.events").unsubscribe)
+        )
 
-          vim.api.nvim_exec_autocmds("User", {
-            pattern = "OpencodeEvent:" .. response.type,
-            data = {
-              event = response,
-              port = port,
-            },
-          })
-        end
-      )
+        vim.api.nvim_exec_autocmds("User", {
+          pattern = "OpencodeEvent:" .. response.type,
+          data = {
+            event = response,
+            port = port,
+          },
+        })
+      end)
     end)
     :catch(function(err)
       vim.notify("Failed to subscribe to SSE: " .. err, vim.log.levels.WARN)

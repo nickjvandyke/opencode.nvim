@@ -25,7 +25,7 @@ function M.prompt(prompt, opts)
 
   require("opencode.cli.server")
     .get_port()
-    :next(function(port)
+    :next(function(port) ---@param port number
       if opts.clear then
         return require("opencode.promise").new(function(resolve)
           require("opencode.cli.client").tui_execute_command("prompt.clear", port, function()
@@ -35,7 +35,7 @@ function M.prompt(prompt, opts)
       end
       return port
     end)
-    :next(function(port)
+    :next(function(port) ---@param port number
       local rendered = opts.context:render(prompt)
       local plaintext = opts.context.plaintext(rendered.output)
       return require("opencode.promise").new(function(resolve)
@@ -44,7 +44,7 @@ function M.prompt(prompt, opts)
         end)
       end)
     end)
-    :next(function(port)
+    :next(function(port) ---@param port number
       require("opencode.events").subscribe()
 
       if opts.submit then
@@ -57,7 +57,7 @@ function M.prompt(prompt, opts)
       vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
       return true
     end)
-    :next(function()
+    :finally(function()
       opts.context:clear()
     end)
 end

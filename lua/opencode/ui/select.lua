@@ -41,7 +41,7 @@ function M.select(opts)
 
   require("opencode.cli.server")
     .get_port()
-    :next(function(port)
+    :next(function(port) ---@param port number
       if opts.sections.prompts then
         return require("opencode.promise").new(function(resolve)
           require("opencode.cli.client").get_agents(port, function(agents)
@@ -56,7 +56,7 @@ function M.select(opts)
         return port
       end
     end)
-    :next(function(port)
+    :next(function(port) ---@param port number
       if opts.sections.commands then
         return require("opencode.promise").new(function(resolve)
           require("opencode.cli.client").get_commands(port, function(custom_commands)
@@ -67,14 +67,16 @@ function M.select(opts)
         return {}
       end
     end)
-    :next(function(custom_commands)
+    :next(function(custom_commands) ---@param custom_commands opencode.cli.client.Command[]
       local prompts = require("opencode.config").opts.prompts or {}
       local commands = require("opencode.config").opts.select.sections.commands or {}
       for _, command in ipairs(custom_commands) do
         commands[command.name] = command.description
       end
 
-      ---@type snacks.picker.finder.Item[]
+      ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "provider", ask?: boolean, submit?: boolean }
+
+      ---@type opencode.select.Item[]
       local items = {}
 
       -- Prompts section
@@ -203,42 +205,55 @@ function M.select(opts)
       }
       select_opts = vim.tbl_deep_extend("force", select_opts, opts)
 
-      vim.ui.select(items, select_opts, function(choice)
-        if not choice then
-          context:resume()
-          return
-        else
-          context:clear()
-        end
-
-        if choice.__type == "prompt" then
-          ---@type opencode.Prompt
-          local prompt = require("opencode.config").opts.prompts[choice.name]
-          prompt.context = context
-          if prompt.ask then
-            require("opencode").ask(prompt.prompt, prompt)
+      return require("opencode.promise").new(function(resolve)
+        vim.ui.select(items, select_opts, function(choice) ---@param choice opencode.select.Item|nil
+          if choice then
+            resolve(choice)
           else
-            require("opencode").prompt(prompt.prompt, prompt)
+            resolve(false)
           end
-        elseif choice.__type == "command" then
-          if choice.name == "session.select" then
-            require("opencode").select_session()
-          else
-            require("opencode").command(choice.name)
-          end
-        elseif choice.__type == "provider" then
-          if choice.name == "toggle" then
-            require("opencode").toggle()
-          elseif choice.name == "start" then
-            require("opencode").start()
-          elseif choice.name == "stop" then
-            require("opencode").stop()
-          end
-        end
+        end)
       end)
+    end)
+    :next(function(choice) ---@param choice opencode.select.Item|false
+      if not choice then
+        context:resume()
+        return true
+      end
+
+      if choice.__type == "prompt" then
+        ---@type opencode.Prompt
+        local prompt = require("opencode.config").opts.prompts[choice.name]
+        prompt.context = context
+        if prompt.ask then
+          -- FIX: Does not re-highlight the existing context after it gets cleared below
+          require("opencode").ask(prompt.prompt, prompt)
+        else
+          require("opencode").prompt(prompt.prompt, prompt)
+        end
+      elseif choice.__type == "command" then
+        if choice.name == "session.select" then
+          require("opencode").select_session()
+        else
+          require("opencode").command(choice.name)
+        end
+      elseif choice.__type == "provider" then
+        if choice.name == "toggle" then
+          require("opencode").toggle()
+        elseif choice.name == "start" then
+          require("opencode").start()
+        elseif choice.name == "stop" then
+          require("opencode").stop()
+        end
+      end
+
+      return true
     end)
     :catch(function(err)
       vim.notify(err, vim.log.levels.ERROR)
+    end)
+    :finally(function()
+      context:clear()
     end)
 end
 

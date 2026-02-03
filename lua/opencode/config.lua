@@ -14,7 +14,7 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@class opencode.Opts
 ---
 ---The port `opencode` is running on.
----If `nil`, searches for an `opencode` process inside Neovim's CWD.
+---If `nil`, searches for an `opencode` process in Neovim's CWD.
 ---If set, `opencode.nvim` will append `--port <port>` to `provider.cmd`.
 ---@field port? number
 ---

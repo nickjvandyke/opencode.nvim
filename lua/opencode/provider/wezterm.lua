@@ -44,8 +44,8 @@ function Wezterm.health()
   end
 
   if not vim.env.WEZTERM_PANE then
-    return "Not running inside a `wezterm` window.", {
-      "Launch Neovim inside a `wezterm` window.",
+    return "Not running in a `wezterm` window.", {
+      "Launch Neovim in a `wezterm` window.",
     }
   end
 

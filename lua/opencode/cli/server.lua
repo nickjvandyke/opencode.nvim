@@ -138,7 +138,7 @@ local function is_descendant_of_neovim(pid)
 end
 
 ---@return opencode.cli.server.Server
-local function find_server_inside_nvim_cwd()
+local function find_server_in_nvim_cwd()
   local found_server
   local nvim_cwd = vim.fn.getcwd()
   for _, server in ipairs(find_servers()) do
@@ -149,8 +149,7 @@ local function find_server_inside_nvim_cwd()
       normalized_server_cwd = server.cwd:gsub("/", "\\")
       normalized_nvim_cwd = nvim_cwd:gsub("/", "\\")
     end
-    -- CWDs match exactly, or `opencode`'s CWD is under neovim's CWD.
-    if normalized_server_cwd:find(normalized_nvim_cwd, 1, true) == 1 then
+    if normalized_nvim_cwd == normalized_server_cwd then
       found_server = server
       -- On Unix, prioritize embedded
       if not is_windows() and is_descendant_of_neovim(server.pid) then
@@ -168,7 +167,7 @@ local function find_server_inside_nvim_cwd()
   end
 
   if not found_server then
-    error("No `opencode` servers inside Neovim's CWD", 0)
+    error("No `opencode` servers in Neovim's CWD", 0)
   end
   return found_server
 end
@@ -213,6 +212,7 @@ end
 ---4. Calling `opts.provider.start` and polling for the port.
 ---
 ---@param launch boolean? Whether to launch a new server if none found. Defaults to true.
+---@return Promise<number>
 function M.get_port(launch)
   launch = launch ~= false
   return require("opencode.promise").new(function(resolve, reject)
@@ -227,7 +227,7 @@ function M.get_port(launch)
           error("No `opencode` responding on configured port: " .. configured_port, 0)
         end
       else
-        return find_server_inside_nvim_cwd().port
+        return find_server_in_nvim_cwd().port
       end
     end
     local initial_ok, initial_result = pcall(find_port_fn)

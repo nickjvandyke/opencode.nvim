@@ -25,7 +25,7 @@ local M = {}
 function M.command(command)
   require("opencode.cli.server")
     .get_port()
-    :next(function(port)
+    :next(function(port) ---@param port number
       -- No need to register SSE here - commands don't trigger any.
       -- (except maybe the `input_*` commands? but no reason for user to use those).
       require("opencode.cli.client").tui_execute_command(command, port)

@@ -238,7 +238,9 @@ function Context.format(args)
   if (args.buf and is_buf_valid(args.buf)) or args.path then
     local rel_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":.")
     -- Must be preceeded by @ and followed by space for `opencode` to parse as a file reference
-    result = "@" .. rel_path .. " "
+    -- TODO: Actually it regressed and doesn't do that anymore.
+    -- And in the meantime, the prefixed `@` seems to confuse it.
+    result = rel_path .. " "
   end
   if args.start_line and args.end_line and args.start_line > args.end_line then
     args.start_line, args.end_line = args.end_line, args.start_line
@@ -386,6 +388,10 @@ end
 ---The git diff (unified diff format).
 function Context:git_diff()
   local result = vim.system({ "git", "--no-pager", "diff" }, { text = true }):wait()
+  if result.code == 129 then
+    -- Not a git repository
+    return nil
+  end
   require("opencode.util").check_system_call(result, "git diff")
   if result.stdout == "" then
     return nil
