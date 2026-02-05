@@ -252,7 +252,7 @@ Please submit PRs adding new providers! 🙂
 | ------- | ------------------------ | ---------------------------- |
 | `<C-u>` | `session.half.page.up`   | Scroll up half page          |
 | `<C-d>` | `session.half.page.down` | Scroll down half page        |
-| `<Esc>` | `session.interrupt`      | Interrup (same as esc press) |
+| `<Esc>` | `session.interrupt`      | Interrupt                    |
 | `gg`    | `session.first`          | Go to first message          |
 | `G`     | `session.last`           | Go to last message           |
 
