@@ -47,10 +47,6 @@ function Terminal:start()
     local previous_win = vim.api.nvim_get_current_win()
 
     self.bufnr = vim.api.nvim_create_buf(true, false)
-    vim.api.nvim_set_option_value("filetype", "opencode_terminal", { buf = self.bufnr })
-    -- Neovim doesn't automatically trigger FileType autocommands for terminal buffers
-    vim.api.nvim_exec_autocmds("FileType", { pattern = "opencode_terminal" })
-
     self.winid = vim.api.nvim_open_win(self.bufnr, true, self.opts)
 
     -- Redraw terminal buffer on initial render.
@@ -64,6 +60,18 @@ function Terminal:start()
           vim.api.nvim_set_current_win(self.winid)
           vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
         end
+      end,
+    })
+
+    -- because jobsttart runs with term=true neovim converts the created buffer
+    -- into a terminal buffer which resets the keymap so we have to wait until the buffer
+    -- will become a terminal to apply our local keymaps
+    local bufnr = self.bufnr
+    vim.api.nvim_create_autocmd("TermOpen", {
+      buffer = bufnr,
+      once = true,
+      callback = function()
+        require("opencode.keymaps").apply(bufnr)
       end,
     })
 
