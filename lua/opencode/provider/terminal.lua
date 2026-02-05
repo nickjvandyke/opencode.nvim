@@ -66,12 +66,11 @@ function Terminal:start()
     -- because jobsttart runs with term=true neovim converts the created buffer
     -- into a terminal buffer which resets the keymap so we have to wait until the buffer
     -- will become a terminal to apply our local keymaps
-    local bufnr = self.bufnr
     vim.api.nvim_create_autocmd("TermOpen", {
-      buffer = bufnr,
+      buffer = self.bufnr,
       once = true,
-      callback = function()
-        require("opencode.keymaps").apply(bufnr)
+      callback = function(event)
+        require("opencode.keymaps").apply(event.buf)
       end,
     })
 
