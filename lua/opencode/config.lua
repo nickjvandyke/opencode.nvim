@@ -134,6 +134,9 @@ local defaults = {
       win = {
         position = "right",
         enter = false, -- Stay in the editor after opening the terminal
+        on_buf = function(win)
+          require("opencode.keymaps").apply(win.buf)
+        end,
         wo = {
           winbar = "", -- Title is unnecessary - `opencode` TUI has its own footer
         },
