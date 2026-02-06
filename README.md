@@ -79,17 +79,17 @@ programs.nixvim = {
 
 `opencode.nvim` replaces placeholders in prompts with the corresponding context:
 
-| Placeholder    | Context                                                       |
-| -------------- | ------------------------------------------------------------- |
-| `@this`          | Operator range or visual selection if any, else cursor position |
-| `@buffer`        | Current buffer                                              |
-| `@buffers`       | Open buffers                                                |
-| `@visible`       | Visible text                                                |
-| `@diagnostics`   | Current buffer diagnostics                                  |
-| `@quickfix`      | Quickfix list                                               |
-| `@diff`          | Git diff                                                    |
-| `@marks`         | Global marks                                                |
-| `@grapple`       | [grapple.nvim](https://github.com/cbochs/grapple.nvim) tags |
+| Placeholder    | Context                                                         |
+| -------------- | --------------------------------------------------------------- |
+| `@this`        | Operator range or visual selection if any, else cursor position |
+| `@buffer`      | Current buffer                                                  |
+| `@buffers`     | Open buffers                                                    |
+| `@visible`     | Visible text                                                    |
+| `@diagnostics` | Current buffer diagnostics                                      |
+| `@quickfix`    | Quickfix list                                                   |
+| `@diff`        | Git diff                                                        |
+| `@marks`       | Global marks                                                    |
+| `@grapple`     | [grapple.nvim](https://github.com/cbochs/grapple.nvim) tags     |
 
 ### Prompts
 
@@ -243,6 +243,19 @@ vim.g.opencode_opts = {
 </details>
 
 Please submit PRs adding new providers! 🙂
+
+#### Keymaps
+
+`opencode.nvim` sets these buffer-local keymaps in provider terminals for Neovim-like message navigation:
+
+| Keymap  | Command                  | Description                  |
+| ------- | ------------------------ | ---------------------------- |
+| `<C-u>` | `session.half.page.up`   | Scroll up half page          |
+| `<C-d>` | `session.half.page.down` | Scroll down half page        |
+| `<Esc>` | `session.interrupt`      | Interrupt                    |
+| `gg`    | `session.first`          | Go to first message          |
+| `G`     | `session.last`           | Go to last message           |
+
 
 ## 🚀 Usage
 
