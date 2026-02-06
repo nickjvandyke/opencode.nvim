@@ -48,6 +48,23 @@ local function generate_uuid()
   )
 end
 
+---Resolve the full URL for a given port and path, ensuring a valid hostname.
+---@param port number
+---@param path string
+---@return string
+local function resolve_server_url(port, path)
+  local config = require("opencode.config")
+  local hostname = config.opts.hostname
+  -- fallback to localhost as config is basically not validated
+  if not hostname or hostname == "" then
+    hostname = "localhost"
+  end
+  if not vim.startswith(path, "/") then
+    path = "/" .. path
+  end
+  return string.format("http://%s:%d%s", hostname, port, path)
+end
+
 ---@param url string
 ---@param method string
 ---@param body table|nil
@@ -69,6 +86,13 @@ local function curl(url, method, body, callback)
     "Accept: text/event-stream",
     "-N", -- No buffering, for streaming SSEs
   }
+
+  -- Add basic auth if credentials are available
+  local auth = require("opencode.config").opts.auth
+  if auth and auth.username and auth.password and auth.password ~= "" then
+    table.insert(command, "-u")
+    table.insert(command, auth.username .. ":" .. auth.password)
+  end
 
   if body then
     table.insert(command, "-d")
@@ -151,7 +175,8 @@ end
 ---@param callback fun(response: table)|nil
 ---@return number job_id
 function M.call(port, path, method, body, callback)
-  return curl("http://localhost:" .. port .. path, method, body, callback)
+  local url = resolve_server_url(port, path)
+  return curl(url, method, body, callback)
 end
 
 ---@param text string
@@ -260,15 +285,26 @@ end
 function M.get_path(port)
   -- Query each port synchronously for working directory
   -- TODO: Migrate to align with async paradigm used elsewhere
-  local curl_result = vim
-    .system({
-      "curl",
-      "-s",
-      "--connect-timeout",
-      "1",
-      "http://localhost:" .. port .. "/path",
-    })
-    :wait()
+  local curl_cmd = {
+    "curl",
+    "-s",
+    "--connect-timeout",
+    "1",
+  }
+
+  local config = require("opencode.config")
+
+  -- Add basic auth if credentials are available
+  local auth = config.opts.auth
+  if auth and auth.username and auth.password and auth.password ~= "" then
+    table.insert(curl_cmd, "-u")
+    table.insert(curl_cmd, auth.username .. ":" .. auth.password)
+  end
+
+  local url = resolve_server_url(port, "/path")
+  table.insert(curl_cmd, url)
+
+  local curl_result = vim.system(curl_cmd):wait()
   require("opencode.util").check_system_call(curl_result, "curl")
 
   local path_ok, path_data = pcall(vim.fn.json_decode, curl_result.stdout)

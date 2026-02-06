@@ -18,6 +18,14 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---If set, `opencode.nvim` will append `--port <port>` to `provider.cmd`.
 ---@field port? number
 ---
+---The hostname `opencode` server is running on.
+---Defaults to `127.0.0.1`.
+---@field hostname? string
+---
+---Authentication configuration for the `opencode` server.
+---If not set, will check for `OPENCODE_SERVER_PASSWORD` and `OPENCODE_SERVER_USERNAME` environment variables.
+---@field auth? opencode.auth.Opts
+---
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
 ---
@@ -38,6 +46,10 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Provide an integrated `opencode` when one is not found.
 ---@field provider? opencode.Provider|opencode.provider.Opts
 
+---@class opencode.auth.Opts
+---@field username? string The username for HTTP basic auth. Defaults to `opencode` if password is set.
+---@field password? string The password for HTTP basic auth.
+
 ---@class opencode.Prompt : opencode.api.prompt.Opts
 ---@field prompt string The prompt to send to `opencode`.
 ---@field ask? boolean Call `ask(prompt)` instead of `prompt(prompt)`. Useful for prompts that expect additional user input.
@@ -45,6 +57,11 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@type opencode.Opts
 local defaults = {
   port = nil,
+  hostname = "127.0.0.1",
+  auth = vim.env.OPENCODE_SERVER_PASSWORD and {
+    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode",
+    password = vim.env.OPENCODE_SERVER_PASSWORD,
+  } or nil,
   -- stylua: ignore
   contexts = {
     ["@this"] = function(context) return context:this() end,
@@ -172,6 +189,14 @@ local defaults = {
 ---Plugin options, lazily merged from `defaults` and `vim.g.opencode_opts`.
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
+
+if M.opts.auth then
+  if not M.opts.auth.password or M.opts.auth.password == "" then
+    M.opts.auth = nil
+  elseif not M.opts.auth.username then
+    M.opts.auth.username = "opencode"
+  end
+end
 
 -- Allow removing default `contexts` and `prompts` by setting them to `false` in your user config.
 -- TODO: Add to type definition, and apply to `opts.select.commands`.
