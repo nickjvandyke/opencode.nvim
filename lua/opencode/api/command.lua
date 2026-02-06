@@ -24,11 +24,11 @@ local M = {}
 ---@param command opencode.Command|string The command to send. Can be built-in or reference your custom commands.
 function M.command(command)
   require("opencode.cli.server")
-    .get_port()
-    :next(function(port) ---@param port number
+    .get()
+    :next(function(server) ---@param server opencode.cli.server.Server
       -- No need to register SSE here - commands don't trigger any.
       -- (except maybe the `input_*` commands? but no reason for user to use those).
-      require("opencode.cli.client").tui_execute_command(command, port)
+      require("opencode.cli.client").tui_execute_command(command, server.port)
     end)
     :catch(function(err)
       vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })

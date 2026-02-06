@@ -100,6 +100,7 @@ local defaults = {
         ["prompt.clear"] = "Clear the current prompt",
       },
       provider = true,
+      server = true,
     },
     snacks = {
       preview = "preview",

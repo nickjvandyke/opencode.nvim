@@ -1,4 +1,5 @@
----https://github.com/notomo/promise.nvim
+-- https://github.com/notomo/promise.nvim with modifications.
+-- Considering migrating to [Lua coroutines](https://gregorias.github.io/posts/using-coroutines-in-neovim-lua/).
 
 ---@diagnostic disable: invisible
 local vim = vim
@@ -28,6 +29,8 @@ function PackedValue.first(self)
   return first
 end
 
+---Equivalent to [JavaScript's `Promise`.](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
+---
 ---@class Promise<T>
 ---@field private _status "pending"|"fulfilled"|"rejected"
 ---@field private _value any
@@ -79,7 +82,7 @@ local new_pending = function(on_fullfilled, on_rejected)
   return self
 end
 
----Equivalents to JavaScript's `Promise.new`.
+---Equivalent to JavaScript's `Promise.new`.
 ---@generic T
 ---@param executor fun(resolve: fun(...:T), reject: fun(...:any))
 ---@return Promise<T>
@@ -111,7 +114,7 @@ end
 ---Returns a fulfilled promise.
 ---But if the first argument is promise, returns the promise.
 ---@generic T
----@param ... T One promise or non-promises
+---@param ... T | Promise<T>
 ---@return Promise<T>
 function Promise.resolve(...)
   local first = ...
@@ -127,7 +130,7 @@ end
 ---Returns a rejected promise.
 ---But if the first argument is promise, returns the promise.
 ---@generic T
----@param ... T One promise or non-promises
+---@param ... T | Promise<T>
 ---@return Promise<T>
 function Promise.reject(...)
   local first = ...
@@ -219,11 +222,11 @@ function Promise._start_reject(self, value)
     end)
 end
 
----Equivalents to JavaScript's `Promise.then`.
+---Equivalent to JavaScript's `Promise.then`.
 ---@generic T, U
 ---@param self Promise<T>
----@param on_fullfilled (fun(...:T): U | nil)? Callback on fulfilled
----@param on_rejected (fun(...:any): U | nil)? Callback on rejected
+---@param on_fullfilled (fun(...:T): U | Promise<U> | nil)?
+---@param on_rejected (fun(...:any): U | Promise<U> | nil)?
 ---@return Promise<U>
 function Promise.next(self, on_fullfilled, on_rejected)
   local promise = new_pending(on_fullfilled, on_rejected)
@@ -239,16 +242,16 @@ function Promise.next(self, on_fullfilled, on_rejected)
   return promise
 end
 
----Equivalents to JavaScript's `Promise.catch`.
+---Equivalent to JavaScript's `Promise.catch`.
 ---@generic T, U
 ---@param self Promise<T>
----@param on_rejected fun(...:any): U | nil
+---@param on_rejected fun(...:any): U | Promise<U> | nil
 ---@return Promise<U>
 function Promise.catch(self, on_rejected)
   return self:next(nil, on_rejected)
 end
 
----Equivalents to JavaScript's `Promise.finally`.
+---Equivalent to JavaScript's `Promise.finally`.
 ---@generic T
 ---@param self Promise<T>
 ---@param on_finally fun()
@@ -265,10 +268,10 @@ function Promise.finally(self, on_finally)
     end)
 end
 
----Equivalents to JavaScript's `Promise.all`.
+---Equivalent to JavaScript's `Promise.all`.
 ---Even if multiple value are resolved, results include only the first value.
 ---@generic T
----@param list T[] Promise or non-promise values
+---@param list (T | Promise<T>)[]
 ---@return Promise<T[]>
 function Promise.all(list)
   return Promise.new(function(resolve, reject)
@@ -295,9 +298,9 @@ function Promise.all(list)
   end)
 end
 
----Equivalents to JavaScript's `Promise.race`.
+---Equivalent to JavaScript's `Promise.race`.
 ---@generic T
----@param list T[] Promise or non-promise values
+---@param list (T | Promise<T>)[]
 ---@return Promise<T>
 function Promise.race(list)
   return Promise.new(function(resolve, reject)
@@ -313,10 +316,10 @@ function Promise.race(list)
   end)
 end
 
----Equivalents to JavaScript's `Promise.any`.
+---Equivalent to JavaScript's `Promise.any`.
 ---Even if multiple value are rejected, errors include only the first value.
 ---@generic T
----@param list T[] Promise or non-promise values
+---@param list (T | Promise<T>)[]
 ---@return Promise<T>
 function Promise.any(list)
   return Promise.new(function(resolve, reject)
@@ -343,10 +346,10 @@ function Promise.any(list)
   end)
 end
 
----Equivalents to JavaScript's `Promise.allSettled`.
+---Equivalent to JavaScript's `Promise.allSettled`.
 ---Even if multiple value are resolved/rejected, value/reason is only the first value.
 ---@generic T
----@param list T[] Promise or non-promise values
+---@param list (T | Promise<T>)[]
 ---@return Promise<{status: string, value?: T, reason?: any}[]>
 function Promise.all_settled(list)
   return Promise.new(function(resolve)
@@ -376,7 +379,7 @@ function Promise.all_settled(list)
   end)
 end
 
----Equivalents to JavaScript's `Promise.withResolvers`.
+---Equivalent to JavaScript's `Promise.withResolvers`.
 ---@generic T
 ---@return Promise<T>, fun(...:T), fun(...:any)
 function Promise.with_resolvers()
@@ -387,5 +390,8 @@ function Promise.with_resolvers()
   end)
   return promise, resolve, reject
 end
+
+Promise.select = require("opencode.promise.ui").select
+Promise.input = require("opencode.promise.ui").input
 
 return Promise

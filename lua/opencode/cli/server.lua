@@ -1,10 +1,10 @@
 local M = {}
 
----An `opencode` server process.
----@class opencode.cli.server.Server : opencode.cli.server.Process
----
----Populated by calling the server's `/path` endpoint at `port`.
+---An `opencode` server process and some details about it.
+---@class opencode.cli.server.Server
+---@field port number
 ---@field cwd string
+---@field title string
 
 ---An `opencode` process.
 ---Retrieval is platform-dependent.
@@ -83,163 +83,205 @@ ForEach-Object {
   return processes
 end
 
----@return opencode.cli.server.Server[]
-local function find_servers()
-  local processes
-  if is_windows() then
-    processes = get_processes_windows()
-  else
-    processes = get_processes_unix()
-  end
-  if #processes == 0 then
-    error("No `opencode` processes found", 0)
-  end
-  -- Filter out processes that aren't valid opencode servers.
-  -- pgrep -f 'opencode' may match other processes (e.g., language servers
-  -- started by opencode) that have 'opencode' in their path or arguments.
-  ---@type opencode.cli.server.Server[]
-  local servers = {}
-  for _, process in ipairs(processes) do
-    local ok, path = pcall(require("opencode.cli.client").get_path, process.port)
-    if ok then
-      table.insert(servers, {
-        pid = process.pid,
-        port = process.port,
-        cwd = path.directory or path.worktree,
-      })
-    end
-  end
-  if #servers == 0 then
-    error("No valid `opencode` servers found", 0)
-  end
-  return servers
-end
-
-local function is_descendant_of_neovim(pid)
-  local neovim_pid = vim.fn.getpid()
-  local current_pid = pid
-  -- Walk up because the way some shells launch processes,
-  -- Neovim will not be the direct parent.
-  for _ = 1, 10 do -- limit to 10 steps to avoid infinite loop
-    local ps = vim.system({ "ps", "-o", "ppid=", "-p", tostring(current_pid) }, { text = true }):wait()
-    require("opencode.util").check_system_call(ps, "ps")
-    local parent_pid = tonumber(ps.stdout)
-    if not parent_pid then
-      return false
-    end
-    if parent_pid == 1 then
-      return false
-    elseif parent_pid == neovim_pid then
-      return true
-    end
-    current_pid = parent_pid
-  end
-  return false
-end
-
----@return opencode.cli.server.Server
-local function find_server_in_nvim_cwd()
-  local found_server
-  local nvim_cwd = vim.fn.getcwd()
-  for _, server in ipairs(find_servers()) do
-    local normalized_server_cwd = server.cwd
-    local normalized_nvim_cwd = nvim_cwd
-    if is_windows() then
-      -- On Windows, normalize to backslashes for consistent comparison
-      normalized_server_cwd = server.cwd:gsub("/", "\\")
-      normalized_nvim_cwd = nvim_cwd:gsub("/", "\\")
-    end
-    if normalized_nvim_cwd == normalized_server_cwd then
-      found_server = server
-      -- On Unix, prioritize embedded
-      if not is_windows() and is_descendant_of_neovim(server.pid) then
-        break
-      end
-    end
-  end
-  if not found_server then
-    error("No `opencode` servers in Neovim's CWD", 0)
-  end
-  return found_server
-end
-
----@param fn fun(): number Function that checks for the port.
----@param callback fun(ok: boolean, result: any) Called with eventually found port or error if not found after some time.
-local function poll_for_port(fn, callback)
-  local retries = 0
-  local timer = vim.uv.new_timer()
-  if not timer then
-    callback(false, "Failed to create timer for polling `opencode` port")
-    return
-  end
-  local timer_closed = false
-  -- TODO: Suddenly with opentui release,
-  -- on startup it seems the port can be available but too quickly calling it will no-op?
-  -- Increasing delay for now to mitigate. But more reliable fix may be needed.
-  timer:start(
-    500,
-    500,
-    vim.schedule_wrap(function()
-      if timer_closed then
-        return
-      end
-      local ok, find_port_result = pcall(fn)
-      if ok or retries >= 5 then
-        timer_closed = true
-        timer:stop()
-        timer:close()
-        callback(ok, find_port_result)
-      else
-        retries = retries + 1
-      end
+---@param port number
+---@return Promise<opencode.cli.server.Server>
+local function get_server(port)
+  local Promise = require("opencode.promise")
+  return Promise
+    .new(function(resolve, reject)
+      require("opencode.cli.client").get_path(port, function(path)
+        local cwd = path.directory or path.worktree
+        if cwd then
+          resolve(cwd)
+        else
+          reject("No `opencode` responding on port: " .. port)
+        end
+      end, function()
+        reject("No `opencode` responding on port: " .. port)
+      end)
     end)
-  )
+    -- Serial instead of parallel so that `get_path` has verified it's a server
+    :next(
+      function(cwd) ---@param cwd string
+        return Promise.new(function(resolve)
+          require("opencode.cli.client").get_sessions(port, function(session)
+            -- This will be the most recently interacted session.
+            -- Unfortunately `opencode` doesn't provide a way to get the currently selected TUI session.
+            -- But they will probably have interacted with the session they want to connect to most recently.
+            local title = session[1] and session[1].title or "<No sessions>"
+            resolve({ cwd, title })
+          end)
+        end)
+      end
+    )
+    :next(function(results) ---@param results { [1]: string, [2]: string }
+      local cwd = results[1]
+      local title = results[2]
+      return {
+        port = port,
+        cwd = cwd,
+        title = title,
+      }
+    end)
+end
+
+---@return Promise<opencode.cli.server.Server[]>
+local function get_all_servers()
+  local Promise = require("opencode.promise")
+  return Promise.new(function(resolve, reject)
+    local processes
+    if is_windows() then
+      processes = get_processes_windows()
+    else
+      processes = get_processes_unix()
+    end
+    if #processes == 0 then
+      reject("No `opencode` processes found")
+    else
+      resolve(processes)
+    end
+  end):next(function(processes) ---@param processes opencode.cli.server.Process[]
+    local get_servers = vim.tbl_map(function(process) ---@param process opencode.cli.server.Process
+      return get_server(process.port)
+    end, processes)
+    return Promise.all_settled(get_servers):next(function(results)
+      local servers = {}
+      for _, result in ipairs(results) do
+        -- We expect non-servers to reject
+        if result.status == "fulfilled" then
+          table.insert(servers, result.value)
+        end
+      end
+      if #servers == 0 then
+        error("No `opencode` servers found", 0)
+      end
+      return servers
+    end)
+  end)
+end
+
+---@return Promise<opencode.cli.server.Server[]>
+local function get_all_servers_in_nvim_cwd()
+  return get_all_servers():next(function(servers) ---@param servers opencode.cli.server.Server[]
+    local cwd_matching_servers = {}
+    local nvim_cwd = vim.fn.getcwd()
+    for _, server in ipairs(servers) do
+      -- Filter for servers in the same CWD as Neovim
+      local normalized_server_cwd = server.cwd
+      local normalized_nvim_cwd = nvim_cwd
+      if is_windows() then
+        -- On Windows, normalize to backslashes for consistent comparison
+        normalized_server_cwd = server.cwd:gsub("/", "\\")
+        normalized_nvim_cwd = nvim_cwd:gsub("/", "\\")
+      end
+      if normalized_nvim_cwd == normalized_server_cwd then
+        table.insert(cwd_matching_servers, server)
+      end
+    end
+    if #cwd_matching_servers == 0 then
+      error("No `opencode` servers found in Neovim's CWD: " .. nvim_cwd, 0)
+    end
+    return cwd_matching_servers
+  end)
+end
+
+---@return Promise<opencode.cli.server.Server>
+local function get_configured_server()
+  local configured_port = require("opencode.config").opts.port
+  if configured_port then
+    return get_server(configured_port)
+  else
+    return require("opencode.promise").reject("No configured port for `opencode` server")
+  end
+end
+
+---@return Promise<opencode.cli.server.Server>
+local function get_subscribed_server()
+  local subscribed_server = require("opencode.events").subscribed_server
+  if subscribed_server then
+    -- The events module unsubscribes when the server disconnects or its heartbeart disappears,
+    -- so the test should never reallllly fail. But doesn't hurt.
+    return get_server(subscribed_server.port)
+  else
+    return require("opencode.promise").reject("No currently subscribed `opencode` server")
+  end
 end
 
 ---Attempt to get the `opencode` server's port. Tries, in order:
----1. A process responding on `opts.port`.
----2. Any `opencode` process running in Neovim's CWD. Prioritizes embedded.
----3. Calling `opts.provider.start` and polling for the port.
+---
+---1. The currently subscribed server in `opencode.events`.
+---2. The configured port in `require("opencode.config").opts.port`.
+---3. Any server in Neovim's CWD, prompting the user to select if multiple are found.
+---4. Calling `require("opencode.provider").start()` to launch a new server, then retrying the above.
+---
+---Upon success, subscribes to the server's events.
 ---
 ---@param launch boolean? Whether to launch a new server if none found. Defaults to true.
----@return Promise<number>
-function M.get_port(launch)
+---@return Promise<opencode.cli.server.Server>
+function M.get(launch)
   launch = launch ~= false
-  return require("opencode.promise").new(function(resolve, reject)
-    local configured_port = require("opencode.config").opts.port
-    local find_port_fn = function()
-      if configured_port then
-        -- Test the configured port
-        local ok, path = pcall(require("opencode.cli.client").get_path, configured_port)
-        if ok and path then
-          return configured_port
+
+  local Promise = require("opencode.promise")
+  return get_subscribed_server()
+    :catch(get_configured_server)
+    :catch(M.select)
+    :catch(function(err)
+      if not err then
+        -- Do nothing when select is cancelled
+        return Promise.reject()
+      end
+
+      return Promise.new(function(resolve, reject)
+        if launch then
+          local start_ok, start_result = pcall(require("opencode.provider").start)
+          if not start_ok then
+            return reject("Error starting `opencode`: " .. start_result)
+          end
+
+          -- Wait for the provider to start
+          vim.defer_fn(function()
+            resolve(true)
+          end, 2000)
         else
-          error("No `opencode` responding on configured port: " .. configured_port, 0)
+          -- Don't attempt to recover, just propagate the original error
+          reject(err)
         end
-      else
-        return find_server_in_nvim_cwd().port
-      end
-    end
-    local initial_ok, initial_result = pcall(find_port_fn)
-    if initial_ok then
-      resolve(initial_result)
-      return
-    end
-    if launch then
-      vim.notify(initial_result .. " — starting `opencode`…", vim.log.levels.INFO, { title = "opencode" })
-      local start_ok, start_result = pcall(require("opencode.provider").start)
-      if not start_ok then
-        reject("Error starting `opencode`: " .. start_result)
-        return
-      end
-    end
-    poll_for_port(find_port_fn, function(ok, result)
-      if ok then
-        resolve(result)
-      else
-        reject(result)
-      end
+      end):next(function()
+        -- Retry
+        return M.get(false)
+      end)
     end)
+    :next(function(server) ---@param server opencode.cli.server.Server
+      require("opencode.events").subscribe(server)
+      return server
+    end)
+end
+
+---@param auto_select_if_one boolean?
+---@return Promise<opencode.cli.server.Server>
+function M.select(auto_select_if_one)
+  local Promise = require("opencode.promise")
+  return get_all_servers_in_nvim_cwd():next(function(servers) ---@param servers opencode.cli.server.Server[]
+    if auto_select_if_one and #servers == 1 then
+      -- TODO: Is this the best composition?
+      -- Between its use here and in the ui module.
+      return servers[1]
+    end
+
+    local picker_opts = {
+      prompt = "Select an `opencode` server:",
+      format_item = function(server) ---@param server opencode.cli.server.Server
+        return string.format("%s | %s | %d", server.title or "<No sessions>", server.cwd, server.port)
+      end,
+      snacks = {
+        layout = {
+          hidden = { "preview" },
+        },
+      },
+    }
+    picker_opts = vim.tbl_deep_extend("keep", picker_opts, require("opencode.config").opts.select or {})
+
+    return Promise.select(servers, picker_opts)
   end)
 end
 

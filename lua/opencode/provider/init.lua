@@ -71,7 +71,6 @@ function M.toggle()
   local provider = require("opencode.config").provider
   if provider and provider.toggle then
     provider:toggle()
-    require("opencode.events").subscribe()
   else
     error("`provider.toggle` unavailable — run `:checkhealth opencode` for details", 0)
   end
@@ -81,8 +80,8 @@ end
 function M.start()
   local provider = require("opencode.config").provider
   if provider and provider.start then
+    -- TODO: Subscribe immediately
     provider:start()
-    require("opencode.events").subscribe()
   else
     error("`provider.start` unavailable — run `:checkhealth opencode` for details", 0)
   end

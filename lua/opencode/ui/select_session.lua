@@ -12,7 +12,10 @@ end
 
 function M.select_session()
   require("opencode.cli.server")
-    .get_port()
+    .get()
+    :next(function(server) ---@param server opencode.cli.server.Server
+      return server.port
+    end)
     :next(function(port) ---@param port number
       return require("opencode.promise").new(function(resolve)
         require("opencode.cli.client").get_sessions(port, function(sessions)

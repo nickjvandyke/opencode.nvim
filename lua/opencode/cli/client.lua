@@ -3,13 +3,6 @@
 --- - [implementation](https://github.com/sst/opencode/blob/dev/packages/opencode/src/server/server.ts)
 local M = {}
 
-local sse_state = {
-  -- Track the port - `opencode` may have restarted, usually on a new port
-  port = nil,
-  ---@type number|nil
-  job_id = nil,
-}
-
 ---Generate a UUID v4 (cross-platform, no external dependencies)
 ---@return string UUID in format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
 local function generate_uuid()
@@ -50,10 +43,11 @@ end
 
 ---@param url string
 ---@param method string
----@param body table|nil
----@param callback fun(response: table)|nil
+---@param body table?
+---@param on_success fun(response: table)?
+---@param on_error fun(code: number, msg: string?)?
 ---@return number job_id
-local function curl(url, method, body, callback)
+local function curl(url, method, body, on_success, on_error)
   local command = {
     "curl",
     "-s",
@@ -86,8 +80,8 @@ local function curl(url, method, body, callback)
       vim.schedule(function()
         local ok, response = pcall(vim.fn.json_decode, full_event)
         if ok then
-          if callback then
-            callback(response)
+          if on_success then
+            on_success(response)
           end
         else
           vim.notify(
@@ -132,12 +126,17 @@ local function curl(url, method, body, callback)
         -- Process any remaining buffered data.
         process_response_buffer()
       elseif code ~= 18 and code ~= 143 then
-        -- 18 = connection closed, 143 = SIGTERM (manual disconnect)
-        local error_message = "curl command failed with exit code: "
-          .. code
-          .. "\nstderr:\n"
-          .. (#stderr_lines > 0 and table.concat(stderr_lines, "\n") or "<none>")
-        vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
+        local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
+        if on_error then
+          on_error(code, stderr_message)
+        else
+          -- 18 = connection closed, 143 = SIGTERM (manual disconnect)
+          local error_message = "curl command failed with exit code: "
+            .. code
+            .. "\nstderr:\n"
+            .. (stderr_message or "<none>")
+          vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
+        end
       end
     end,
   })
@@ -147,11 +146,12 @@ end
 ---@param port number
 ---@param path string
 ---@param method "GET"|"POST"
----@param body table|nil
----@param callback fun(response: table)|nil
+---@param body table?
+---@param on_success fun(response: table)?
+---@param on_error fun(code: number, msg: string?)?
 ---@return number job_id
-function M.call(port, path, method, body, callback)
-  return curl("http://localhost:" .. port .. path, method, body, callback)
+function M.call(port, path, method, body, on_success, on_error)
+  return curl("http://localhost:" .. port .. path, method, body, on_success, on_error)
 end
 
 ---@param text string
@@ -243,6 +243,16 @@ function M.get_sessions(port, callback)
   M.call(port, "/session", "GET", nil, callback)
 end
 
+---@class opencode.cli.client.SessionStatus
+
+---Get sessions' status from `opencode`.
+---
+---@param port number
+---@param callback fun(statuses: opencode.cli.client.SessionStatus[])
+function M.get_sessions_status(port, callback)
+  M.call(port, "/session/status", "GET", nil, callback)
+end
+
 ---Select session in `opencode`.
 ---
 ---@param port number
@@ -256,27 +266,10 @@ end
 ---@field worktree string
 
 ---@param port number
----@return opencode.cli.client.PathResponse
-function M.get_path(port)
-  -- Query each port synchronously for working directory
-  -- TODO: Migrate to align with async paradigm used elsewhere
-  local curl_result = vim
-    .system({
-      "curl",
-      "-s",
-      "--connect-timeout",
-      "1",
-      "http://localhost:" .. port .. "/path",
-    })
-    :wait()
-  require("opencode.util").check_system_call(curl_result, "curl")
-
-  local path_ok, path_data = pcall(vim.fn.json_decode, curl_result.stdout)
-  if path_ok and (path_data.directory or path_data.worktree) then
-    return path_data
-  else
-    error("Failed to parse `opencode` CWD data: " .. curl_result.stdout, 0)
-  end
+---@param on_success fun(response: opencode.cli.client.PathResponse)
+---@param on_error fun()
+function M.get_path(port, on_success, on_error)
+  M.call(port, "/path", "GET", nil, on_success, on_error)
 end
 
 ---@class opencode.cli.client.Event
@@ -288,28 +281,9 @@ end
 ---
 ---@param port number
 ---@param callback fun(response: opencode.cli.client.Event)|nil
+---@return number job_id
 function M.sse_subscribe(port, callback)
-  if sse_state.port ~= port then
-    if sse_state.job_id then
-      vim.fn.jobstop(sse_state.job_id)
-    end
-
-    sse_state = {
-      port = port,
-      job_id = M.call(port, "/event", "GET", nil, callback),
-    }
-  end
-end
-
-function M.sse_unsubscribe()
-  if sse_state.job_id then
-    vim.fn.jobstop(sse_state.job_id)
-  end
-
-  sse_state = {
-    port = nil,
-    job_id = nil,
-  }
+  return M.call(port, "/event", "GET", nil, callback)
 end
 
 return M
