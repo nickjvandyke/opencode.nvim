@@ -24,7 +24,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 
 ```lua
 {
-  "NickvanDyke/opencode.nvim",
+  "nickjvandyke/opencode.nvim",
   dependencies = {
     -- Recommended for `ask()` and `select()`.
     -- Required for `snacks` provider.
