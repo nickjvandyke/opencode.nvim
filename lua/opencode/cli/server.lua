@@ -157,6 +157,15 @@ local function find_server_in_nvim_cwd()
       end
     end
   end
+
+  -- Fallback: try provider-specific discovery
+  if not found_server then
+    local provider = require("opencode.config").provider
+    if provider and provider.find_server then
+      found_server = provider:find_server()
+    end
+  end
+
   if not found_server then
     error("No `opencode` servers in Neovim's CWD", 0)
   end
@@ -198,8 +207,9 @@ end
 
 ---Attempt to get the `opencode` server's port. Tries, in order:
 ---1. A process responding on `opts.port`.
----2. Any `opencode` process running in Neovim's CWD. Prioritizes embedded.
----3. Calling `opts.provider.start` and polling for the port.
+---2. Any `opencode` process running inside Neovim's CWD. Prioritizes embedded.
+---3. Provider-specific discovery (e.g., tmux sibling panes).
+---4. Calling `opts.provider.start` and polling for the port.
 ---
 ---@param launch boolean? Whether to launch a new server if none found. Defaults to true.
 ---@return Promise<number>
