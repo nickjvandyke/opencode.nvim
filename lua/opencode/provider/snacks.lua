@@ -4,6 +4,8 @@
 ---@class opencode.provider.Snacks : opencode.Provider
 ---
 ---@field opts snacks.terminal.Opts
+---@field private _job_id number|nil
+---@field private _pid number|nil
 local Snacks = {}
 Snacks.__index = Snacks
 Snacks.name = "snacks"
@@ -15,6 +17,8 @@ Snacks.name = "snacks"
 function Snacks.new(opts)
   local self = setmetatable({}, Snacks)
   self.opts = opts or {}
+  self._job_id = nil
+  self._pid = nil
   return self
 end
 
@@ -44,19 +48,55 @@ end
 
 function Snacks:toggle()
   require("snacks.terminal").toggle(self.cmd, self.opts)
+  -- Capture the job ID and PID after terminal opens (may be a new terminal)
+  vim.defer_fn(function()
+    local win = self:get()
+    if win and win.buf and vim.api.nvim_buf_is_valid(win.buf) then
+      self._job_id = vim.b[win.buf].terminal_job_id
+      if self._job_id then
+        pcall(function()
+          self._pid = vim.fn.jobpid(self._job_id)
+        end)
+      end
+    end
+  end, 100)
 end
 
 function Snacks:start()
   if not self:get() then
     require("snacks.terminal").open(self.cmd, self.opts)
+    -- Capture the job ID and PID after terminal opens
+    vim.defer_fn(function()
+      local win = self:get()
+      if win and win.buf and vim.api.nvim_buf_is_valid(win.buf) then
+        self._job_id = vim.b[win.buf].terminal_job_id
+        if self._job_id then
+          pcall(function()
+            self._pid = vim.fn.jobpid(self._job_id)
+          end)
+        end
+      end
+    end, 100)
   end
 end
 
 function Snacks:stop()
+  -- Kill via PID using shell kill (most reliable during VimLeavePre,
+  -- as vim.uv.kill and jobstop may not work when Neovim is shutting down)
+  if self._pid then
+    vim.fn.system("kill -TERM " .. self._pid .. " 2>/dev/null")
+    self._pid = nil
+  end
+
+  -- Also try jobstop as a fallback
+  if self._job_id then
+    pcall(vim.fn.jobstop, self._job_id)
+    self._job_id = nil
+  end
+
+  -- Close the window via snacks
   local win = self:get()
   if win then
-    -- TODO: Stop the job first so we don't get error exit code.
-    -- Not sure how to get the job ID from snacks API though.
     win:close()
   end
 end

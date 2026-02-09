@@ -88,6 +88,12 @@ end
 
 ---Close the window, delete the buffer.
 function Terminal:stop()
+  if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
+    local job_id = vim.b[self.bufnr].terminal_job_id
+    if job_id then
+      vim.fn.jobstop(job_id)
+    end
+  end
   if self.winid ~= nil and vim.api.nvim_win_is_valid(self.winid) then
     vim.api.nvim_win_close(self.winid, true)
     self.winid = nil
