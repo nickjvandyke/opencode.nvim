@@ -222,7 +222,12 @@ function M.get(launch)
   local Promise = require("opencode.promise")
   return get_connected_server()
     :catch(get_configured_server)
-    :catch(M.select)
+    :catch(function(err)
+      if require("opencode.config").opts.port then
+        return Promise.reject(err)
+      end
+      return M.select(err)
+    end)
     :catch(function(err)
       if not err then
         -- Do nothing when select is cancelled
