@@ -34,7 +34,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
   config = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
-      -- Your configuration, if any — see `lua/opencode/config.lua`, or "goto definition" on the type or field.
+      -- Your configuration, if any. Goto definition on the type or field for details.
     }
 
     -- Required for `opts.events.reload`.
@@ -266,7 +266,10 @@ Input a prompt for `opencode`.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-  - Registers `opts.ask.blink_cmp_sources` when using `snacks.input` and `blink.cmp`.
+- End the prompt with `\n` to append instead of submit.
+- Additionally, when using `snacks.input`:
+  - Press `<C-CR>` to append instead of submit. 
+  - When using `blink.cmp`, registers `opts.ask.blink_cmp_sources`.
 
 ### 📝 Select — `require("opencode").select()`
 

@@ -6,7 +6,10 @@ local M = {}
 --- - Press the up arrow to browse recent asks.
 --- - Highlights and completes contexts and `opencode` subagents.
 ---   - Press `<Tab>` to trigger built-in completion.
----   - Registers `opts.ask.blink_cmp_sources` when using `snacks.input` and `blink.cmp`.
+--- - End the prompt with `\n` to append instead of submit.
+--- - Additionally, when using `snacks.input`:
+---   - Press `<C-CR>` to append instead of submit.
+---   - When using `blink.cmp`, registers `opts.ask.blink_cmp_sources`.
 ---
 ---@param default? string Text to pre-fill the input with.
 ---@param opts? opencode.api.prompt.Opts Options for `prompt()`.
@@ -17,6 +20,16 @@ M.ask = function(default, opts)
   return require("opencode.ui.ask")
     .ask(default, opts.context)
     :next(function(input) ---@param input string
+      -- TODO: Should we remove `opts.clear` and `opts.submit` in favor of just checking if the input ends with `\n`?
+      -- (maybe even in `prompt()` itself?)
+      -- Confusing to have both.
+      -- I think it's better, but don't love the breaking change.
+      -- Although for most users, I imagine they just use `opts.submit = false` and thus won't be affected.
+      if input:sub(-2) == "\\n" then
+        input = input:sub(1, -3)
+        opts.clear = false
+        opts.submit = false
+      end
       opts.context:clear()
       return require("opencode.api.prompt").prompt(input, opts)
     end)
