@@ -26,7 +26,7 @@ M.ask = function(default, opts)
       -- I think it's better, but don't love the breaking change.
       -- Although for most users, I imagine they just use `opts.submit = false` and thus won't be affected.
       if input:sub(-2) == "\\n" then
-        input = input:sub(1, -3)
+        input = input:sub(1, -3) .. "\n" -- Remove the escaped `\n` and add an actual newline character for `opencode` to interpret.
         opts.clear = false
         opts.submit = false
       end
