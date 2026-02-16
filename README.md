@@ -27,7 +27,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
   "nickjvandyke/opencode.nvim",
   dependencies = {
     {
-      -- Optional, but recommended.
+      -- `snacks.nvim` integration is recommended, but optional.
       ---@module 'snacks' <- Loads `snacks.nvim` types for configuration intellisense.
       "folke/snacks.nvim",
       optional = true,
@@ -47,7 +47,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
             },
           },
         },
-        -- Required for `snacks` provider.
+        -- Enables the `snacks` provider.
         terminal = {}
       }
     },
