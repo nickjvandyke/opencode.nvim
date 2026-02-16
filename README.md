@@ -25,6 +25,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 ```lua
 {
   "nickjvandyke/opencode.nvim",
+  version = "*", -- Latest stable release.
   dependencies = {
     {
       -- `snacks.nvim` integration is recommended, but optional.
@@ -55,7 +56,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
   config = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
-      -- Your configuration, if any. Goto definition on the type or field for details.
+      -- Your configuration, if any; goto definition on the type or field for details.
     }
 
     -- Required for `opts.events.reload`.
