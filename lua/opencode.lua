@@ -1,6 +1,10 @@
 ---`opencode.nvim` public API.
 local M = {}
 
+----------
+--- UI ---
+----------
+
 ---Input a prompt for `opencode`.
 ---
 --- - Press the up arrow to browse recent asks.
@@ -39,6 +43,7 @@ M.ask = function(default, opts)
       end
     end)
 end
+
 ---Select from all `opencode.nvim` functionality.
 ---
 --- - Prompts
@@ -57,6 +62,7 @@ M.select = function(opts)
     end
   end)
 end
+
 ---Select the active `opencode` session.
 M.select_session = function()
   return require("opencode.ui.select_session")
@@ -70,6 +76,7 @@ M.select_session = function()
       end
     end)
 end
+
 ---Select an `opencode` server to connect to,
 ---sending future requests to it and subscribing to its events.
 M.select_server = function()
@@ -90,6 +97,12 @@ M.select_server = function()
     end)
 end
 
+M.statusline = require("opencode.status").statusline
+
+------------------------
+--- Programmatic API ---
+------------------------
+
 ---Prompt `opencode`.
 ---
 --- - Resolves `prompt` if it references an `opts.prompts` entry by name.
@@ -105,6 +118,7 @@ M.prompt = function(prompt, opts)
     end
   end)
 end
+
 ---Command `opencode`.
 ---
 ---@param command opencode.Command|string The command to send. Can be built-in or reference your custom commands.
@@ -116,10 +130,18 @@ end
 
 M.operator = require("opencode.api.operator").operator
 
+----------------
+--- Provider ---
+----------------
+
 M.toggle = require("opencode.provider").toggle
 M.start = require("opencode.provider").start
 M.stop = require("opencode.provider").stop
 
-M.statusline = require("opencode.status").statusline
+--------------------
+--- Integrations ---
+--------------------
+
+M.snacks_picker_send = require("opencode.integrations.pickers.snacks").send
 
 return M

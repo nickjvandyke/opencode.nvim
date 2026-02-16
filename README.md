@@ -6,7 +6,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 
 ## ✨ Features
 
-- Connect to _any_ `opencode`s running in Neovim's CWD, or provide an integrated instance.
+- Connect to _any_ `opencode` running in Neovim's CWD, or provide an integrated instance.
 - Share editor context (buffer, cursor, selection, diagnostics, etc.).
 - Input prompts with completions, highlights, and normal-mode support.
 - Select prompts from a library and define your own.
@@ -15,8 +15,8 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 - Reload edited buffers in real-time.
 - Monitor state via statusline component.
 - Forward Server-Sent-Events as autocmds for automation.
-- Sensible defaults with well-documented, flexible configuration and API to fit your workflow.
 - _Vim-y_ — supports ranges and dot-repeat.
+- Sensible defaults to get you started quickly.
 
 ## 📦 Setup
 
@@ -26,10 +26,31 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 {
   "nickjvandyke/opencode.nvim",
   dependencies = {
-    -- Recommended for `ask()` and `select()`.
-    -- Required for `snacks` provider.
-    ---@module 'snacks' <- Loads `snacks.nvim` types for configuration intellisense.
-    { "folke/snacks.nvim", opts = { input = {}, picker = {}, terminal = {} } },
+    {
+      -- `snacks.nvim` integration is recommended, but optional.
+      ---@module 'snacks' <- Loads `snacks.nvim` types for configuration intellisense.
+      "folke/snacks.nvim",
+      optional = true,
+      opts = {
+        -- Enhances `ask()`.
+        input = {},
+        -- Enhances `select()`.
+        picker = {
+          actions = {
+            opencode_send = function(...) return require('opencode').snacks_picker_send(...) end,
+          },
+          win = {
+            input = {
+              keys = {
+                ['<a-a>'] = { 'opencode_send', mode = { 'n', 'i' } },
+              },
+            },
+          },
+        },
+        -- Enables the `snacks` provider.
+        terminal = {},
+      }
+    },
   },
   config = function()
     ---@type opencode.Opts
