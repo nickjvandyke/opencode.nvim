@@ -19,20 +19,16 @@ local M = {}
 ---| 'prompt.clear'
 ---| 'agent.cycle'
 
----Command `opencode`.
+---Send a command to `opencode`.
 ---
 ---@param command opencode.Command|string The command to send. Can be built-in or reference your custom commands.
+---@return Promise
 function M.command(command)
-  require("opencode.cli.server")
-    .get()
-    :next(function(server) ---@param server opencode.cli.server.Server
-      -- No need to register SSE here - commands don't trigger any.
-      -- (except maybe the `input_*` commands? but no reason for user to use those).
-      require("opencode.cli.client").tui_execute_command(command, server.port)
-    end)
-    :catch(function(err)
-      vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-    end)
+  return require("opencode.cli.server").get():next(function(server) ---@param server opencode.cli.server.Server
+    -- TODO: Use `on_error` callbacks to reject?
+    -- Rather than rely on non-obvious notifying lower down.
+    require("opencode.cli.client").tui_execute_command(command, server.port)
+  end)
 end
 
 return M

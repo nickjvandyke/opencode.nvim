@@ -14,30 +14,24 @@ local M = {}
 ---Options for [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field snacks? snacks.input.Opts
 
----Input a prompt for `opencode`.
----
---- - Press the up arrow to browse recent asks.
---- - Highlights and completes contexts and `opencode` subagents.
----   - Press `<Tab>` to trigger built-in completion.
----   - Registers `opts.ask.blink_cmp_sources` when using `snacks.input` and `blink.cmp`.
+---Prompt for input with `vim.ui.input`, with context- and server-aware completion.
 ---
 ---@param default? string Text to pre-fill the input with.
----@param opts? opencode.api.prompt.Opts Options for `prompt()`.
-function M.ask(default, opts)
-  opts = opts or {}
-  opts.context = opts.context or require("opencode.context").new()
-  require("opencode.cmp.blink").context = opts.context
+---@param context opencode.Context
+---@return Promise<string> input
+function M.ask(default, context)
+  require("opencode.cmp.blink").context = context
   local Promise = require("opencode.promise")
 
   ---@type snacks.input.Opts
   local input_opts = {
     default = default,
     highlight = function(text)
-      local rendered = opts.context:render(text)
+      local rendered = context:render(text)
       -- Transform to `:help input()-highlight` format
       return vim.tbl_map(function(extmark)
         return { extmark.col, extmark.end_col, extmark.hl_group }
-      end, opts.context.extmarks(rendered.input))
+      end, context.extmarks(rendered.input))
     end,
     completion = "customlist,v:lua.opencode_completion",
     -- `snacks.input`-only options
@@ -70,7 +64,7 @@ function M.ask(default, opts)
   input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
   input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask.snacks)
 
-  require("opencode.cli.server")
+  return require("opencode.cli.server")
     .get()
     :next(function(server) ---@param server opencode.cli.server.Server
       return server.port
@@ -78,7 +72,7 @@ function M.ask(default, opts)
     :next(function(port) ---@param port number
       return Promise.new(function(resolve)
         require("opencode.cli.client").get_agents(port, function(agents)
-          opts.context.agents = vim.tbl_filter(function(agent)
+          context.agents = vim.tbl_filter(function(agent)
             return agent.mode == "subagent"
           end, agents)
 
@@ -89,15 +83,9 @@ function M.ask(default, opts)
     :next(function()
       return Promise.input(input_opts)
     end)
-    :next(function(input) ---@param input string
-      require("opencode").prompt(input, opts)
-      opts.context:clear()
-    end)
     :catch(function(err)
-      if err then
-        vim.notify(err, vim.log.levels.ERROR)
-      end
-      opts.context:resume()
+      context:resume()
+      return Promise.reject(err)
     end)
 end
 

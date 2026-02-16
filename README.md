@@ -34,7 +34,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
   config = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
-      -- Your configuration, if any — see `lua/opencode/config.lua`, or "goto definition" on the type or field.
+      -- Your configuration, if any. Goto definition on the type or field for details.
     }
 
     -- Required for `opts.events.reload`.
@@ -51,7 +51,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
     vim.keymap.set("n", "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll opencode up" })
     vim.keymap.set("n", "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll opencode down" })
 
-    -- You may want these if you stick with the opinionated "<C-a>" and "<C-x>" above — otherwise consider "<leader>o…".
+    -- You may want these if you use the opinionated `<C-a>` and `<C-x>` keymaps above — otherwise consider `<leader>o…` (and remove terminal mode from the `toggle` keymap).
     vim.keymap.set("n", "+", "<C-a>", { desc = "Increment under cursor", noremap = true })
     vim.keymap.set("n", "-", "<C-x>", { desc = "Decrement under cursor", noremap = true })
   end,
@@ -266,7 +266,10 @@ Input a prompt for `opencode`.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-  - Registers `opts.ask.blink_cmp_sources` when using `snacks.input` and `blink.cmp`.
+- End the prompt with `\n` to append instead of submit.
+- Additionally, when using `snacks.input`:
+  - Press `<C-CR>` to append instead of submit. 
+  - When using `blink.cmp`, registers `opts.ask.blink_cmp_sources`.
 
 ### 📝 Select — `require("opencode").select()`
 

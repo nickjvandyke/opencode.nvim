@@ -14,7 +14,7 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@class opencode.Opts
 ---
 ---The port `opencode` is running on.
----If `nil`, searches for an `opencode` process in Neovim's CWD.
+---If `nil`, searches for an `opencode --port` process in Neovim's CWD.
 ---If set, `opencode.nvim` will append `--port <port>` to `provider.cmd`.
 ---@field port? number
 ---
@@ -58,8 +58,7 @@ local defaults = {
     ["@grapple"] = function(context) return context:grapple_tags() end,
   },
   prompts = {
-    ask_append = { prompt = "", ask = true }, -- Handy to insert context mid-prompt. Simpler than exposing every context as a prompt by default.
-    ask_this = { prompt = "@this: ", ask = true, submit = true },
+    ask = { prompt = "", ask = true, submit = true },
     diagnostics = { prompt = "Explain @diagnostics", submit = true },
     diff = { prompt = "Review the following git diff for correctness and readability: @diff", submit = true },
     document = { prompt = "Add comments documenting @this", submit = true },
@@ -80,6 +79,23 @@ local defaults = {
         relative = "cursor",
         row = -3, -- Row above the cursor
         col = 0, -- Align with the cursor
+        keys = {
+          i_cr = {
+            desc = "submit",
+          },
+          i_c_cr = {
+            "<c-cr>",
+            function(win)
+              -- Append `\n` to leverage `ask()`'s auto-append behavior in that case
+              local text = win:text() .. "\\n"
+              vim.api.nvim_buf_set_lines(win.buf, 0, -1, false, { text })
+              win:execute("confirm")
+            end,
+            mode = "i",
+            desc = "append",
+          },
+        },
+        footer_keys = { "<cr>", "<c-cr>" },
       },
     },
   },
@@ -173,6 +189,15 @@ local defaults = {
 ---Plugin options, lazily merged from `defaults` and `vim.g.opencode_opts`.
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
+
+local snacks_ok, snacks = pcall(require, "snacks")
+---@cast snacks Snacks
+if not snacks_ok or not snacks.config.get("input", {}).enabled then
+  -- Even though it has no effect, passing these opts to the native `vim.ui.input` will error because
+  -- they mix string and integer keys which Neovim doesn't support in `vim.g` (see comment on `vim.g.opencode_opts`),
+  -- and Neovim's native `vim.ui.select` implementation apparently uses those.
+  M.opts.ask.snacks = {}
+end
 
 -- Allow removing default `contexts` and `prompts` by setting them to `false` in your user config.
 -- TODO: Add to type definition, and apply to `opts.select.commands`.

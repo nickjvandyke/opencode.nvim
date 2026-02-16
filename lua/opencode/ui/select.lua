@@ -24,15 +24,8 @@ local M = {}
 
 ---Select from all `opencode.nvim` functionality.
 ---
---- - Prompts
---- - Commands
----   - Fetches custom commands from `opencode`
---- - Provider controls
---- - Server controls
----
---- Highlights and previews items when using `snacks.picker`.
----
 ---@param opts? opencode.select.Opts Override configured options for this call.
+---@return Promise
 function M.select(opts)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
   if not require("opencode.config").provider then
@@ -43,7 +36,7 @@ function M.select(opts)
   local context = require("opencode.context").new()
   local Promise = require("opencode.promise")
 
-  require("opencode.cli.server")
+  return require("opencode.cli.server")
     .get()
     :next(function(server) ---@param server opencode.cli.server.Server
       return server.port
@@ -232,16 +225,15 @@ function M.select(opts)
         local prompt = require("opencode.config").opts.prompts[choice.name]
         prompt.context = context
         if prompt.ask then
-          -- Early return so the context doesn't get cleared yet
           return require("opencode").ask(prompt.prompt, prompt)
         else
-          require("opencode").prompt(prompt.prompt, prompt)
+          return require("opencode").prompt(prompt.prompt, prompt)
         end
       elseif choice.__type == "command" then
         if choice.name == "session.select" then
-          require("opencode").select_session()
+          return require("opencode").select_session()
         else
-          require("opencode").command(choice.name)
+          return require("opencode").command(choice.name)
         end
       elseif choice.__type == "provider" then
         if choice.name == "toggle" then
@@ -253,17 +245,13 @@ function M.select(opts)
         end
       elseif choice.__type == "server" then
         if choice.name == "select" then
-          require("opencode").select_server()
+          return require("opencode").select_server()
         end
       end
-
-      context:clear()
     end)
     :catch(function(err)
-      if err then
-        vim.notify(err, vim.log.levels.ERROR)
-      end
       context:resume()
+      return Promise.reject(err)
     end)
 end
 
