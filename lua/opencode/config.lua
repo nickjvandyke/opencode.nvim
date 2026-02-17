@@ -105,7 +105,7 @@ local defaults = {
         on_buf = function(win)
           -- Make sure your completion plugin has the LSP source enabled,
           -- either by default or for the `opencode_ask` filetype!
-          vim.lsp.start(require("lsp.opencode"), {
+          vim.lsp.start(require("opencode.lsp"), {
             bufnr = win.buf,
           })
         end,

@@ -116,7 +116,8 @@ return {
   name = "opencode",
   -- Note the filetype has no effect because `snacks.input` buftype is `prompt`.
   -- https://github.com/neovim/neovim/issues/36775
-  -- So we manually start the LSP in a callback.
+  -- Instead, we manually start the LSP in a callback.
+  -- To that end, we also locate this file under `lua/` - not the usual `lsp/` - so Neovim's module resolution can find it.
   filetypes = { "opencode_ask" },
   cmd = function(dispatchers, config)
     return {
