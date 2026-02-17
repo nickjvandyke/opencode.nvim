@@ -109,10 +109,8 @@ function M.check()
   if snacks_ok then
     if snacks.config.get("input", {}).enabled then
       vim.health.ok("`snacks.input` is enabled: `ask()` will be enhanced.")
-      local blink_ok = pcall(require, "blink.cmp")
-      if blink_ok then
-        vim.health.ok("`blink.cmp` is available: `opts.ask.blink_cmp_sources` will be registered in `ask()`.")
-      end
+      -- TODO: Maybe healthcheck verifying that their completion plugin has the LSP source enabled by default?
+      -- Otherwise they need to explicitly enable it for `opencode_ask` filetype.
     else
       vim.health.warn("`snacks.input` is disabled: `ask()` will not be enhanced.")
     end

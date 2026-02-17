@@ -7,10 +7,6 @@ local M = {}
 ---Text of the prompt.
 ---@field prompt? string
 ---
----Completion sources to automatically register when using [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md) and [`blink.cmp`](https://github.com/Saghen/blink.cmp).
----The `"opencode"` source offers completions and previews for contexts and `opencode` subagents.
----@field blink_cmp_sources? string[]
----
 ---Options for [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field snacks? snacks.input.Opts
 
@@ -20,67 +16,35 @@ local M = {}
 ---@param context opencode.Context
 ---@return Promise<string> input
 function M.ask(default, context)
-  require("opencode.cmp.blink").context = context
   local Promise = require("opencode.promise")
-
-  ---@type snacks.input.Opts
-  local input_opts = {
-    default = default,
-    highlight = function(text)
-      local rendered = context:render(text)
-      -- Transform to `:help input()-highlight` format
-      return vim.tbl_map(function(extmark)
-        return { extmark.col, extmark.end_col, extmark.hl_group }
-      end, context.extmarks(rendered.input))
-    end,
-    completion = "customlist,v:lua.opencode_completion",
-    -- `snacks.input`-only options
-    win = {
-      b = {
-        -- Enable `blink.cmp` completion
-        completion = true,
-      },
-      bo = {
-        -- Custom filetype to enable `blink.cmp` source on
-        filetype = "opencode_ask",
-      },
-      on_buf = function(win)
-        -- Wait as long as possible to check for `blink.cmp` loaded - many users lazy-load on `InsertEnter`.
-        -- And OptionSet :runtimepath didn't seem to fire for lazy.nvim. And/or it may never fire if already loaded.
-        vim.api.nvim_create_autocmd("InsertEnter", {
-          once = true,
-          buffer = win.buf,
-          callback = function()
-            if package.loaded["blink.cmp"] then
-              require("opencode.cmp.blink").setup(require("opencode.config").opts.ask.blink_cmp_sources)
-            end
-          end,
-        })
-      end,
-    },
-  }
-  -- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config,
-  -- and to keep its fields optional. Double-merge is kinda ugly but seems like the lesser evil.
-  input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
-  input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask.snacks)
 
   return require("opencode.cli.server")
     .get()
     :next(function(server) ---@param server opencode.cli.server.Server
-      return server.port
-    end)
-    :next(function(port) ---@param port number
-      return Promise.new(function(resolve)
-        require("opencode.cli.client").get_agents(port, function(agents)
-          context.agents = vim.tbl_filter(function(agent)
-            return agent.mode == "subagent"
-          end, agents)
+      ---@type snacks.input.Opts
+      local input_opts = {
+        default = default,
+        highlight = function(text)
+          local rendered = context:render(text, server.subagents)
+          return context.input_highlight(rendered.input)
+        end,
+        completion = "customlist,v:lua.opencode_completion",
+        -- `snacks.input`-only options
+        win = {
+          b = {
+            completion = true,
+          },
+          bo = {
+            -- Custom filetype to enable in-process LSP on
+            filetype = "opencode_ask",
+          },
+        },
+      }
+      -- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config,
+      -- and to keep its fields optional. Double-merge is kinda ugly but seems like the lesser evil.
+      input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
+      input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask.snacks)
 
-          resolve(true)
-        end)
-      end)
-    end)
-    :next(function()
       return Promise.input(input_opts)
     end)
     :catch(function(err)
@@ -89,8 +53,8 @@ function M.ask(default, context)
     end)
 end
 
--- FIX: Overridden by blink.cmp cmdline completion if both are enabled, and that won't have our items.
--- Possible to register our blink source there? But only active in our own vim.ui.input calls.
+-- FIX: Overridden by blink.cmp cmdline completion if enabled, and that won't have the below items.
+-- Can we wire up the below as a blink.cmp cmdline source?
 
 ---Completion function for context placeholders and `opencode` subagents.
 ---Must be a global variable for use with `vim.ui.select`.
@@ -108,7 +72,9 @@ _G.opencode_completion = function(ArgLead, CmdLine, CursorPos)
   for placeholder, _ in pairs(require("opencode.config").opts.contexts) do
     table.insert(completions, placeholder)
   end
-  for _, agent in ipairs(require("opencode.cmp.blink").context.agents or {}) do
+  local server = require("opencode.events").connected_server
+  local agents = server and server.subagents or {}
+  for _, agent in ipairs(agents) do
     table.insert(completions, "@" .. agent.name)
   end
 

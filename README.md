@@ -291,7 +291,7 @@ Input a prompt for `opencode`.
 - End the prompt with `\n` to append instead of submit.
 - Additionally, when using `snacks.input`:
   - Press `<S-CR>` to append instead of submit. 
-  - When using `blink.cmp`, registers `opts.ask.blink_cmp_sources`.
+  - Offers completions via in-process LSP.
 
 ### 📝 Select — `require("opencode").select()`
 

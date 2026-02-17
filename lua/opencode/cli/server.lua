@@ -5,6 +5,7 @@ local M = {}
 ---@field port number
 ---@field cwd string
 ---@field title string
+---@field subagents opencode.cli.client.Agent[]
 
 ---An `opencode` process.
 ---Retrieval is platform-dependent.
@@ -103,24 +104,34 @@ local function get_server(port)
     -- Serial instead of parallel so that `get_path` has verified it's a server
     :next(
       function(cwd) ---@param cwd string
-        return Promise.new(function(resolve)
-          require("opencode.cli.client").get_sessions(port, function(session)
-            -- This will be the most recently interacted session.
-            -- Unfortunately `opencode` doesn't provide a way to get the currently selected TUI session.
-            -- But they will probably have interacted with the session they want to connect to most recently.
-            local title = session[1] and session[1].title or "<No sessions>"
-            resolve({ cwd, title })
-          end)
-        end)
+        return Promise.all({
+          cwd,
+          Promise.new(function(resolve)
+            require("opencode.cli.client").get_sessions(port, function(session)
+              -- This will be the most recently interacted session.
+              -- Unfortunately `opencode` doesn't provide a way to get the currently selected TUI session.
+              -- But they will probably have interacted with the session they want to connect to most recently.
+              local title = session[1] and session[1].title or "<No sessions>"
+              resolve(title)
+            end)
+          end),
+          Promise.new(function(resolve)
+            require("opencode.cli.client").get_agents(port, function(agents)
+              local subagents = vim.tbl_filter(function(agent)
+                return agent.mode == "subagent"
+              end, agents)
+              resolve(subagents)
+            end)
+          end),
+        })
       end
     )
-    :next(function(results) ---@param results { [1]: string, [2]: string }
-      local cwd = results[1]
-      local title = results[2]
+    :next(function(results) ---@param results { [1]: string, [2]: string, [3]: opencode.cli.client.Agent[] }
       return {
         port = port,
-        cwd = cwd,
-        title = title,
+        cwd = results[1],
+        title = results[2],
+        subagents = results[3],
       }
     end)
 end

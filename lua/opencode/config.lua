@@ -71,7 +71,6 @@ local defaults = {
   },
   ask = {
     prompt = "Ask opencode: ",
-    blink_cmp_sources = { "opencode", "buffer" },
     snacks = {
       icon = "󰚩 ",
       win = {
