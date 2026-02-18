@@ -93,12 +93,15 @@ return {
   filetypes = require("opencode.config").opts.lsp.filetypes,
   cmd = function(dispatchers, config)
     local closing = false
+    local request_id = 0
 
     return {
       request = function(method, params, callback)
         if handlers[method] then
           handlers[method](params, callback)
         end
+        request_id = request_id + 1
+        return true, request_id
       end,
       notify = function() end,
       is_closing = function()
