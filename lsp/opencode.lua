@@ -30,15 +30,21 @@ end
 ---@param params lsp.CodeActionParams
 ---@param callback fun(err?: lsp.ResponseError, result: lsp.CodeAction[])
 handlers[ms.textDocument_codeAction] = function(params, callback)
+  -- Would prefer `params.context.diagnostics`, but it's empty?
   local diagnostics = vim.diagnostic.get(0, { lnum = params.range.start.line })
   ---@type lsp.CodeAction[]
-  local fix_commands = vim.tbl_map(function(diagnostic)
+  local fix_commands = vim.tbl_map(function(diagnostic) ---@param diagnostic vim.Diagnostic
+    ---@type lsp.CodeAction
     return {
       title = "Ask opencode to fix: " .. diagnostic.message,
+      kind = "quickfix",
       command = {
+        title = "opencode.fix",
         command = "opencode.fix",
         arguments = { diagnostic },
       },
+      tags = { 1 }, -- 1 = LLM Generated (not sure what effect that has though)
+      -- diagnostics = ...,
     }
   end, diagnostics or {})
 
@@ -67,14 +73,27 @@ handlers[ms.workspace_executeCommand] = function(params, callback)
   end
 end
 
+handlers[ms.shutdown] = function(params, callback)
+  -- I'd expect the client (Neovim) to handle this,
+  -- but `vim.lsp.enable("opencode", false)` seems to have no effect without it?
+  for _, client in ipairs(vim.lsp.get_clients({ name = "opencode" })) do
+    for bufnr, _ in pairs(client.attached_buffers) do
+      vim.lsp.buf_detach_client(bufnr, client.id)
+    end
+  end
+
+  callback(nil, nil)
+end
+
 ---An in-process LSP that interacts with `opencode`.
 --- - Code actions: ask `opencode` to fix diagnostics under the cursor.
----
 ---@type vim.lsp.Config
 return {
   name = "opencode",
   filetypes = require("opencode.config").opts.lsp.filetypes,
   cmd = function(dispatchers, config)
+    local closing = false
+
     return {
       request = function(method, params, callback)
         if handlers[method] then
@@ -83,20 +102,11 @@ return {
       end,
       notify = function() end,
       is_closing = function()
-        -- FIX: Stopping/disabling the LSP has no effect...
-        -- Not sure if we're supposed to do something?
-        -- This loop successfully removes us, but idk where to put it to respond to `vim.lsp.enable false`
-        -- `is_closing` gets called, but not `terminate`.
-        -- for _, client in ipairs(vim.lsp.get_clients()) do
-        --   if client.name == "opencode" then
-        --     for bufnr, _ in pairs(client.attached_buffers) do
-        --       vim.lsp.buf_detach_client(bufnr, client.id)
-        --     end
-        --   end
-        -- end
-        return false
+        return closing
       end,
-      terminate = function() end,
+      terminate = function()
+        closing = true
+      end,
     }
   end,
 }
