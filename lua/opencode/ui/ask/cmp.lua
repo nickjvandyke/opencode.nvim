@@ -141,11 +141,14 @@ return {
     local request_id = 0
 
     return {
-      request = function(method, params, callback)
+      request = function(method, params, callback, notify_reply_callback)
         if handlers[method] then
           handlers[method](params, callback)
         end
         request_id = request_id + 1
+        if notify_reply_callback then
+          notify_reply_callback(request_id)
+        end
         return true, request_id
       end,
       notify = function() end,

@@ -76,11 +76,12 @@ end
 handlers[ms.shutdown] = function(params, callback)
   -- I'd expect the client (Neovim) to handle this,
   -- but `vim.lsp.enable("opencode", false)` seems to have no effect without it?
-  for _, client in ipairs(vim.lsp.get_clients({ name = "opencode" })) do
-    for bufnr, _ in pairs(client.attached_buffers) do
-      vim.lsp.buf_detach_client(bufnr, client.id)
-    end
-  end
+  -- FIX: It's still in the active clients though? This only detaches it.
+  -- for _, client in ipairs(vim.lsp.get_clients({ name = "opencode" })) do
+  --   for bufnr, _ in pairs(client.attached_buffers) do
+  --     vim.lsp.buf_detach_client(bufnr, client.id)
+  --   end
+  -- end
 
   callback(nil, nil)
 end
@@ -96,11 +97,14 @@ return {
     local request_id = 0
 
     return {
-      request = function(method, params, callback)
+      request = function(method, params, callback, notify_reply_callback)
         if handlers[method] then
           handlers[method](params, callback)
         end
         request_id = request_id + 1
+        if notify_reply_callback then
+          notify_reply_callback(request_id)
+        end
         return true, request_id
       end,
       notify = function() end,
