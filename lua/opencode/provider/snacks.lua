@@ -34,10 +34,12 @@ function Snacks.new(opts)
     -- Deferred because on_buf fires before the terminal job is fully started
     vim.defer_fn(function()
       if win.buf and vim.api.nvim_buf_is_valid(win.buf) then
+        ---@diagnostic disable: invisible -- accessing private fields from closure within constructor
         self._job_id = vim.b[win.buf].terminal_job_id
         if self._job_id then
           self._pid = util.capture_pid(self._job_id)
         end
+        ---@diagnostic enable: invisible
       end
     end, 100)
   end
