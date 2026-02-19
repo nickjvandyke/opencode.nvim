@@ -94,12 +94,14 @@ function Tmux:start()
   if not pane_id then
     -- Create new pane
     local detach_flag = self.opts.focus and "" or "-d"
-    self.pane_id = vim.fn.system(
-      string.format("tmux split-window %s -P -F '#{pane_id}' %s '%s'", detach_flag, self.opts.options or "", self.cmd)
+    self.pane_id = vim.trim(
+      vim.fn.system(
+        string.format("tmux split-window %s -P -F '#{pane_id}' %s '%s'", detach_flag, self.opts.options or "", self.cmd)
+      )
     )
     local disable_passthrough = self.opts.allow_passthrough ~= true -- default true (disable passthrough)
     if disable_passthrough and self.pane_id and self.pane_id ~= "" then
-      vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", vim.trim(self.pane_id)))
+      vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", self.pane_id))
     end
   end
 end
@@ -108,7 +110,8 @@ end
 function Tmux:stop()
   local pane_id = self:get_pane_id()
   if pane_id then
-    vim.fn.system("tmux kill-pane -t " .. pane_id)
+    -- HACK: https://github.com/nickjvandyke/opencode.nvim/issues/118
+    vim.fn.system("tmux send-keys -t " .. pane_id .. " C-c")
     self.pane_id = nil
   end
 end

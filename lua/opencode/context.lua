@@ -250,6 +250,7 @@ end
 
 ---Format a location for `opencode`.
 ---e.g. `@opencode.lua L21:C10-L65:C11`
+---Received lines and columns are 1-based.
 ---@param args { buf?: integer, path?: string, start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer }
 function Context.format(args)
   -- FIX: Returns an empty string for invalid buffers - problematic on table.concat.

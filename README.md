@@ -7,14 +7,12 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 ## ✨ Features
 
 - Connect to _any_ `opencode` running in Neovim's CWD, or provide an integrated instance
-- Share editor context (buffer, cursor, selection, diagnostics, etc.)
+- Share editor context (buffer, selection, diagnostics, etc.)
 - Input prompts with completions, highlights, and normal-mode support
 - Select prompts from a library and define your own
 - Execute commands
-- Respond to permission requests
-- Reload edited buffers in real-time
-- Monitor state via statusline component
-- Forward Server-Sent-Events as autocmds for automation
+- Monitor and respond to events (edits, permissions, etc.) in real-time
+- Interact with `opencode` via an in-process LSP
 - _Vim-y_ — supports ranges and dot-repeat
 - Simple, sensible defaults to get you started quickly
 
@@ -266,14 +264,13 @@ Please submit PRs adding new providers! 🙂
 
 `opencode.nvim` sets these buffer-local keymaps in provider terminals for Neovim-like message navigation:
 
-| Keymap  | Command                  | Description                  |
-| ------- | ------------------------ | ---------------------------- |
-| `<C-u>` | `session.half.page.up`   | Scroll up half page          |
-| `<C-d>` | `session.half.page.down` | Scroll down half page        |
-| `<Esc>` | `session.interrupt`      | Interrupt                    |
-| `gg`    | `session.first`          | Go to first message          |
-| `G`     | `session.last`           | Go to last message           |
-
+| Keymap  | Command                  | Description           |
+| ------- | ------------------------ | --------------------- |
+| `<C-u>` | `session.half.page.up`   | Scroll up half page   |
+| `<C-d>` | `session.half.page.down` | Scroll down half page |
+| `<Esc>` | `session.interrupt`      | Interrupt             |
+| `gg`    | `session.first`          | Go to first message   |
+| `G`     | `session.last`           | Go to last message    |
 
 ## 🚀 Usage
 
@@ -286,7 +283,7 @@ Input a prompt for `opencode`.
   - Press `<Tab>` to trigger built-in completion.
 - End the prompt with `\n` to append instead of submit.
 - Additionally, when using `snacks.input`:
-  - Press `<S-CR>` to append instead of submit. 
+  - Press `<S-CR>` to append instead of submit.
   - Offers completions via in-process LSP.
 
 ### Select — `require("opencode").select()`
@@ -336,17 +333,17 @@ Command `opencode`:
 | `prompt.clear`           | Clear the TUI input                                |
 | `agent.cycle`            | Cycle the selected agent                           |
 
-
 ### LSP
 
 > [!WARNING]
-> This feature is experimental!
+> This feature is experimental! Try it out with `vim.g.opencode_opts.lsp.enabled = true`.
 
 `opencode.nvim` provides an in-process LSP to interact with `opencode` via the LSP functions you're used to!
 
-| LSP function | Action                                               |
-| ------------ | ---------------------------------------------------- |
-| Code actions | Asks `opencode` to fix diagnostics under the cursor. |
+| LSP Function | `opencode.nvim` Handler                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| Hover        | Asks `opencode` for a brief explanation of the symbol under the cursor. |
+| Code Actions | Asks `opencode` to fix diagnostics under the cursor.                    |
 
 ## 👀 Events
 
