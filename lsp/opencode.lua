@@ -109,6 +109,8 @@ handlers[ms.shutdown] = function(params, callback)
   -- end
 
   callback(nil, nil)
+end
+
 ---@type table<string, string>
 local memoized_hover_results = {}
 
