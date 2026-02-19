@@ -146,7 +146,10 @@ local defaults = {
     enabled = false,
     filetypes = nil,
     handlers = {
-      hover = { enabled = true },
+      hover = {
+        enabled = true,
+        model = nil,
+      },
       code_action = { enabled = true },
     },
   },

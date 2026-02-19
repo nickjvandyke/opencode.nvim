@@ -24,6 +24,11 @@
 ---@class opencode.lsp.handlers.hover.Opts
 ---
 ---@field enabled? boolean
+---
+---[Model](https://opencode.ai/docs/models/) to use in the format of provider/model, e.g. "github-copilot/gpt-4.1".
+---If not specified, the default model configured in `opencode` will be used.
+---Recommend a fast model here.
+---@field model? string
 
 ---@type table<vim.lsp.protocol.Method, fun(params: table, callback:fun(err: lsp.ResponseError?, result: any))>
 local handlers = {}
@@ -140,50 +145,53 @@ handlers[ms.textDocument_hover] = function(params, callback)
     "ONLY provide the explanation.",
   }
 
-  local job = vim.system(
-    {
-      "opencode",
-      "run",
-      table.concat(prompt, "\n"),
-    },
-    nil,
-    function(obj)
-      if obj.signal == 15 then
-        -- Terminated by user moving away from the hover; do nothing
-        return
-      end
+  local cmd = {
+    "opencode",
+    "run",
+  }
+  local configured_model = require("opencode.config").opts.lsp.handlers.hover.model
+  if configured_model then
+    table.insert(cmd, "--model")
+    table.insert(cmd, configured_model)
+  end
+  table.insert(cmd, table.concat(prompt, "\n"))
 
-      local output = obj.stdout or obj.stderr or "unknown error"
-      if obj.code ~= 0 then
-        vim.schedule(function()
-          callback({ code = -32000, message = "Failed to hover: " .. output }, {
-            contents = {
-              kind = "markdown",
-              value = "Hovering failed: " .. output .. "\n\n" .. location,
-            },
-          })
-        end)
-      else
-        memoized_hover_results[location] = output
-        -- Re-trigger hover to show the result; LSP doesn't support progressive hover results
-        vim.schedule(function()
-          -- Move the cursor to close the original hover; otherwise it just focuses it
-          vim.api.nvim_feedkeys(
-            vim.api.nvim_replace_termcodes(params.position.character > 0 and "<Left>" or "<Right>", true, false, true),
-            "n",
-            true
-          )
-          vim.api.nvim_feedkeys(
-            vim.api.nvim_replace_termcodes(params.position.character > 0 and "<Right>" or "<Left>", true, false, true),
-            "n",
-            true
-          )
-
-          vim.lsp.buf.hover()
-        end)
-      end
+  local job = vim.system(cmd, nil, function(obj)
+    if obj.signal == 15 then
+      -- Terminated by user moving away from the hover; do nothing
+      return
     end
-  )
+
+    local output = obj.stdout or obj.stderr or "unknown error"
+    if obj.code ~= 0 then
+      vim.schedule(function()
+        callback({ code = -32000, message = "Failed to hover: " .. output }, {
+          contents = {
+            kind = "markdown",
+            value = "Hovering failed: " .. output .. "\n\n" .. location,
+          },
+        })
+      end)
+    else
+      memoized_hover_results[location] = output
+      -- Re-trigger hover to show the result; LSP doesn't support progressive hover results
+      vim.schedule(function()
+        -- Move the cursor to close the original hover; otherwise it just focuses it
+        vim.api.nvim_feedkeys(
+          vim.api.nvim_replace_termcodes(params.position.character > 0 and "<Left>" or "<Right>", true, false, true),
+          "n",
+          true
+        )
+        vim.api.nvim_feedkeys(
+          vim.api.nvim_replace_termcodes(params.position.character > 0 and "<Right>" or "<Left>", true, false, true),
+          "n",
+          true
+        )
+
+        vim.lsp.buf.hover()
+      end)
+    end
+  end)
   -- Don't re-trigger hover with completed results if the user has moved the cursor; would be confusing.
   local key_listener_id
   key_listener_id = vim.on_key(function()
