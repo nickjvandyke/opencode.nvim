@@ -1,3 +1,5 @@
+local util = require("opencode.provider.util")
+
 ---Provide an embedded `opencode` via a [Neovim terminal](https://neovim.io/doc/user/terminal.html) buffer.
 ---@class opencode.provider.Terminal : opencode.Provider
 ---
@@ -5,6 +7,7 @@
 ---
 ---@field bufnr? integer
 ---@field winid? integer
+---@field private _pid number|nil
 local Terminal = {}
 Terminal.__index = Terminal
 Terminal.name = "terminal"
@@ -16,6 +19,7 @@ function Terminal.new(opts)
   self.opts = opts or {}
   self.winid = nil
   self.bufnr = nil
+  self._pid = nil
   return self
 end
 
@@ -71,6 +75,11 @@ function Terminal:start()
       once = true,
       callback = function(event)
         require("opencode.keymaps").apply(event.buf)
+        -- Cache PID at terminal open time for reliable process termination during VimLeavePre
+        local job_id = vim.b[event.buf].terminal_job_id
+        if job_id then
+          self._pid = util.capture_pid(job_id)
+        end
       end,
     })
 
@@ -88,12 +97,15 @@ end
 
 ---Close the window, delete the buffer.
 function Terminal:stop()
+  -- Resolve job_id for fallback before we close the buffer
+  local job_id = nil
   if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
-    local job_id = vim.b[self.bufnr].terminal_job_id
-    if job_id then
-      vim.fn.jobstop(job_id)
-    end
+    job_id = vim.b[self.bufnr].terminal_job_id
   end
+
+  util.kill(self._pid, job_id)
+  self._pid = nil
+
   if self.winid ~= nil and vim.api.nvim_win_is_valid(self.winid) then
     vim.api.nvim_win_close(self.winid, true)
     self.winid = nil

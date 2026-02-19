@@ -1,5 +1,7 @@
 ---@module 'snacks'
 
+local util = require("opencode.provider.util")
+
 ---Provide an embedded `opencode` via [`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md).
 ---@class opencode.provider.Snacks : opencode.Provider
 ---
@@ -34,9 +36,7 @@ function Snacks.new(opts)
       if win.buf and vim.api.nvim_buf_is_valid(win.buf) then
         self._job_id = vim.b[win.buf].terminal_job_id
         if self._job_id then
-          pcall(function()
-            self._pid = vim.fn.jobpid(self._job_id)
-          end)
+          self._pid = util.capture_pid(self._job_id)
         end
       end
     end, 100)
@@ -80,24 +80,10 @@ function Snacks:start()
 end
 
 function Snacks:stop()
-  -- Kill via PID (most reliable during VimLeavePre,
-  -- as vim.uv.kill and jobstop may not work when Neovim is shutting down)
-  if self._pid then
-    if vim.fn.has("unix") == 1 then
-      vim.fn.system("kill -TERM " .. self._pid .. " 2>/dev/null")
-    else
-      pcall(vim.uv.kill, self._pid, "sigterm")
-    end
-    self._pid = nil
-  end
+  util.kill(self._pid, self._job_id)
+  self._pid = nil
+  self._job_id = nil
 
-  -- Also try jobstop as a fallback
-  if self._job_id then
-    pcall(vim.fn.jobstop, self._job_id)
-    self._job_id = nil
-  end
-
-  -- Close the window via snacks
   local win = self:get()
   if win then
     win:close()
