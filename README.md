@@ -340,13 +340,14 @@ Command `opencode`:
 ### LSP
 
 > [!WARNING]
-> This feature is experimental!
+> This feature is experimental! Enable via `vim.g.opencode_opts.lsp.enabled = true`.
 
 `opencode.nvim` provides an in-process LSP to interact with `opencode` via the LSP functions you're used to!
 
-| LSP function | Action                                               |
+| LSP Function | `opencode.nvim` Handler                                               |
 | ------------ | ---------------------------------------------------- |
-| Code actions | Asks `opencode` to fix diagnostics under the cursor. |
+| Hover        | Asks `opencode` for a brief explanation of the symbol under the cursor. |
+| Code Actions | Asks `opencode` to fix diagnostics under the cursor. |
 
 ## 👀 Events
 

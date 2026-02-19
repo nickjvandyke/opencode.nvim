@@ -143,8 +143,12 @@ local defaults = {
     },
   },
   lsp = {
-    enabled = true,
+    enabled = false,
     filetypes = nil,
+    handlers = {
+      hover = { enabled = true },
+      code_action = { enabled = true },
+    },
   },
   events = {
     enabled = true,
