@@ -118,6 +118,7 @@ local memoized_hover_results = {}
 ---@param callback fun(err?: lsp.ResponseError, result: lsp.Hover)
 handlers[ms.textDocument_hover] = function(params, callback)
   local symbol = vim.fn.expand("<cword>")
+  local phrase = vim.fn.expand("<cWORD>")
   -- local lines = vim.fn.readfile(params.textDocument.uri:gsub("^file://", ""))
   -- local text = table.concat(lines, "\n")
   local location = require("opencode.context").format({
@@ -129,6 +130,7 @@ handlers[ms.textDocument_hover] = function(params, callback)
   -- TODO: Would be nice to get cache hits for the same symbol.
   -- But hard without semantic information.
   -- e.g. could be the same name, in a different scope.
+  -- Maybe leverage treesitter?
   if memoized_hover_results[location] then
     callback(nil, {
       contents = {
@@ -149,7 +151,7 @@ handlers[ms.textDocument_hover] = function(params, callback)
   local prompt = {
     "The user has requested an LSP hover at " .. location,
     "The symbol under the cursor is: " .. symbol,
-    "It is part of the larger phrase: " .. vim.fn.expand("<cWORD>"),
+    "It is part of the larger phrase: " .. phrase,
     -- Sending text vs location doesn't seem to make a big difference in speed...
     -- "Here is the full text of the file:",
     -- "```",
@@ -221,6 +223,7 @@ end
 
 ---An in-process LSP that interacts with `opencode`.
 --- - Code actions: ask `opencode` to fix diagnostics under the cursor.
+--- - Hover: ask `opencode` to explain the symbol under the cursor, using the surrounding code as context.
 ---@type vim.lsp.Config
 return {
   name = "opencode",
