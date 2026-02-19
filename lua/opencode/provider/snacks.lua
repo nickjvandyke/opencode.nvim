@@ -19,6 +19,29 @@ function Snacks.new(opts)
   self.opts = opts or {}
   self._job_id = nil
   self._pid = nil
+
+  -- Hook into on_buf to capture the terminal job's PID when the buffer is created.
+  -- This ensures PID capture happens automatically regardless of how the terminal is
+  -- started (toggle, open), without duplicating the logic in each method.
+  self.opts.win = self.opts.win or {}
+  local user_on_buf = self.opts.win.on_buf
+  self.opts.win.on_buf = function(win)
+    if user_on_buf then
+      user_on_buf(win)
+    end
+    -- Deferred because on_buf fires before the terminal job is fully started
+    vim.defer_fn(function()
+      if win.buf and vim.api.nvim_buf_is_valid(win.buf) then
+        self._job_id = vim.b[win.buf].terminal_job_id
+        if self._job_id then
+          pcall(function()
+            self._pid = vim.fn.jobpid(self._job_id)
+          end)
+        end
+      end
+    end, 100)
+  end
+
   return self
 end
 
@@ -48,43 +71,23 @@ end
 
 function Snacks:toggle()
   require("snacks.terminal").toggle(self.cmd, self.opts)
-  -- Capture the job ID and PID after terminal opens (may be a new terminal)
-  vim.defer_fn(function()
-    local win = self:get()
-    if win and win.buf and vim.api.nvim_buf_is_valid(win.buf) then
-      self._job_id = vim.b[win.buf].terminal_job_id
-      if self._job_id then
-        pcall(function()
-          self._pid = vim.fn.jobpid(self._job_id)
-        end)
-      end
-    end
-  end, 100)
 end
 
 function Snacks:start()
   if not self:get() then
     require("snacks.terminal").open(self.cmd, self.opts)
-    -- Capture the job ID and PID after terminal opens
-    vim.defer_fn(function()
-      local win = self:get()
-      if win and win.buf and vim.api.nvim_buf_is_valid(win.buf) then
-        self._job_id = vim.b[win.buf].terminal_job_id
-        if self._job_id then
-          pcall(function()
-            self._pid = vim.fn.jobpid(self._job_id)
-          end)
-        end
-      end
-    end, 100)
   end
 end
 
 function Snacks:stop()
-  -- Kill via PID using shell kill (most reliable during VimLeavePre,
+  -- Kill via PID (most reliable during VimLeavePre,
   -- as vim.uv.kill and jobstop may not work when Neovim is shutting down)
   if self._pid then
-    vim.fn.system("kill -TERM " .. self._pid .. " 2>/dev/null")
+    if vim.fn.has("unix") == 1 then
+      vim.fn.system("kill -TERM " .. self._pid .. " 2>/dev/null")
+    else
+      pcall(vim.uv.kill, self._pid, "sigterm")
+    end
     self._pid = nil
   end
 
