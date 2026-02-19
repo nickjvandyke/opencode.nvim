@@ -111,17 +111,18 @@ handlers[ms.completionItem_resolve] = function(params, callback)
   callback(nil, item)
 end
 
--- FIX: We get "invalid server name" when attempting to `:LspStop`, and this isn't called.
+-- NOTE: On nvim 0.11, we get "invalid server name" when attempting to `:LspStop`, and this isn't called.
 -- Maybe because the server is never actually registered via `vim.lsp.enable`?
 -- Just started manually.
+-- But on 0.12, seems to call this as expected.
 handlers[ms.shutdown] = function(params, callback)
   -- I'd expect the client (Neovim) to handle this,
   -- but `vim.lsp.enable("opencode", false)` seems to have no effect without it?
-  for _, client in ipairs(vim.lsp.get_clients({ name = "opencode_ask_cmp" })) do
-    for bufnr, _ in pairs(client.attached_buffers) do
-      vim.lsp.buf_detach_client(bufnr, client.id)
-    end
-  end
+  -- for _, client in ipairs(vim.lsp.get_clients({ name = "opencode_ask_cmp" })) do
+  --   for bufnr, _ in pairs(client.attached_buffers) do
+  --     vim.lsp.buf_detach_client(bufnr, client.id)
+  --   end
+  -- end
 
   callback(nil, nil)
 end
