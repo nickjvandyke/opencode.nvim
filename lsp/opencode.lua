@@ -43,7 +43,7 @@ handlers[ms.initialize] = function(params, callback)
       hoverProvider = config.lsp.handlers.hover.enabled,
       codeActionProvider = config.lsp.handlers.code_action.enabled,
       executeCommandProvider = {
-        commands = { "opencode.fix" },
+        commands = { "opencode.fix", "opencode.explain" },
       },
     },
     serverInfo = {
@@ -66,18 +66,28 @@ handlers[ms.textDocument_codeAction] = function(params, callback)
       },
     }
   end, diagnostics or {})
+  local explain_commands = vim.tbl_map(function(diagnostic)
+    return {
+      title = "Ask opencode to explain: " .. diagnostic.message,
+      command = {
+        command = "opencode.explain",
+        arguments = { diagnostic },
+      },
+    }
+  end, diagnostics or {})
 
-  callback(nil, fix_commands)
+  callback(nil, vim.list_extend(explain_commands, fix_commands))
 end
 
 ---@param params lsp.ExecuteCommandParams
 ---@param callback fun(err?: lsp.ResponseError, result: any)
 handlers[ms.workspace_executeCommand] = function(params, callback)
-  if params.command == "opencode.fix" then
+  if params.command == "opencode.fix" or params.command == "opencode.explain" then
     local diagnostic = params.arguments[1]
     ---@cast diagnostic vim.Diagnostic
     local filepath = require("opencode.context").format({ buf = diagnostic.bufnr })
-    local prompt = "Fix diagnostic: " .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
+    local prompt_prefix = params.command == "opencode.fix" and "Fix diagnostic: " or "Explain diagnostic: "
+    local prompt = prompt_prefix .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
 
     require("opencode")
       .prompt(prompt, { submit = true })
@@ -85,7 +95,8 @@ handlers[ms.workspace_executeCommand] = function(params, callback)
         callback(nil, nil) -- Indicate success
       end)
       :catch(function(err)
-        callback({ code = -32000, message = "Failed to fix: " .. err })
+        local err_msg = params.command == "opencode.fix" and "Failed to fix: " or "Failed to explain: "
+        callback({ code = -32000, message = err_msg .. err })
       end)
   else
     callback({ code = -32601, message = "Unknown command: " .. params.command })
@@ -201,8 +212,8 @@ handlers[ms.textDocument_hover] = function(params, callback)
 end
 
 ---An in-process LSP that interacts with `opencode`.
---- - Code actions: ask `opencode` to fix diagnostics under the cursor.
----
+--- - Code actions: ask `opencode` to explain or fix diagnostics under the cursor.
+--- - Hover: ask `opencode` to explain the symbol under the cursor, using the surrounding code as context.
 ---@type vim.lsp.Config
 return {
   name = "opencode",

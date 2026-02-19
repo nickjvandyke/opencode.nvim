@@ -112,7 +112,6 @@ handlers[ms.completionItem_resolve] = function(params, callback)
 end
 
 ---An in-process LSP that provides completions for context placeholders and agents.
----
 ---@type vim.lsp.Config
 return {
   name = "opencode_ask_cmp",

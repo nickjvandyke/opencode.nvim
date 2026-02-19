@@ -343,7 +343,7 @@ Command `opencode`:
 | LSP Function | `opencode.nvim` Handler                                                 |
 | ------------ | ----------------------------------------------------------------------- |
 | Hover        | Asks `opencode` for a brief explanation of the symbol under the cursor. |
-| Code Actions | Asks `opencode` to fix diagnostics under the cursor.                    |
+| Code Actions | Asks `opencode` to explain or fix diagnostics under the cursor.                    |
 
 ## 👀 Events
 
