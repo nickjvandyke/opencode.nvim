@@ -1,4 +1,10 @@
----Shared process management utilities for providers that run opencode inside Neovim's job system.
+---Shared process management utilities for opencode providers.
+---
+---WORKAROUND: This module exists to work around an upstream bug where the opencode process
+---does not terminate cleanly when it receives SIGHUP (it daemonizes/respawns instead).
+---See: https://github.com/anomalyco/opencode/issues/13001
+---Once that issue is fixed, this module can be removed and providers can use their
+---native stop mechanisms (jobstop, tmux kill-pane, etc.) directly.
 local M = {}
 
 ---Capture the PID associated with a Neovim terminal job.
@@ -10,6 +16,14 @@ function M.capture_pid(job_id)
     return pid
   end
   return nil
+end
+
+---Capture the PID of the process running in a tmux pane.
+---@param pane_id string The tmux pane ID (e.g., "%42")
+---@return number|nil pid The process ID, or nil if it could not be resolved
+function M.capture_tmux_pid(pane_id)
+  local pid_str = vim.trim(vim.fn.system("tmux display-message -p -t " .. pane_id .. " '#{pane_pid}'"))
+  return tonumber(pid_str)
 end
 
 ---Terminate the process and its children reliably.

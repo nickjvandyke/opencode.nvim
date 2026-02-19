@@ -5,6 +5,9 @@
 ---
 ---The `tmux` pane ID where `opencode` is running (internal use only).
 ---@field pane_id? string
+---
+---The PID of the process running in the tmux pane (internal use only).
+---@field _pid? number
 local Tmux = {}
 Tmux.__index = Tmux
 Tmux.name = "tmux"
@@ -39,6 +42,7 @@ function Tmux.new(opts)
   local self = setmetatable({}, Tmux)
   self.opts = opts or {}
   self.pane_id = nil
+  self._pid = nil
   return self
 end
 
@@ -97,9 +101,17 @@ function Tmux:start()
     self.pane_id = vim.fn.system(
       string.format("tmux split-window %s -P -F '#{pane_id}' %s '%s'", detach_flag, self.opts.options or "", self.cmd)
     )
-    local disable_passthrough = self.opts.allow_passthrough ~= true -- default true (disable passthrough)
-    if disable_passthrough and self.pane_id and self.pane_id ~= "" then
-      vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", vim.trim(self.pane_id)))
+    if self.pane_id and self.pane_id ~= "" then
+      self.pane_id = vim.trim(self.pane_id)
+
+      -- Capture PID for reliable termination (see stop() and opencode issue #13001)
+      local util = require("opencode.provider.util")
+      self._pid = util.capture_tmux_pid(self.pane_id)
+
+      local disable_passthrough = self.opts.allow_passthrough ~= true -- default true (disable passthrough)
+      if disable_passthrough then
+        vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", self.pane_id))
+      end
     end
   end
 end
@@ -108,6 +120,13 @@ end
 function Tmux:stop()
   local pane_id = self:get_pane_id()
   if pane_id then
+    -- Workaround: kill the process group before the pane to prevent orphaned processes.
+    -- tmux kill-pane sends SIGHUP which causes opencode to daemonize instead of exiting.
+    -- See: https://github.com/anomalyco/opencode/issues/13001
+    local util = require("opencode.provider.util")
+    util.kill(self._pid)
+    self._pid = nil
+
     vim.fn.system("tmux kill-pane -t " .. pane_id)
     self.pane_id = nil
   end
