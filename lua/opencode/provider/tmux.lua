@@ -109,11 +109,9 @@ end
 
 ---Kill the `opencode` pane.
 function Tmux:stop()
-  local pane_id = self:get_pane_id()
-  if pane_id then
-    -- HACK: https://github.com/nickjvandyke/opencode.nvim/issues/118
-    vim.fn.system("tmux send-keys -t " .. pane_id .. " C-c")
-    self.pane_id = nil
+  local pid = self:get_pid()
+  if pid then
+    require("opencode.provider.util").kill(pid)
   end
 end
 
