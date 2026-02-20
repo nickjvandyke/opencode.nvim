@@ -1,13 +1,7 @@
----Shared process management utilities for opencode providers.
----
----WORKAROUND: This module exists to work around an upstream bug where the opencode process
----does not terminate cleanly when it receives SIGHUP (it daemonizes/respawns instead).
----See: https://github.com/anomalyco/opencode/issues/13001
----Once that issue is fixed, this module can be removed and providers can use their
----native stop mechanisms (jobstop, tmux kill-pane, etc.) directly.
 local M = {}
 
 ---Terminate the process and its children reliably.
+---HACK: for upstream issue described in https://github.com/anomalyco/opencode/issues/13001.
 ---
 ---Uses the cached PID to kill the entire process group, which is more reliable
 ---than jobstop during VimLeavePre because:
