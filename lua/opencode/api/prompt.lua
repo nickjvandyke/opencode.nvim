@@ -6,13 +6,11 @@ local M = {}
 ---@field context? opencode.Context The context the prompt is being made in.
 
 ---Prompt `opencode`.
----
---- - Resolves `prompt` if it references an `opts.prompts` entry by name.
---- - Injects `opts.contexts` into `prompt`.
---- - `opencode` will interpret `@` references to files or subagents
+---On success, clears the context. On failure, resumes the context.
 ---
 ---@param prompt string
 ---@param opts? opencode.api.prompt.Opts
+---@return Promise
 function M.prompt(prompt, opts)
   -- TODO: Referencing `ask = true` prompts doesn't actually ask.
   local referenced_prompt = require("opencode.config").opts.prompts[prompt]
@@ -24,42 +22,38 @@ function M.prompt(prompt, opts)
   }
 
   local Promise = require("opencode.promise")
-  require("opencode.cli.server")
+  return require("opencode.cli.server")
     .get()
     :next(function(server) ---@param server opencode.cli.server.Server
-      return server.port
-    end)
-    :next(function(port) ---@param port number
       if opts.clear then
         return Promise.new(function(resolve)
-          require("opencode.cli.client").tui_execute_command("prompt.clear", port, function()
-            resolve(port)
+          require("opencode.cli.client").tui_execute_command("prompt.clear", server.port, function()
+            resolve(server)
           end)
         end)
       end
-      return port
+      return server
     end)
-    :next(function(port) ---@param port number
-      local rendered = opts.context:render(prompt)
+    :next(function(server) ---@param server opencode.cli.server.Server
+      local rendered = opts.context:render(prompt, server.subagents)
       local plaintext = opts.context.plaintext(rendered.output)
       return Promise.new(function(resolve)
-        require("opencode.cli.client").tui_append_prompt(plaintext, port, function()
-          resolve(port)
+        require("opencode.cli.client").tui_append_prompt(plaintext, server.port, function()
+          resolve(server)
         end)
       end)
     end)
-    :next(function(port) ---@param port number
+    :next(function(server) ---@param server opencode.cli.server.Server
       if opts.submit then
-        require("opencode.cli.client").tui_execute_command("prompt.submit", port)
+        require("opencode.cli.client").tui_execute_command("prompt.submit", server.port)
       end
-
-      return port
+    end)
+    :next(function()
+      opts.context:clear()
     end)
     :catch(function(err)
-      return vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-    end)
-    :finally(function()
-      opts.context:clear()
+      opts.context:resume()
+      return Promise.reject(err)
     end)
 end
 

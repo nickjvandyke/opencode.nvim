@@ -6,17 +6,15 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 
 ## ✨ Features
 
-- Connect to _any_ `opencode`s running in Neovim's CWD, or provide an integrated instance.
-- Share editor context (buffer, cursor, selection, diagnostics, etc.).
-- Input prompts with completions, highlights, and normal-mode support.
-- Select prompts from a library and define your own.
-- Execute commands.
-- Respond to permission requests.
-- Reload edited buffers in real-time.
-- Monitor state via statusline component.
-- Forward Server-Sent-Events as autocmds for automation.
-- Sensible defaults with well-documented, flexible configuration and API to fit your workflow.
-- _Vim-y_ — supports ranges and dot-repeat.
+- Connect to _any_ `opencode` running in Neovim's CWD, or provide an integrated instance
+- Share editor context (buffer, selection, diagnostics, etc.)
+- Input prompts with completions, highlights, and normal-mode support
+- Select prompts from a library and define your own
+- Execute commands
+- Monitor and respond to events (edits, permissions, etc.) in real-time
+- Interact with `opencode` via an in-process LSP
+- _Vim-y_ — supports ranges and dot-repeat
+- Simple, sensible defaults to get you started quickly
 
 ## 📦 Setup
 
@@ -25,22 +23,40 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
 ```lua
 {
   "nickjvandyke/opencode.nvim",
+  version = "*", -- Latest stable release
   dependencies = {
-    -- Recommended for `ask()` and `select()`.
-    -- Required for `snacks` provider.
-    ---@module 'snacks' <- Loads `snacks.nvim` types for configuration intellisense.
-    { "folke/snacks.nvim", opts = { input = {}, picker = {}, terminal = {} } },
+    {
+      -- `snacks.nvim` integration is recommended, but optional
+      ---@module "snacks" <- Loads `snacks.nvim` types for configuration intellisense
+      "folke/snacks.nvim",
+      optional = true,
+      opts = {
+        input = {}, -- Enhances `ask()`
+        picker = { -- Enhances `select()`
+          actions = {
+            opencode_send = function(...) return require("opencode").snacks_picker_send(...) end,
+          },
+          win = {
+            input = {
+              keys = {
+                ["<a-a>"] = { "opencode_send", mode = { "n", "i" } },
+              },
+            },
+          },
+        },
+        terminal = {}, -- Enables the `snacks` provider
+      },
+    },
   },
   config = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
-      -- Your configuration, if any — see `lua/opencode/config.lua`, or "goto definition" on the type or field.
+      -- Your configuration, if any; goto definition on the type or field for details
     }
 
-    -- Required for `opts.events.reload`.
-    vim.o.autoread = true
+    vim.o.autoread = true -- Required for `opts.events.reload`
 
-    -- Recommended/example keymaps.
+    -- Recommended/example keymaps
     vim.keymap.set({ "n", "x" }, "<C-a>", function() require("opencode").ask("@this: ", { submit = true }) end, { desc = "Ask opencode…" })
     vim.keymap.set({ "n", "x" }, "<C-x>", function() require("opencode").select() end,                          { desc = "Execute opencode action…" })
     vim.keymap.set({ "n", "t" }, "<C-.>", function() require("opencode").toggle() end,                          { desc = "Toggle opencode" })
@@ -51,7 +67,7 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
     vim.keymap.set("n", "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll opencode up" })
     vim.keymap.set("n", "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll opencode down" })
 
-    -- You may want these if you use the opinionated `<C-a>` and `<C-x>` keymaps above — otherwise consider `<leader>o…` (and remove terminal mode from the `toggle` keymap).
+    -- You may want these if you use the opinionated `<C-a>` and `<C-x>` keymaps above — otherwise consider `<leader>o…` (and remove terminal mode from the `toggle` keymap)
     vim.keymap.set("n", "+", "<C-a>", { desc = "Increment under cursor", noremap = true })
     vim.keymap.set("n", "-", "<C-x>", { desc = "Decrement under cursor", noremap = true })
   end,
@@ -248,27 +264,29 @@ Please submit PRs adding new providers! 🙂
 
 `opencode.nvim` sets these buffer-local keymaps in provider terminals for Neovim-like message navigation:
 
-| Keymap  | Command                  | Description                  |
-| ------- | ------------------------ | ---------------------------- |
-| `<C-u>` | `session.half.page.up`   | Scroll up half page          |
-| `<C-d>` | `session.half.page.down` | Scroll down half page        |
-| `<Esc>` | `session.interrupt`      | Interrupt                    |
-| `gg`    | `session.first`          | Go to first message          |
-| `G`     | `session.last`           | Go to last message           |
-
+| Keymap  | Command                  | Description           |
+| ------- | ------------------------ | --------------------- |
+| `<C-u>` | `session.half.page.up`   | Scroll up half page   |
+| `<C-d>` | `session.half.page.down` | Scroll down half page |
+| `<Esc>` | `session.interrupt`      | Interrupt             |
+| `gg`    | `session.first`          | Go to first message   |
+| `G`     | `session.last`           | Go to last message    |
 
 ## 🚀 Usage
 
-### ✍️ Ask — `require("opencode").ask()`
+### Ask — `require("opencode").ask()`
 
 Input a prompt for `opencode`.
 
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-  - Registers `opts.ask.blink_cmp_sources` when using `snacks.input` and `blink.cmp`.
+- End the prompt with `\n` to append instead of submit.
+- Additionally, when using `snacks.input`:
+  - Press `<S-CR>` to append instead of submit.
+  - Offers completions via in-process LSP.
 
-### 📝 Select — `require("opencode").select()`
+### Select — `require("opencode").select()`
 
 Select from all `opencode.nvim` functionality.
 
@@ -279,7 +297,7 @@ Select from all `opencode.nvim` functionality.
 
 Highlights and previews items when using `snacks.picker`.
 
-### 🗣️ Prompt — `require("opencode").prompt()`
+### Prompt — `require("opencode").prompt()`
 
 Prompt `opencode`.
 
@@ -287,11 +305,11 @@ Prompt `opencode`.
 - Injects configured contexts.
 - `opencode` will interpret `@` references to files or subagents.
 
-### 🧑‍🔬 Operator — `require("opencode").operator()`
+### Operator — `require("opencode").operator()`
 
 Wraps `prompt` as an operator, supporting ranges and dot-repeat.
 
-### 🧑‍🏫 Command — `require("opencode").command()`
+### Command — `require("opencode").command()`
 
 Command `opencode`:
 
@@ -314,6 +332,18 @@ Command `opencode`:
 | `prompt.submit`          | Submit the TUI input                               |
 | `prompt.clear`           | Clear the TUI input                                |
 | `agent.cycle`            | Cycle the selected agent                           |
+
+### LSP
+
+> [!WARNING]
+> This feature is experimental! Try it out with `vim.g.opencode_opts.lsp.enabled = true`.
+
+`opencode.nvim` provides an in-process LSP to interact with `opencode` via the LSP functions you're used to!
+
+| LSP Function | `opencode.nvim` Handler                                                 |
+| ------------ | ----------------------------------------------------------------------- |
+| Hover        | Asks `opencode` for a brief explanation of the symbol under the cursor. |
+| Code Actions | Asks `opencode` to explain or fix diagnostics under the cursor.                    |
 
 ## 👀 Events
 
@@ -349,9 +379,6 @@ When `opencode` requests a permission, `opencode.nvim` waits for idle to ask you
 
 ### Statusline
 
-<details>
-<summary><a href="https://github.com/nvim-lualine/lualine.nvim">lualine</a></summary>
-
 ```lua
 require("lualine").setup({
   sections = {
@@ -363,8 +390,6 @@ require("lualine").setup({
   }
 })
 ```
-
-</details>
 
 ## 🙏 Acknowledgments
 

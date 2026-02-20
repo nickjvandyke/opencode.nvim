@@ -10,8 +10,9 @@ local function ellipsize(s, max_len)
   return truncated .. "..."
 end
 
+---@return Promise<{ session: opencode.cli.client.Session, port: number }>
 function M.select_session()
-  require("opencode.cli.server")
+  return require("opencode.cli.server")
     .get()
     :next(function(server) ---@param server opencode.cli.server.Server
       return server.port
@@ -29,22 +30,19 @@ function M.select_session()
         return a.time.updated > b.time.updated
       end)
 
-      vim.ui.select(sessions, {
-        prompt = "Select session (recently updated first):",
-        format_item = function(item)
-          local title_length = 60
-          local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
-          local title = ellipsize(item.title, title_length)
-          return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
-        end,
-      }, function(choice) ---@param choice? opencode.cli.client.Session
-        if choice then
-          require("opencode.cli.client").select_session(session_data.port, choice.id)
-        end
-      end)
-    end)
-    :catch(function(err)
-      vim.notify(err, vim.log.levels.ERROR)
+      return require("opencode.promise")
+        .select(sessions, {
+          prompt = "Select session (recently updated first):",
+          format_item = function(item)
+            local title_length = 60
+            local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
+            local title = ellipsize(item.title, title_length)
+            return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
+          end,
+        })
+        :next(function(choice)
+          return { session = choice, port = session_data.port }
+        end)
     end)
 end
 

@@ -9,7 +9,6 @@
 ---@field buf integer
 ---@field cursor integer[] The cursor positon. { row, col } (1,0-based).
 ---@field range? opencode.context.Range The operator range or visual selection range.
----@field agents? opencode.cli.client.Agent[] Subagents available in `opencode`.
 local Context = {}
 Context.__index = Context
 
@@ -83,6 +82,11 @@ local function highlight(buf, range)
   })
 end
 
+---The currently active context.
+---Stored globally so the LSP can access it to render contexts in completions.
+---@type opencode.Context?
+Context.current = nil
+
 ---@param range? opencode.context.Range The range of the operator or visual selection. Defaults to current visual selection, if any.
 function Context.new(range)
   local self = setmetatable({}, Context)
@@ -90,9 +94,13 @@ function Context.new(range)
   self.buf = vim.api.nvim_win_get_buf(self.win)
   self.cursor = vim.api.nvim_win_get_cursor(self.win)
   self.range = range or selection(self.buf)
+
+  Context.current = self
+
   if self.range then
     highlight(self.buf, self.range)
   end
+
   return self
 end
 
@@ -109,10 +117,11 @@ end
 
 ---Render `opts.contexts` in `prompt`.
 ---@param prompt string
+---@param agents opencode.cli.client.Agent[]
 ---@return { input: snacks.picker.Text[], output: snacks.picker.Text[] }
-function Context:render(prompt)
+function Context:render(prompt, agents)
   local contexts = require("opencode.config").opts.contexts or {}
-  local agents = self.agents or {}
+
   local context_placeholders = vim.tbl_keys(contexts)
   table.sort(context_placeholders, function(a, b)
     return #a > #b -- longest first, in case some overlap
@@ -230,10 +239,22 @@ function Context.extmarks(rendered)
   return extmarks
 end
 
+---Transforms to `:help input()-highlight` format.
+---@param rendered snacks.picker.Text[]
+---return { [1]: integer, [2]: integer, [3]: string }[]
+function Context.input_highlight(rendered)
+  return vim.tbl_map(function(extmark)
+    return { extmark.col, extmark.end_col, extmark.hl_group }
+  end, Context.extmarks(rendered))
+end
+
 ---Format a location for `opencode`.
 ---e.g. `@opencode.lua L21:C10-L65:C11`
+---Received lines and columns are 1-based.
 ---@param args { buf?: integer, path?: string, start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer }
 function Context.format(args)
+  -- FIX: Returns an empty string for invalid buffers - problematic on table.concat.
+  -- Should return nil instead?
   local result = ""
   if (args.buf and is_buf_valid(args.buf)) or args.path then
     local rel_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":.")
@@ -293,6 +314,8 @@ end
 
 ---All open buffers.
 function Context:buffers()
+  -- FIX: Not quite sure the conditions yet, but sometimes this will return nil and then render falls back to `buffer()`.
+  -- Should we fallback to `self.buf` in here?
   local file_list = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     local path = Context.format({ buf = buf })
@@ -330,6 +353,24 @@ function Context:visible_text()
   return table.concat(visible, " ")
 end
 
+---@param diagnostic vim.Diagnostic
+---@return string
+function Context.format_diagnostic(diagnostic)
+  local location = Context.format({
+    start_line = diagnostic.lnum + 1,
+    start_col = diagnostic.col + 1,
+    end_line = diagnostic.end_lnum + 1,
+    end_col = diagnostic.end_col + 1,
+  })
+
+  return string.format(
+    "%s (%s): %s",
+    location,
+    diagnostic.source or "unknown source",
+    diagnostic.message:gsub("%s+", " "):gsub("^%s", ""):gsub("%s$", "")
+  )
+end
+
 ---Diagnostics for the current buffer.
 function Context:diagnostics()
   local diagnostics = vim.diagnostic.get(self.buf)
@@ -337,29 +378,13 @@ function Context:diagnostics()
     return nil
   end
 
-  local file_ref = Context.format({ buf = self.buf })
+  local filepath = Context.format({ buf = self.buf })
 
-  local diagnostic_strings = {}
-  for _, diagnostic in ipairs(diagnostics) do
-    local location = Context.format({
-      start_line = diagnostic.lnum + 1,
-      start_col = diagnostic.col + 1,
-      end_line = diagnostic.end_lnum + 1,
-      end_col = diagnostic.end_col + 1,
-    })
+  local diagnostic_strings = vim.tbl_map(function(diagnostic)
+    return "- " .. Context.format_diagnostic(diagnostic)
+  end, diagnostics)
 
-    table.insert(
-      diagnostic_strings,
-      string.format(
-        "- %s (%s): %s",
-        location,
-        diagnostic.source or "unknown source",
-        diagnostic.message:gsub("%s+", " "):gsub("^%s", ""):gsub("%s$", "")
-      )
-    )
-  end
-
-  return #diagnostics .. " diagnostics in " .. file_ref .. "\n" .. table.concat(diagnostic_strings, "\n")
+  return #diagnostics .. " diagnostics in " .. filepath .. "\n" .. table.concat(diagnostic_strings, "\n")
 end
 
 ---Formatted quickfix list entries.

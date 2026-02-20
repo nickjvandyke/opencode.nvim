@@ -36,8 +36,8 @@ end
 ---@field private _value any
 ---@field private _queued Promise[]
 ---@field private _unhandled_detector table
----@field private _on_fullfilled (fun(...:any):(...:any))?
----@field private _on_rejected (fun(...:any):(...:any))?
+---@field private _on_fullfilled? fun(...:any):(...:any)
+---@field private _on_rejected? fun(...:any):(...:any)
 ---@field private _handled boolean
 local Promise = {
   _is_promise = true,
@@ -225,8 +225,8 @@ end
 ---Equivalent to JavaScript's `Promise.then`.
 ---@generic T, U
 ---@param self Promise<T>
----@param on_fullfilled (fun(...:T): U | Promise<U> | nil)?
----@param on_rejected (fun(...:any): U | Promise<U> | nil)?
+---@param on_fullfilled? fun(...:T): U | Promise<U> | nil
+---@param on_rejected? fun(...:any): U | Promise<U> | nil
 ---@return Promise<U>
 function Promise.next(self, on_fullfilled, on_rejected)
   local promise = new_pending(on_fullfilled, on_rejected)
@@ -248,6 +248,9 @@ end
 ---@param on_rejected fun(...:any): U | Promise<U> | nil
 ---@return Promise<U>
 function Promise.catch(self, on_rejected)
+  ---Not sure why this flags.
+  ---`next` accepts `nil` for `on_fullfilled` but the LSP doesn't seem to think so.
+  ---@diagnostic disable-next-line: param-type-mismatch
   return self:next(nil, on_rejected)
 end
 

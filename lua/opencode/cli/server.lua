@@ -5,6 +5,7 @@ local M = {}
 ---@field port number
 ---@field cwd string
 ---@field title string
+---@field subagents opencode.cli.client.Agent[]
 
 ---An `opencode` process.
 ---Retrieval is platform-dependent.
@@ -103,24 +104,34 @@ local function get_server(port)
     -- Serial instead of parallel so that `get_path` has verified it's a server
     :next(
       function(cwd) ---@param cwd string
-        return Promise.new(function(resolve)
-          require("opencode.cli.client").get_sessions(port, function(session)
-            -- This will be the most recently interacted session.
-            -- Unfortunately `opencode` doesn't provide a way to get the currently selected TUI session.
-            -- But they will probably have interacted with the session they want to connect to most recently.
-            local title = session[1] and session[1].title or "<No sessions>"
-            resolve({ cwd, title })
-          end)
-        end)
+        return Promise.all({
+          cwd,
+          Promise.new(function(resolve)
+            require("opencode.cli.client").get_sessions(port, function(session)
+              -- This will be the most recently interacted session.
+              -- Unfortunately `opencode` doesn't provide a way to get the currently selected TUI session.
+              -- But they will probably have interacted with the session they want to connect to most recently.
+              local title = session[1] and session[1].title or "<No sessions>"
+              resolve(title)
+            end)
+          end),
+          Promise.new(function(resolve)
+            require("opencode.cli.client").get_agents(port, function(agents)
+              local subagents = vim.tbl_filter(function(agent)
+                return agent.mode == "subagent"
+              end, agents)
+              resolve(subagents)
+            end)
+          end),
+        })
       end
     )
-    :next(function(results) ---@param results { [1]: string, [2]: string }
-      local cwd = results[1]
-      local title = results[2]
+    :next(function(results) ---@param results { [1]: string, [2]: string, [3]: opencode.cli.client.Agent[] }
       return {
         port = port,
-        cwd = cwd,
-        title = title,
+        cwd = results[1],
+        title = results[2],
+        subagents = results[3],
       }
     end)
 end
@@ -161,7 +172,7 @@ local function get_all_servers()
 end
 
 ---@return Promise<opencode.cli.server.Server[]>
-local function get_all_servers_in_nvim_cwd()
+function M.get_all_servers_in_nvim_cwd()
   return get_all_servers():next(function(servers) ---@param servers opencode.cli.server.Server[]
     local cwd_matching_servers = {}
     local nvim_cwd = vim.fn.getcwd()
@@ -185,26 +196,6 @@ local function get_all_servers_in_nvim_cwd()
   end)
 end
 
----@return Promise<opencode.cli.server.Server>
-local function get_configured_server()
-  local configured_port = require("opencode.config").opts.port
-  if configured_port then
-    return get_server(configured_port)
-  else
-    return require("opencode.promise").reject("No configured port for `opencode` server")
-  end
-end
-
----@return Promise<opencode.cli.server.Server>
-local function get_connected_server()
-  local connected_server = require("opencode.events").connected_server
-  if connected_server then
-    return get_server(connected_server.port)
-  else
-    return require("opencode.promise").reject("No currently subscribed `opencode` server")
-  end
-end
-
 ---Attempt to get the `opencode` server's port. Tries, in order:
 ---
 ---1. The currently subscribed server in `opencode.events`.
@@ -220,9 +211,34 @@ function M.get(launch)
   launch = launch ~= false
 
   local Promise = require("opencode.promise")
-  return get_connected_server()
-    :catch(get_configured_server)
-    :catch(M.select)
+  return Promise.resolve(
+    require("opencode.events").connected_server and require("opencode.events").connected_server.port
+      or require("opencode.config").opts.port
+  )
+    :next(function(priority_port) ---@param priority_port number
+      if priority_port then
+        return Promise.resolve(priority_port)
+      else
+        return M.get_all_servers_in_nvim_cwd():next(function(servers) ---@param servers opencode.cli.server.Server[]
+          if #servers == 1 then
+            return servers[1].port
+          else
+            return require("opencode.ui.select_server")
+              .select_server(servers)
+              :next(function(selected_server) ---@param selected_server opencode.cli.server.Server
+                return selected_server.port
+              end)
+          end
+        end)
+      end
+    end)
+    :next(function(port) ---@param port number
+      return get_server(port)
+    end)
+    :next(function(server) ---@param server opencode.cli.server.Server
+      require("opencode.events").connect(server)
+      return server
+    end)
     :catch(function(err)
       if not err then
         -- Do nothing when select is cancelled
@@ -249,38 +265,6 @@ function M.get(launch)
         return M.get(false)
       end)
     end)
-    :next(function(server) ---@param server opencode.cli.server.Server
-      require("opencode.events").connect(server)
-      return server
-    end)
-end
-
----@param auto_select_if_one boolean?
----@return Promise<opencode.cli.server.Server>
-function M.select(auto_select_if_one)
-  local Promise = require("opencode.promise")
-  return get_all_servers_in_nvim_cwd():next(function(servers) ---@param servers opencode.cli.server.Server[]
-    if auto_select_if_one and #servers == 1 then
-      -- TODO: Is this the best composition?
-      -- Between its use here and in the ui module.
-      return servers[1]
-    end
-
-    local picker_opts = {
-      prompt = "Select an `opencode` server:",
-      format_item = function(server) ---@param server opencode.cli.server.Server
-        return string.format("%s | %s | %d", server.title or "<No sessions>", server.cwd, server.port)
-      end,
-      snacks = {
-        layout = {
-          hidden = { "preview" },
-        },
-      },
-    }
-    picker_opts = vim.tbl_deep_extend("keep", picker_opts, require("opencode.config").opts.select or {})
-
-    return Promise.select(servers, picker_opts)
-  end)
 end
 
 return M
