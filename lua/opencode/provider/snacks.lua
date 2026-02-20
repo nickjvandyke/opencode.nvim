@@ -1,7 +1,5 @@
 ---@module 'snacks'
 
-local util = require("opencode.provider.util")
-
 ---Provide an embedded `opencode` via [`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md).
 ---@class opencode.provider.Snacks : opencode.Provider
 ---
@@ -81,7 +79,7 @@ function Snacks:start()
 end
 
 function Snacks:stop()
-  util.kill(self._pid)
+  require("opencode.provider.util").kill(self:get_pid())
   self._pid = nil
 
   local win = self:get()
