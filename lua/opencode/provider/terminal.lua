@@ -75,7 +75,9 @@ function Terminal:start()
       once = true,
       callback = function(event)
         require("opencode.keymaps").apply(event.buf)
-        -- Cache PID at terminal open time for reliable process termination during VimLeavePre
+        -- Cache PID eagerly at terminal open time because by the time VimLeavePre fires
+        -- and stop() is called, the terminal job has been cleared and terminal_job_id
+        -- is no longer available.
         local job_id = vim.b[event.buf].terminal_job_id
         if job_id then
           self._pid = util.capture_pid(job_id)
@@ -97,13 +99,7 @@ end
 
 ---Close the window, delete the buffer.
 function Terminal:stop()
-  -- Resolve job_id for fallback before we close the buffer
-  local job_id = nil
-  if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
-    job_id = vim.b[self.bufnr].terminal_job_id
-  end
-
-  util.kill(self._pid, job_id)
+  util.kill(self._pid)
   self._pid = nil
 
   if self.winid ~= nil and vim.api.nvim_win_is_valid(self.winid) then

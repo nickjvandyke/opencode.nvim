@@ -6,7 +6,6 @@ local util = require("opencode.provider.util")
 ---@class opencode.provider.Snacks : opencode.Provider
 ---
 ---@field opts snacks.terminal.Opts
----@field private _job_id number|nil
 ---@field private _pid number|nil
 local Snacks = {}
 Snacks.__index = Snacks
@@ -19,12 +18,13 @@ Snacks.name = "snacks"
 function Snacks.new(opts)
   local self = setmetatable({}, Snacks)
   self.opts = opts or {}
-  self._job_id = nil
   self._pid = nil
 
   -- Hook into on_buf to capture the terminal job's PID when the buffer is created.
-  -- This ensures PID capture happens automatically regardless of how the terminal is
-  -- started (toggle, open), without duplicating the logic in each method.
+  -- We must capture the PID eagerly at startup because by the time VimLeavePre fires
+  -- and stop() is called, the terminal job has been cleared and terminal_job_id is no
+  -- longer available. This also ensures PID capture happens automatically regardless
+  -- of how the terminal is started (toggle, open), without duplicating the logic.
   self.opts.win = self.opts.win or {}
   local user_on_buf = self.opts.win.on_buf
   self.opts.win.on_buf = function(win)
@@ -35,9 +35,9 @@ function Snacks.new(opts)
     vim.defer_fn(function()
       if win.buf and vim.api.nvim_buf_is_valid(win.buf) then
         ---@diagnostic disable: invisible -- accessing private fields from closure within constructor
-        self._job_id = vim.b[win.buf].terminal_job_id
-        if self._job_id then
-          self._pid = util.capture_pid(self._job_id)
+        local job_id = vim.b[win.buf].terminal_job_id
+        if job_id then
+          self._pid = util.capture_pid(job_id)
         end
         ---@diagnostic enable: invisible
       end
@@ -83,9 +83,8 @@ function Snacks:start()
 end
 
 function Snacks:stop()
-  util.kill(self._pid, self._job_id)
+  util.kill(self._pid)
   self._pid = nil
-  self._job_id = nil
 
   local win = self:get()
   if win then
