@@ -1,5 +1,3 @@
-local util = require("opencode.provider.util")
-
 ---Provide an embedded `opencode` via a [Neovim terminal](https://neovim.io/doc/user/terminal.html) buffer.
 ---@class opencode.provider.Terminal : opencode.Provider
 ---
@@ -85,6 +83,7 @@ function Terminal:start()
     vim.fn.jobstart(self.cmd, {
       term = true,
       on_exit = function()
+        self._pid = nil
         self.winid = nil
         self.bufnr = nil
       end,
@@ -96,7 +95,8 @@ end
 
 ---Close the window, delete the buffer.
 function Terminal:stop()
-  util.kill(self._pid)
+  -- FIX: Doesn't work when calling `:stop()` when Neovim *isn't* stopping?
+  require("opencode.provider.util").kill(self:get_pid())
   self._pid = nil
 
   if self.winid ~= nil and vim.api.nvim_win_is_valid(self.winid) then
@@ -105,13 +105,14 @@ function Terminal:stop()
   end
   if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
     vim.api.nvim_buf_delete(self.bufnr, { force = true })
+    self.bufnr = nil
   end
 end
 
 ---Capture and cache the PID of the terminal job.
 ---@return number?
 function Terminal:get_pid()
-  if not self._pid then
+  if not self._pid and self.bufnr then
     local job_id = vim.b[self.bufnr].terminal_job_id
     if job_id then
       local ok, pid = pcall(vim.fn.jobpid, job_id)
