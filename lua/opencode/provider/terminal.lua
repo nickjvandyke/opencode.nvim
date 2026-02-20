@@ -5,6 +5,7 @@
 ---
 ---@field bufnr? integer
 ---@field winid? integer
+---@field private _pid number|nil
 local Terminal = {}
 Terminal.__index = Terminal
 Terminal.name = "terminal"
@@ -16,6 +17,7 @@ function Terminal.new(opts)
   self.opts = opts or {}
   self.winid = nil
   self.bufnr = nil
+  self._pid = nil
   return self
 end
 
@@ -71,12 +73,17 @@ function Terminal:start()
       once = true,
       callback = function(event)
         require("opencode.keymaps").apply(event.buf)
+        -- Cache PID eagerly at terminal open time because by the time VimLeavePre fires
+        -- and stop() is called, the terminal job has been cleared and terminal_job_id
+        -- is no longer available.
+        self:get_pid()
       end,
     })
 
     vim.fn.jobstart(self.cmd, {
       term = true,
       on_exit = function()
+        self._pid = nil
         self.winid = nil
         self.bufnr = nil
       end,
@@ -86,15 +93,40 @@ function Terminal:start()
   end
 end
 
----Close the window, delete the buffer.
 function Terminal:stop()
+  local job_id = vim.b[self.bufnr].terminal_job_id
+  if job_id then
+    -- Apparently we still have to do this ourselves when Neovim *isn't* stopping.
+    -- Not needed for snacks.terminal - I guess it does it internally?
+    vim.fn.jobstop(job_id)
+  end
+  require("opencode.provider.util").kill(self:get_pid())
+  self._pid = nil
+
   if self.winid ~= nil and vim.api.nvim_win_is_valid(self.winid) then
     vim.api.nvim_win_close(self.winid, true)
     self.winid = nil
   end
   if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
     vim.api.nvim_buf_delete(self.bufnr, { force = true })
+    self.bufnr = nil
   end
+end
+
+---Capture and cache the PID of the terminal job.
+---@return number?
+function Terminal:get_pid()
+  if not self._pid and self.bufnr then
+    local job_id = vim.b[self.bufnr].terminal_job_id
+    if job_id then
+      local ok, pid = pcall(vim.fn.jobpid, job_id)
+      if ok then
+        self._pid = pid
+      end
+    end
+  end
+
+  return self._pid
 end
 
 return Terminal

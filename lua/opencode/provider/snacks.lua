@@ -4,6 +4,7 @@
 ---@class opencode.provider.Snacks : opencode.Provider
 ---
 ---@field opts snacks.terminal.Opts
+---@field private _pid number|nil
 local Snacks = {}
 Snacks.__index = Snacks
 Snacks.name = "snacks"
@@ -15,6 +16,30 @@ Snacks.name = "snacks"
 function Snacks.new(opts)
   local self = setmetatable({}, Snacks)
   self.opts = opts or {}
+  self._pid = nil
+
+  -- Hook into on_buf to capture the terminal job's PID when the buffer is created.
+  -- We must capture the PID eagerly at startup because by the time VimLeavePre fires
+  -- and stop() is called, the terminal job has been cleared and terminal_job_id is no
+  -- longer available. This also ensures PID capture happens automatically regardless
+  -- of how the terminal is started (toggle, open), without duplicating the logic.
+  self.opts.win = self.opts.win or {}
+  local user_on_buf = self.opts.win.on_buf
+  self.opts.win.on_buf = function(win)
+    if user_on_buf then
+      user_on_buf(win)
+    end
+    ---@diagnostic disable: invisible -- accessing private fields from closure within constructor
+    vim.api.nvim_create_autocmd("TermOpen", {
+      buffer = win.buf,
+      once = true,
+      callback = function()
+        self:get_pid()
+      end,
+    })
+    ---@diagnostic enable: invisible
+  end
+
   return self
 end
 
@@ -54,12 +79,30 @@ function Snacks:start()
 end
 
 function Snacks:stop()
+  require("opencode.provider.util").kill(self:get_pid())
+  self._pid = nil
+
   local win = self:get()
   if win then
-    -- TODO: Stop the job first so we don't get error exit code.
-    -- Not sure how to get the job ID from snacks API though.
     win:close()
   end
+end
+
+---Capture and cache the PID of the terminal job.
+---@return number?
+function Snacks:get_pid()
+  local buf = self:get() and self:get().buf
+  if not self._pid and buf then
+    local job_id = vim.b[buf].terminal_job_id
+    if job_id then
+      local ok, pid = pcall(vim.fn.jobpid, job_id)
+      if ok then
+        self._pid = pid
+      end
+    end
+  end
+
+  return self._pid
 end
 
 return Snacks

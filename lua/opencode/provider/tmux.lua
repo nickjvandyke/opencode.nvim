@@ -99,6 +99,7 @@ function Tmux:start()
         string.format("tmux split-window %s -P -F '#{pane_id}' %s '%s'", detach_flag, self.opts.options or "", self.cmd)
       )
     )
+
     local disable_passthrough = self.opts.allow_passthrough ~= true -- default true (disable passthrough)
     if disable_passthrough and self.pane_id and self.pane_id ~= "" then
       vim.fn.system(string.format("tmux set-option -t %s -p allow-passthrough off", self.pane_id))
@@ -108,12 +109,20 @@ end
 
 ---Kill the `opencode` pane.
 function Tmux:stop()
-  local pane_id = self:get_pane_id()
-  if pane_id then
-    -- HACK: https://github.com/nickjvandyke/opencode.nvim/issues/118
-    vim.fn.system("tmux send-keys -t " .. pane_id .. " C-c")
-    self.pane_id = nil
+  local pid = self:get_pid()
+  if pid then
+    require("opencode.provider.util").kill(pid)
   end
+end
+
+---Capture the PID of the process running in the pane.
+---@return number?
+function Tmux:get_pid()
+  if not self.pane_id then
+    return nil
+  end
+
+  return tonumber(vim.trim(vim.fn.system("tmux display-message -p -t " .. self.pane_id .. " '#{pane_pid}'")))
 end
 
 return Tmux
