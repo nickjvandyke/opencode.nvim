@@ -93,9 +93,13 @@ function Terminal:start()
   end
 end
 
----Close the window, delete the buffer.
 function Terminal:stop()
-  -- FIX: Doesn't work when calling `:stop()` when Neovim *isn't* stopping?
+  local job_id = vim.b[self.bufnr].terminal_job_id
+  if job_id then
+    -- Apparently we still have to do this ourselves when Neovim *isn't* stopping.
+    -- Not needed for snacks.terminal - I guess it does it internally?
+    vim.fn.jobstop(job_id)
+  end
   require("opencode.provider.util").kill(self:get_pid())
   self._pid = nil
 
