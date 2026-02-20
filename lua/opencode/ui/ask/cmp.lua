@@ -75,36 +75,15 @@ end
 ---@param callback fun(err?: lsp.ResponseError, result: lsp.CompletionItem)
 handlers[ms.completionItem_resolve] = function(params, callback)
   local item = vim.deepcopy(params)
-  if not item.documentation then
+  local context = require("opencode.context").current
+  if not item.documentation and context then
     -- Agents can be empty here - they already have documentation attached
-    local rendered = require("opencode.context").current:render(item.label, {})
+    local rendered = context:render(item.label, {})
+    -- Highlights won't match other locations, but there's no general way to control them.
+    -- Would have to support each completion plugin separately.
     item.documentation = {
       kind = "plaintext",
-      value = require("opencode.context").current.plaintext(rendered.output),
-      ---@param opts blink.cmp.CompletionDocumentationDrawOpts
-      draw = function(opts)
-        -- `blink.cmp`-specific.
-        -- Unsure of a general solution right now.
-        local buf = opts and opts.window and opts.window.buf
-        if not buf or not opts.default_implementation then
-          -- Not in `blink.cmp`
-          return
-        end
-
-        opts.default_implementation({
-          kind = "plaintext",
-          value = opts.item.documentation.value,
-        })
-
-        local extmarks = require("opencode.context").current.extmarks(rendered.output)
-        local ns_id = vim.api.nvim_create_namespace("opencode_enum_highlight")
-        for _, extmark in ipairs(extmarks) do
-          vim.api.nvim_buf_set_extmark(buf, ns_id, (extmark.row or 1) - 1, extmark.col, {
-            end_col = extmark.end_col,
-            hl_group = extmark.hl_group,
-          })
-        end
-      end,
+      value = context.plaintext(rendered.output),
     }
   end
 
