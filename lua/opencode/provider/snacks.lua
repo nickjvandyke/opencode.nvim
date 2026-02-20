@@ -31,17 +31,18 @@ function Snacks.new(opts)
     if user_on_buf then
       user_on_buf(win)
     end
-    -- Deferred because on_buf fires before the terminal job is fully started
-    vim.defer_fn(function()
-      if win.buf and vim.api.nvim_buf_is_valid(win.buf) then
-        ---@diagnostic disable: invisible -- accessing private fields from closure within constructor
+    ---@diagnostic disable: invisible -- accessing private fields from closure within constructor
+    vim.api.nvim_create_autocmd("TermOpen", {
+      buffer = win.buf,
+      once = true,
+      callback = function()
         local job_id = vim.b[win.buf].terminal_job_id
         if job_id then
           self._pid = util.capture_pid(job_id)
         end
-        ---@diagnostic enable: invisible
-      end
-    end, 100)
+      end,
+    })
+    ---@diagnostic enable: invisible
   end
 
   return self
@@ -50,12 +51,11 @@ end
 ---Check if `snacks.terminal` is available and enabled.
 function Snacks.health()
   local snacks_ok, snacks = pcall(require, "snacks")
-  ---@cast snacks Snacks
   if not snacks_ok then
     return "`snacks.nvim` is not available.", {
       "Install `snacks.nvim` and enable `snacks.terminal.`",
     }
-  elseif not snacks.config.get("terminal", {}).enabled then
+  elseif not snacks and snacks.config.get("terminal", {}).enabled then
     return "`snacks.terminal` is not enabled.",
       {
         "Enable `snacks.terminal` in your `snacks.nvim` configuration.",
