@@ -117,4 +117,14 @@ function Tmux:stop()
   end
 end
 
+---Capture the PID of the process running in the pane.
+---@return number?
+function Tmux:get_pid()
+  if not self.pane_id then
+    return nil
+  end
+
+  return tonumber(vim.trim(vim.fn.system("tmux display-message -p -t " .. self.pane_id .. " '#{pane_pid}'")))
+end
+
 return Tmux

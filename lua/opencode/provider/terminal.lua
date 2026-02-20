@@ -78,10 +78,7 @@ function Terminal:start()
         -- Cache PID eagerly at terminal open time because by the time VimLeavePre fires
         -- and stop() is called, the terminal job has been cleared and terminal_job_id
         -- is no longer available.
-        local job_id = vim.b[event.buf].terminal_job_id
-        if job_id then
-          self._pid = util.capture_pid(job_id)
-        end
+        self:get_pid()
       end,
     })
 
@@ -109,6 +106,22 @@ function Terminal:stop()
   if self.bufnr ~= nil and vim.api.nvim_buf_is_valid(self.bufnr) then
     vim.api.nvim_buf_delete(self.bufnr, { force = true })
   end
+end
+
+---Capture and cache the PID of the terminal job.
+---@return number?
+function Terminal:get_pid()
+  if not self._pid then
+    local job_id = vim.b[self.bufnr].terminal_job_id
+    if job_id then
+      local ok, pid = pcall(vim.fn.jobpid, job_id)
+      if ok then
+        self._pid = pid
+      end
+    end
+  end
+
+  return self._pid
 end
 
 return Terminal

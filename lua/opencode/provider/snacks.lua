@@ -36,10 +36,7 @@ function Snacks.new(opts)
       buffer = win.buf,
       once = true,
       callback = function()
-        local job_id = vim.b[win.buf].terminal_job_id
-        if job_id then
-          self._pid = util.capture_pid(job_id)
-        end
+        self:get_pid()
       end,
     })
     ---@diagnostic enable: invisible
@@ -91,6 +88,23 @@ function Snacks:stop()
   if win then
     win:close()
   end
+end
+
+---Capture and cache the PID of the terminal job.
+---@return number?
+function Snacks:get_pid()
+  local buf = self:get() and self:get().buf
+  if not self._pid and buf then
+    local job_id = vim.b[buf].terminal_job_id
+    if job_id then
+      local ok, pid = pcall(vim.fn.jobpid, job_id)
+      if ok then
+        self._pid = pid
+      end
+    end
+  end
+
+  return self._pid
 end
 
 return Snacks
