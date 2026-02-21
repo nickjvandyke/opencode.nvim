@@ -140,6 +140,28 @@ function M.check()
       vim.health.warn("The `" .. provider.name .. "` provider is not available — " .. ok, advice)
     end
   end
+
+  vim.health.start("opencode.nvim [diff review]")
+
+  local session_diff_opts = require("opencode.config").opts.events.session_diff
+  if session_diff_opts.enabled then
+    vim.health.ok("Session diff review is enabled.")
+
+    local diff_mode = session_diff_opts.diff_mode or "enhanced"
+    
+    if diff_mode == "enhanced" then
+      vim.health.ok("Diff mode: Enhanced (side-by-side vim diff-mode with file panel)")
+    elseif diff_mode == "unified" then
+      vim.health.ok("Diff mode: Unified (simple unified diff view)")
+    else
+      vim.health.warn(
+        "Unknown diff_mode: '" .. diff_mode .. "'. Valid options: 'enhanced', 'unified'",
+        { "Set opts.events.session_diff.diff_mode to a valid option" }
+      )
+    end
+  else
+    vim.health.info("Session diff review is disabled.")
+  end
 end
 
 return M

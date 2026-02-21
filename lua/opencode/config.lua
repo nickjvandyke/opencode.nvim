@@ -160,6 +160,14 @@ local defaults = {
       enabled = true,
       idle_delay_ms = 1000,
     },
+    session_diff = {
+      enabled = true, -- Show session review for session.diff events
+      -- Diff mode: "enhanced" | "unified"
+      -- "enhanced": Use vim diff-mode side-by-side with file panel (default)
+      -- "unified": Simple unified diff view (minimal, fallback option)
+      diff_mode = "enhanced",
+      open_in_tab = false, -- Open review in a new tab (and reuse the same tab for navigation)
+    },
   },
   provider = {
     cmd = "opencode --port",
