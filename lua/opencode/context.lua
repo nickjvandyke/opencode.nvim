@@ -257,11 +257,11 @@ function Context.format(args)
   -- Should return nil instead?
   local result = ""
   if (args.buf and is_buf_valid(args.buf)) or args.path then
-    local rel_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":.")
+    local absolute_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":p:~")
     -- Must be preceeded by @ and followed by space for `opencode` to parse as a file reference
     -- TODO: Actually it regressed and doesn't do that anymore.
     -- And in the meantime, the prefixed `@` seems to confuse it.
-    result = rel_path .. " "
+    result = absolute_path .. " "
   end
   if args.start_line and args.end_line and args.start_line > args.end_line then
     args.start_line, args.end_line = args.end_line, args.start_line

@@ -137,7 +137,7 @@ local function get_server(port)
 end
 
 ---@return Promise<opencode.cli.server.Server[]>
-local function get_all_servers()
+function M.get_all()
   local Promise = require("opencode.promise")
   return Promise.new(function(resolve, reject)
     local processes
@@ -171,36 +171,11 @@ local function get_all_servers()
   end)
 end
 
----@return Promise<opencode.cli.server.Server[]>
-function M.get_all_servers_in_nvim_cwd()
-  return get_all_servers():next(function(servers) ---@param servers opencode.cli.server.Server[]
-    local cwd_matching_servers = {}
-    local nvim_cwd = vim.fn.getcwd()
-    for _, server in ipairs(servers) do
-      -- Filter for servers in the same CWD as Neovim
-      local normalized_server_cwd = server.cwd
-      local normalized_nvim_cwd = nvim_cwd
-      if is_windows() then
-        -- On Windows, normalize to backslashes for consistent comparison
-        normalized_server_cwd = server.cwd:gsub("/", "\\")
-        normalized_nvim_cwd = nvim_cwd:gsub("/", "\\")
-      end
-      if normalized_nvim_cwd == normalized_server_cwd then
-        table.insert(cwd_matching_servers, server)
-      end
-    end
-    if #cwd_matching_servers == 0 then
-      error("No `opencode` servers found in Neovim's CWD: " .. nvim_cwd, 0)
-    end
-    return cwd_matching_servers
-  end)
-end
-
 ---Attempt to get the `opencode` server's port. Tries, in order:
 ---
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
----3. Any server in Neovim's CWD, prompting the user to select if multiple are found.
+---3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
 ---4. Calling `require("opencode.provider").start()` to launch a new server, then retrying the above.
 ---
 ---Upon success, subscribes to the server's events.
@@ -219,10 +194,18 @@ function M.get(launch)
       if priority_port then
         return Promise.resolve(priority_port)
       else
-        return M.get_all_servers_in_nvim_cwd():next(function(servers) ---@param servers opencode.cli.server.Server[]
-          if #servers == 1 then
-            return servers[1].port
+        return M.get_all():next(function(servers) ---@param servers opencode.cli.server.Server[]
+          local nvim_cwd = vim.fn.getcwd()
+          local servers_in_cwd = vim.tbl_filter(function(server)
+            -- Overlaps in either direction, with no non-empty mismatch
+            return server.cwd:find(nvim_cwd, 0, true) == 1 or nvim_cwd:find(server.cwd, 0, true) == 1
+          end, servers)
+
+          if #servers_in_cwd == 1 then
+            -- User most likely wants to connect to the single server in their CWD
+            return servers_in_cwd[1].port
           else
+            -- Can't guess which one the user wants based on CWD - select from *all*
             return require("opencode.ui.select_server")
               .select_server(servers)
               :next(function(selected_server) ---@param selected_server opencode.cli.server.Server

@@ -82,7 +82,7 @@ end
 M.select_server = function()
   -- Should we also offer connected and configured server here?
   return require("opencode.cli.server")
-    .get_all_servers_in_nvim_cwd()
+    .get_all()
     :next(function(servers) ---@param servers opencode.cli.server.Server[]
       return require("opencode.ui.select_server").select_server(servers)
     end)
