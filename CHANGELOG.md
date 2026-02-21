@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.4.0...v0.5.0) (2026-02-21)
+
+
+### Features
+
+* **server:** allow _all_ servers (but prioritize sharing CWD still) ([6d00f30](https://github.com/nickjvandyke/opencode.nvim/commit/6d00f3094af83748f94224647f62a215bca6a920))
+
 ## [0.4.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.3.0...v0.4.0) (2026-02-20)
 
 
