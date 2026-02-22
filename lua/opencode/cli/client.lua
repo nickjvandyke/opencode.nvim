@@ -46,8 +46,10 @@ end
 ---@param body table?
 ---@param on_success fun(response: table)?
 ---@param on_error fun(code: number, msg: string?)?
+---@param opts? { max_time?: number } Optional settings (max_time limits total request time in seconds)
 ---@return number job_id
-local function curl(url, method, body, on_success, on_error)
+local function curl(url, method, body, on_success, on_error, opts)
+  opts = opts or {}
   local command = {
     "curl",
     "-s",
@@ -63,6 +65,11 @@ local function curl(url, method, body, on_success, on_error)
     "Accept: text/event-stream",
     "-N", -- No buffering, for streaming SSEs
   }
+
+  if opts.max_time then
+    table.insert(command, "--max-time")
+    table.insert(command, tostring(opts.max_time))
+  end
 
   if body then
     table.insert(command, "-d")
@@ -149,9 +156,10 @@ end
 ---@param body table?
 ---@param on_success fun(response: table)?
 ---@param on_error fun(code: number, msg: string?)?
+---@param opts? { max_time?: number } Optional settings (max_time limits total request time in seconds)
 ---@return number job_id
-function M.call(port, path, method, body, on_success, on_error)
-  return curl("http://localhost:" .. port .. path, method, body, on_success, on_error)
+function M.call(port, path, method, body, on_success, on_error, opts)
+  return curl("http://localhost:" .. port .. path, method, body, on_success, on_error, opts)
 end
 
 ---@param text string
@@ -269,7 +277,7 @@ end
 ---@param on_success fun(response: opencode.cli.client.PathResponse)
 ---@param on_error fun()
 function M.get_path(port, on_success, on_error)
-  M.call(port, "/path", "GET", nil, on_success, on_error)
+  M.call(port, "/path", "GET", nil, on_success, on_error, { max_time = 2 })
 end
 
 ---@class opencode.cli.client.Event
