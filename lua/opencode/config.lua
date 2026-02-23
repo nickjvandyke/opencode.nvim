@@ -13,10 +13,8 @@ vim.g.opencode_opts = vim.g.opencode_opts
 
 ---@class opencode.Opts
 ---
----The port `opencode` is running on.
----If `nil`, searches for an `opencode --port` process in Neovim's CWD.
----If set, `opencode.nvim` will append `--port <port>` to `provider.cmd`.
----@field port? number
+---Where to look for an `opencode` server, and optionally how to manage one.
+---@field server? opencode.cli.server.Opts
 ---
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
@@ -37,9 +35,6 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---
 ---Options for `opencode` event handling.
 ---@field events? opencode.events.Opts
----
----Provide an integrated `opencode` when one is not found.
----@field provider? opencode.Provider|opencode.provider.Opts
 
 ---@class opencode.Prompt : opencode.api.prompt.Opts
 ---@field prompt string The prompt to send to `opencode`.
@@ -47,7 +42,18 @@ vim.g.opencode_opts = vim.g.opencode_opts
 
 ---@type opencode.Opts
 local defaults = {
-  port = nil,
+  server = {
+    port = nil,
+    start = function()
+      require("opencode.terminal").start("opencode --port")
+    end,
+    stop = function()
+      require("opencode.terminal").stop()
+    end,
+    toggle = function()
+      require("opencode.terminal").toggle("opencode --port")
+    end,
+  },
   -- stylua: ignore
   contexts = {
     ["@this"] = function(context) return context:this() end,
@@ -131,7 +137,6 @@ local defaults = {
         ["prompt.submit"] = "Submit the current prompt",
         ["prompt.clear"] = "Clear the current prompt",
       },
-      provider = true,
       server = true,
     },
     snacks = {
@@ -161,61 +166,21 @@ local defaults = {
       idle_delay_ms = 1000,
     },
   },
-  provider = {
-    cmd = "opencode --port",
-    enabled = vim.tbl_filter(
-      ---@param provider opencode.Provider
-      function(provider)
-        return provider.health() == true
-      end,
-      require("opencode.provider").list()
-    )[1].name,
-    terminal = {
-      split = "right",
-      width = math.floor(vim.o.columns * 0.35),
-    },
-    snacks = {
-      auto_close = true, -- Close the terminal when `opencode` exits
-      win = {
-        position = "right",
-        enter = false, -- Stay in the editor after opening the terminal
-        on_buf = function(win)
-          require("opencode.keymaps").apply(win.buf)
-        end,
-        wo = {
-          winbar = "", -- Title is unnecessary - `opencode` TUI has its own footer
-        },
-        bo = {
-          -- Make it easier to target for customization, and prevent possibly unintended `"snacks_terminal"` targeting.
-          -- e.g. the recommended edgy.nvim integration puts all `"snacks_terminal"` windows at the bottom.
-          filetype = "opencode_terminal",
-        },
-      },
-    },
-    kitty = {
-      -- Copy the editor's environment so `opencode` has access to e.g. Mason-installed binaries
-      cmd = "--copy-env opencode --port",
-      location = "default",
-    },
-    -- These are wezterm's internal defaults
-    wezterm = {
-      direction = "bottom",
-      top_level = false,
-      percent = 50,
-    },
-    tmux = {
-      options = "-h", -- Open in a horizontal split
-      focus = false, -- Keep focus in Neovim
-      -- Disables allow-passthrough in the tmux split
-      -- preventing OSC escape sequences from leaking into the nvim buffer
-      allow_passthrough = false,
-    },
-  },
 }
 
 ---Plugin options, lazily merged from `defaults` and `vim.g.opencode_opts`.
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
+
+---@diagnostic disable-next-line: undefined-field
+if M.opts.provider then
+  -- TODO: Remove later
+  vim.notify(
+    "The `provider` option has been removed for maintenance reasons. Please use the simpler `server` option instead, and/or manage your `opencode` how you do other programs. See `README.md#server` for details. Sorry for the inconvenience!",
+    vim.log.levels.WARN,
+    { title = "opencode" }
+  )
+end
 
 local snacks_ok, snacks = pcall(require, "snacks")
 ---@cast snacks Snacks
@@ -238,47 +203,5 @@ for _, field in ipairs({ "contexts", "prompts" }) do
     end
   end
 end
-
----The `opencode` provider resolved from `opts.provider`.
----
----Retains the base `provider.cmd` if not overridden.
----Sets `--port <port>` in `provider.cmd` if `opts.port` is set.
----@type opencode.Provider|nil
-M.provider = (function()
-  local provider
-  local provider_or_opts = M.opts.provider
-
-  if provider_or_opts and (provider_or_opts.toggle or provider_or_opts.start or provider_or_opts.stop) then
-    -- An implementation was passed.
-    -- Beware: `provider.enabled` may still exist from merging with defaults.
-    ---@cast provider_or_opts opencode.Provider
-    provider = provider_or_opts
-  elseif provider_or_opts and provider_or_opts.enabled then
-    -- Resolve the built-in provider.
-    ---@type boolean, opencode.Provider
-    local ok, resolved_provider = pcall(require, "opencode.provider." .. provider_or_opts.enabled)
-    if not ok then
-      vim.notify(
-        "Failed to load `opencode` provider '" .. provider_or_opts.enabled .. "': " .. resolved_provider,
-        vim.log.levels.ERROR,
-        { title = "opencode" }
-      )
-      return nil
-    end
-
-    local resolved_provider_opts = provider_or_opts[provider_or_opts.enabled]
-    provider = resolved_provider.new(resolved_provider_opts)
-
-    provider.cmd = provider.cmd or provider_or_opts.cmd
-  end
-
-  local port = M.opts.port
-  if port and provider and provider.cmd then
-    -- Remove any existing `--port` argument to avoid duplicates
-    provider.cmd = provider.cmd:gsub("--port ?", "") .. " --port " .. tostring(port)
-  end
-
-  return provider
-end)()
 
 return M

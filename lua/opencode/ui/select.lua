@@ -16,10 +16,6 @@ local M = {}
 ---Or `false` to hide the commands section.
 ---@field commands? table<opencode.Command|string, string>|false
 ---
----Whether to show the provider section.
----Always `false` if no provider is available.
----@field provider? boolean
----
 ---@field server? boolean Whether to show server controls.
 
 ---Select from all `opencode.nvim` functionality.
@@ -28,9 +24,6 @@ local M = {}
 ---@return Promise
 function M.select(opts)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
-  if not require("opencode.config").provider then
-    opts.sections.provider = false
-  end
 
   -- TODO: Should merge with prompts' optional contexts
   local context = require("opencode.context").new()
@@ -57,7 +50,7 @@ function M.select(opts)
           commands[command.name] = command.description
         end
 
-        ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "provider", ask?: boolean, submit?: boolean }
+        ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server", ask?: boolean, submit?: boolean }
 
         ---@type opencode.select.Item[]
         local items = {}
@@ -125,40 +118,35 @@ function M.select(opts)
           end
         end
 
-        -- Provider section
-        if opts.sections.provider then
-          table.insert(items, { __group = true, name = "PROVIDER", preview = { text = "" } })
-          table.insert(items, {
-            __type = "provider",
-            name = "toggle",
-            text = "Toggle opencode",
-            highlights = { { "Toggle opencode", "Comment" } },
-            preview = { text = "" },
-          })
-          table.insert(items, {
-            __type = "provider",
-            name = "start",
-            text = "Start opencode",
-            highlights = { { "Start opencode", "Comment" } },
-            preview = { text = "" },
-          })
-          table.insert(items, {
-            __type = "provider",
-            name = "stop",
-            text = "Stop opencode",
-            highlights = { { "Stop opencode", "Comment" } },
-            preview = { text = "" },
-          })
-        end
-
         -- Server section
         if opts.sections.server then
           table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
           table.insert(items, {
             __type = "server",
-            name = "select",
+            name = "server.select",
             text = "Select server",
             highlights = { { "Select server", "Comment" } },
+            preview = { text = "" },
+          })
+          table.insert(items, {
+            __type = "server",
+            name = "server.start",
+            text = "Start server",
+            highlights = { { "Start server", "Comment" } },
+            preview = { text = "" },
+          })
+          table.insert(items, {
+            __type = "server",
+            name = "server.stop",
+            text = "Stop server",
+            highlights = { { "Stop server", "Comment" } },
+            preview = { text = "" },
+          })
+          table.insert(items, {
+            __type = "server",
+            name = "server.toggle",
+            text = "Toggle server",
+            highlights = { { "Toggle server", "Comment" } },
             preview = { text = "" },
           })
         end
@@ -219,18 +207,18 @@ function M.select(opts)
         else
           return require("opencode").command(choice.name)
         end
-      elseif choice.__type == "provider" then
-        if choice.name == "toggle" then
-          require("opencode").toggle()
-        elseif choice.name == "start" then
-          require("opencode").start()
-        elseif choice.name == "stop" then
-          require("opencode").stop()
-        end
       elseif choice.__type == "server" then
-        if choice.name == "select" then
+        if choice.name == "server.select" then
           return require("opencode").select_server()
+        elseif choice.name == "server.start" then
+          return require("opencode").start()
+        elseif choice.name == "server.stop" then
+          return require("opencode").stop()
+        elseif choice.name == "server.toggle" then
+          return require("opencode").toggle()
         end
+      else
+        return Promise.reject("Unknown item: " .. choice.name)
       end
     end)
     :catch(function(err)

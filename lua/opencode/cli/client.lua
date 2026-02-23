@@ -277,7 +277,6 @@ end
 ---@field properties table
 
 ---Calls the `/event` SSE endpoint and invokes `callback` for each event received.
----Stops any previous subscription, so only one is active at a time.
 ---
 ---@param port number
 ---@param callback fun(response: opencode.cli.client.Event)|nil
