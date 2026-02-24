@@ -14,8 +14,17 @@ Context.__index = Context
 
 local ns_id = vim.api.nvim_create_namespace("OpencodeContext")
 
-local function is_buf_valid(buf)
-  return vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" and vim.api.nvim_buf_get_name(buf) ~= ""
+---Returns the filename for a buffer if it has one, else nil.
+---@param buf integer
+local function get_filename(buf)
+  if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" then
+    local name = vim.api.nvim_buf_get_name(buf)
+    if name ~= "" then
+      return name
+    end
+  end
+
+  return nil
 end
 
 local function last_used_valid_win()
@@ -23,7 +32,7 @@ local function last_used_valid_win()
   local latest_last_used = 0
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
-    if is_buf_valid(buf) then
+    if get_filename(buf) then
       local last_used = vim.fn.getbufinfo(buf)[1].lastused or 0
       if last_used > latest_last_used then
         latest_last_used = last_used
@@ -69,6 +78,7 @@ end
 ---@param buf integer
 ---@param range opencode.context.Range
 local function highlight(buf, range)
+  -- FIX: In visual block mode, it highlights _all_ the cols between the start and end
   local end_row = range.to[1] - (range.kind == "line" and 0 or 1)
   local end_col = nil
   if range.kind ~= "line" then
@@ -255,27 +265,32 @@ function Context.input_highlight(rendered)
 end
 
 ---Format a location for `opencode`.
----e.g. `@opencode.lua L21:C10-L65:C11`
----Received lines and columns are 1-based.
----@param args { buf?: integer, path?: string, start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer }
+---@param args { buf?: integer, path?: string, start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } Lines and cols are 1-based
+---@return string? location e.g. `opencode.lua:L21:C10-L65:C11`
 function Context.format(args)
-  -- FIX: Returns an empty string for invalid buffers - problematic on table.concat.
-  -- Should return nil instead?
+  assert(args.buf or args.path, "Context.format: Either buf or path must be provided")
+
   local result = ""
-  if (args.buf and is_buf_valid(args.buf)) or args.path then
-    local absolute_path = vim.fn.fnamemodify(args.path or vim.api.nvim_buf_get_name(args.buf), ":p:~")
-    -- Must be preceeded by @ and followed by space for `opencode` to parse as a file reference
-    -- TODO: Actually it regressed and doesn't do that anymore.
-    -- And in the meantime, the prefixed `@` seems to confuse it.
-    result = absolute_path .. " "
+  local filepath = (args.buf and get_filename(args.buf)) or args.path
+  if filepath and filepath ~= "" then
+    local absolute_path = vim.fn.fnamemodify(filepath, ":p:~")
+    result = absolute_path
+  else
+    return nil
   end
   if args.start_line and args.end_line and args.start_line > args.end_line then
+    -- Ensure start is before end (for reversed visual selections)
     args.start_line, args.end_line = args.end_line, args.start_line
     if args.start_col and args.end_col then
+      -- Can happen in visual block mode
       args.start_col, args.end_col = args.end_col, args.start_col
     end
   end
   if args.start_line then
+    -- Previously we'd need a space here so `opencode` would recognize the file reference and insert the context,
+    -- but that has regressed with the v1.0.0 `opentui` update :/
+    -- There's a GH issue somewhere.
+    result = result .. ":"
     result = result .. string.format("L%d", args.start_line)
     if args.start_col then
       result = result .. string.format(":C%d", args.start_col)
@@ -330,7 +345,7 @@ function Context:buffers()
   if #file_list == 0 then
     return nil
   end
-  return table.concat(file_list, " ")
+  return table.concat(file_list, ", ")
 end
 
 ---The visible lines in all open windows.
@@ -338,23 +353,19 @@ function Context:visible_text()
   local visible = {}
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
-    if is_buf_valid(buf) then
-      local start_line = vim.fn.line("w0", win)
-      local end_line = vim.fn.line("w$", win)
-      table.insert(
-        visible,
-        Context.format({
-          buf = buf,
-          start_line = start_line,
-          end_line = end_line,
-        })
-      )
+    local location = Context.format({
+      buf = buf,
+      start_line = vim.fn.line("w0", win),
+      end_line = vim.fn.line("w$", win),
+    })
+    if location then
+      table.insert(visible, location)
     end
   end
   if #visible == 0 then
     return nil
   end
-  return table.concat(visible, " ")
+  return table.concat(visible, ", ")
 end
 
 ---@param diagnostic vim.Diagnostic
@@ -382,13 +393,13 @@ function Context:diagnostics()
     return nil
   end
 
-  local filepath = Context.format({ buf = self.buf })
+  local location = Context.format({ buf = self.buf })
 
   local diagnostic_strings = vim.tbl_map(function(diagnostic)
     return "- " .. Context.format_diagnostic(diagnostic)
   end, diagnostics)
 
-  return #diagnostics .. " diagnostics in " .. filepath .. "\n" .. table.concat(diagnostic_strings, "\n")
+  return #diagnostics .. " diagnostics in " .. location .. "\n" .. table.concat(diagnostic_strings, "\n")
 end
 
 ---Formatted quickfix list entries.
@@ -411,7 +422,7 @@ function Context:quickfix()
       )
     end
   end
-  return table.concat(lines, " ")
+  return table.concat(lines, ", ")
 end
 
 ---The git diff (unified diff format).
@@ -463,7 +474,7 @@ function Context:grapple_tags()
   for _, tag in ipairs(tags) do
     table.insert(paths, Context.format({ path = tag.path }))
   end
-  return table.concat(paths, " ")
+  return table.concat(paths, ", ")
 end
 
 return Context
