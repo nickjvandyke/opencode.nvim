@@ -123,9 +123,9 @@ function Context:render(prompt, agents)
   local contexts = require("opencode.config").opts.contexts or {}
 
   local context_placeholders = vim.tbl_keys(contexts)
-  table.sort(context_placeholders, function(a, b)
-    return #a > #b -- longest first, in case some overlap
-  end)
+  local agent_placeholders = vim.tbl_map(function(agent)
+    return "@" .. agent.name
+  end, agents)
 
   ---@type table<string, { input: (fun(): snacks.picker.Text), output: (fun(): snacks.picker.Text) }>
   local placeholders = {}
@@ -144,8 +144,7 @@ function Context:render(prompt, agents)
       end,
     }
   end
-  for _, agent in ipairs(agents) do
-    local agent_placeholder = "@" .. agent.name
+  for _, agent_placeholder in ipairs(agent_placeholders) do
     placeholders[agent_placeholder] = {
       input = function()
         return { agent_placeholder, "OpencodeAgent" }
@@ -156,12 +155,19 @@ function Context:render(prompt, agents)
     }
   end
 
+  -- Extract placeholders to an integer-indexed array and sort by length descending
+  -- so longer placeholders are matched first, in case of overlaps (e.g. `@buffer` and `@buffers`).
+  local placeholder_keys = vim.tbl_keys(placeholders)
+  table.sort(placeholder_keys, function(a, b)
+    return #a > #b
+  end)
+
   local input, output = {}, {}
   local i = 1
   while i <= #prompt do
     -- Find the next placeholder and its position
     local next_pos, next_placeholder = #prompt + 1, nil
-    for placeholder in pairs(placeholders) do
+    for _, placeholder in ipairs(placeholder_keys) do
       local pos = prompt:find(placeholder, i, true)
       if pos and pos < next_pos then
         next_pos = pos
@@ -314,8 +320,6 @@ end
 
 ---All open buffers.
 function Context:buffers()
-  -- FIX: Not quite sure the conditions yet, but sometimes this will return nil and then render falls back to `buffer()`.
-  -- Should we fallback to `self.buf` in here?
   local file_list = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     local path = Context.format({ buf = buf })
