@@ -15,7 +15,7 @@ Context.__index = Context
 local ns_id = vim.api.nvim_create_namespace("OpencodeContext")
 
 ---Returns the filename for a buffer if it has one, else nil.
----@param buf integer
+---@param buf number
 local function get_filename(buf)
   if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" then
     local name = vim.api.nvim_buf_get_name(buf)
@@ -265,28 +265,33 @@ function Context.input_highlight(rendered)
 end
 
 ---Format a location for `opencode`.
----@param args { buf?: integer, path?: string, start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } Lines and cols are 1-based
+---@param loc string|integer A buffer number or filepath.
+---@param args? { start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } Location is a buffer number or filepath. Lines and cols are 1-based
 ---@return string? location e.g. `opencode.lua:L21:C10-L65:C11`
-function Context.format(args)
-  assert(args.buf or args.path, "Context.format: Either buf or path must be provided")
+function Context.format(loc, args)
+  assert(type(loc) ~= "string" or #loc > 0, "Filepath cannot be an empty string")
 
-  local result = ""
-  local filepath = (args.buf and get_filename(args.buf)) or args.path
-  if filepath and filepath ~= "" then
-    local absolute_path = vim.fn.fnamemodify(filepath, ":p:~")
-    result = absolute_path
-  else
+  -- Not we check number, not integer - I think integer is only an annotations thing, and at runtime only numbers exist?
+  local filepath = (type(loc) == "number" and get_filename(loc)) or type(loc) == "string" and loc or nil
+  if not filepath then
     return nil
   end
-  if args.start_line and args.end_line and args.start_line > args.end_line then
-    -- Ensure start is before end (for reversed visual selections)
-    args.start_line, args.end_line = args.end_line, args.start_line
-    if args.start_col and args.end_col then
-      -- Can happen in visual block mode
-      args.start_col, args.end_col = args.end_col, args.start_col
+
+  local result = ""
+
+  local absolute_path = vim.fn.fnamemodify(filepath, ":p:~")
+  result = result .. absolute_path
+
+  if args and args.start_line then
+    if args.end_line and args.start_line > args.end_line then
+      -- Ensure start is before end (for reversed visual selections)
+      args.start_line, args.end_line = args.end_line, args.start_line
+      if args.start_col and args.end_col then
+        -- Can happen in visual block mode
+        args.start_col, args.end_col = args.end_col, args.start_col
+      end
     end
-  end
-  if args.start_line then
+
     -- Previously we'd need a space here so `opencode` would recognize the file reference and insert the context,
     -- but that has regressed with the v1.0.0 `opentui` update :/
     -- There's a GH issue somewhere.
@@ -302,6 +307,7 @@ function Context.format(args)
       end
     end
   end
+
   return result
 end
 
@@ -310,16 +316,14 @@ end
 ---Range if present, else cursor position.
 function Context:this()
   if self.range then
-    return Context.format({
-      buf = self.buf,
+    return Context.format(self.buf, {
       start_line = self.range.from[1],
       start_col = (self.range.kind ~= "line") and self.range.from[2] or nil,
       end_line = self.range.to[1],
       end_col = (self.range.kind ~= "line") and self.range.to[2] or nil,
     })
   else
-    return Context.format({
-      buf = self.buf,
+    return Context.format(self.buf, {
       start_line = self.cursor[1],
       start_col = self.cursor[2] + 1,
     })
@@ -328,16 +332,14 @@ end
 
 ---The current buffer.
 function Context:buffer()
-  return Context.format({
-    buf = self.buf,
-  })
+  return Context.format(self.buf)
 end
 
 ---All open buffers.
 function Context:buffers()
   local file_list = {}
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    local path = Context.format({ buf = buf })
+    local path = Context.format(buf)
     if path then
       table.insert(file_list, path)
     end
@@ -353,8 +355,7 @@ function Context:visible_text()
   local visible = {}
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
-    local location = Context.format({
-      buf = buf,
+    local location = Context.format(buf, {
       start_line = vim.fn.line("w0", win),
       end_line = vim.fn.line("w$", win),
     })
@@ -371,7 +372,7 @@ end
 ---@param diagnostic vim.Diagnostic
 ---@return string
 function Context.format_diagnostic(diagnostic)
-  local location = Context.format({
+  local location = Context.format(diagnostic.bufnr, {
     start_line = diagnostic.lnum + 1,
     start_col = diagnostic.col + 1,
     end_line = diagnostic.end_lnum + 1,
@@ -393,13 +394,11 @@ function Context:diagnostics()
     return nil
   end
 
-  local location = Context.format({ buf = self.buf })
-
   local diagnostic_strings = vim.tbl_map(function(diagnostic)
     return "- " .. Context.format_diagnostic(diagnostic)
   end, diagnostics)
 
-  return #diagnostics .. " diagnostics in " .. location .. "\n" .. table.concat(diagnostic_strings, "\n")
+  return #diagnostics .. " diagnostics:" .. "\n" .. table.concat(diagnostic_strings, "\n")
 end
 
 ---Formatted quickfix list entries.
@@ -414,8 +413,7 @@ function Context:quickfix()
     if has_buf then
       table.insert(
         lines,
-        Context.format({
-          buf = entry.bufnr,
+        Context.format(entry.bufnr, {
           start_line = entry.lnum,
           start_col = entry.col,
         })
@@ -446,8 +444,7 @@ function Context:marks()
     if mark.mark:match("^'[A-Z]$") then
       table.insert(
         marks,
-        Context.format({
-          buf = mark.pos[1],
+        Context.format(mark.pos[1], {
           start_line = mark.pos[2],
           start_col = mark.pos[3],
         })
@@ -472,7 +469,7 @@ function Context:grapple_tags()
   end
   local paths = {}
   for _, tag in ipairs(tags) do
-    table.insert(paths, Context.format({ path = tag.path }))
+    table.insert(paths, Context.format(tag.path))
   end
   return table.concat(paths, ", ")
 end

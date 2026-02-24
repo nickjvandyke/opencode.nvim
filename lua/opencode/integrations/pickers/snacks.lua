@@ -9,8 +9,7 @@ function M.send(picker)
   local items = vim.tbl_map(function(item)
     return item.file
         -- Prefer just the location if possible, so the LLM can also fetch context
-        and require("opencode.context").format({
-          path = item.file,
+        and require("opencode.context").format(item.file, {
           start_line = item.pos and item.pos[1] or nil,
           start_col = item.pos and item.pos[2] or nil,
           end_line = item.end_pos and item.end_pos[1] or nil,
