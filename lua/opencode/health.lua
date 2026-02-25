@@ -39,7 +39,7 @@ function M.check()
     vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local latest_tested_version = "1.1.11"
+    local latest_tested_version = "1.2.11"
     local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
     if found_version_parsed and latest_tested_version_parsed then
       if latest_tested_version_parsed[1] ~= found_version_parsed[1] then
