@@ -37,7 +37,7 @@ local function normalize_keys(keys)
   if type(keys) == "string" then
     return { keys }
   end
-  if vim.islist(keys) then
+  if type(keys) == "table" and vim.islist(keys) then
     return keys
   end
   return {}
