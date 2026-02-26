@@ -91,7 +91,10 @@ local function buffer_input(default, context, ask_opts, server)
     local row = math.max(1, math.floor((vim.o.lines - height) / 2) - 1)
     local col = math.max(0, math.floor((vim.o.columns - width) / 2))
 
-    local buf = vim.api.nvim_create_buf(false, true)
+    local submit_on_write = buffer_opts.submit_on_write == true
+    local temp_file = submit_on_write and vim.fn.tempname() or nil
+
+    local buf = vim.api.nvim_create_buf(false, not submit_on_write)
     local win = vim.api.nvim_open_win(buf, true, {
       relative = "editor",
       width = width,
@@ -108,6 +111,10 @@ local function buffer_input(default, context, ask_opts, server)
     vim.bo[buf].filetype = "opencode_ask"
     vim.bo[buf].buftype = ""
     vim.bo[buf].swapfile = false
+
+    if temp_file then
+      vim.api.nvim_buf_set_name(buf, temp_file)
+    end
     vim.wo[win].wrap = buffer_opts.linewrap == true
     vim.wo[win].linebreak = buffer_opts.linewrap == true
 
@@ -143,6 +150,9 @@ local function buffer_input(default, context, ask_opts, server)
       if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
       end
+      if temp_file then
+        pcall(vim.fn.delete, temp_file)
+      end
       if value == "" then
         reject()
       else
@@ -156,6 +166,9 @@ local function buffer_input(default, context, ask_opts, server)
       done = true
       if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
+      end
+      if temp_file then
+        pcall(vim.fn.delete, temp_file)
       end
       reject()
     end
@@ -173,8 +186,8 @@ local function buffer_input(default, context, ask_opts, server)
       callback = finish_cancel,
     })
 
-    if buffer_opts.submit_on_write == true then
-      vim.api.nvim_create_autocmd("BufWriteCmd", {
+    if submit_on_write then
+      vim.api.nvim_create_autocmd("BufWritePost", {
         buffer = buf,
         callback = finish_submit,
       })
