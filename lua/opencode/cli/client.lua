@@ -124,17 +124,24 @@ local function curl(url, method, body, on_success, on_error)
     on_exit = function(_, code)
       if code == 0 then
         -- Process any remaining buffered data.
+        -- Note `code == 0` for the SSE connection on normal shutdown.
         process_response_buffer()
-      elseif code ~= 18 and code ~= 143 then
+      else
         local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
+
         if on_error then
           on_error(code, stderr_message)
-        else
-          -- 18 = connection closed, 143 = SIGTERM (manual disconnect)
+        end
+
+        -- 18 = connection closed unexpectedly, 143 = SIGTERM.
+        -- Can happen for SSE connections.
+        -- Expected, and we handle those in `events` module's `on_error` callback - no need to notify the user about them.
+        if code ~= 18 and code ~= 143 then
           local error_message = "curl command failed with exit code: "
             .. code
             .. "\nstderr:\n"
             .. (stderr_message or "<none>")
+          -- TODO: Use `on_error` consistently to handle these more appropriately at a higher level.
           vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
         end
       end
@@ -151,6 +158,7 @@ end
 ---@param on_error fun(code: number, msg: string?)?
 ---@return number job_id
 function M.call(port, path, method, body, on_success, on_error)
+  -- TODO: wraps `curl` unnecessarily
   return curl("http://localhost:" .. port .. path, method, body, on_success, on_error)
 end
 
@@ -272,17 +280,30 @@ function M.get_path(port, on_success, on_error)
   M.call(port, "/path", "GET", nil, on_success, on_error)
 end
 
+---@alias opencode.cli.client.event.type
+---| "server.connected"
+---| "server.instance.disposed"
+---| "session.idle"
+---| "session.diff"
+---| "session.heartbeat"
+---| "message.updated"
+---| "message.part.updated"
+---| "permission.updated"
+---| "permission.replied"
+---| "session.error"
+
 ---@class opencode.cli.client.Event
----@field type string
+---@field type opencode.cli.client.event.type|string
 ---@field properties table
 
 ---Calls the `/event` SSE endpoint and invokes `callback` for each event received.
 ---
 ---@param port number
----@param callback fun(response: opencode.cli.client.Event)|nil
+---@param on_success fun(response: opencode.cli.client.Event)|nil
+---@param on_error fun(code: number, msg: string?)|nil
 ---@return number job_id
-function M.sse_subscribe(port, callback)
-  return M.call(port, "/event", "GET", nil, callback)
+function M.sse_subscribe(port, on_success, on_error)
+  return M.call(port, "/event", "GET", nil, on_success, on_error)
 end
 
 return M
