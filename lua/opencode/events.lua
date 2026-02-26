@@ -26,10 +26,6 @@ M.connected_server = nil
 ---Subscribe to `opencode`'s Server-Sent Events (SSE) to execute `OpencodeEvent:<event.type>` autocmds.
 ---@param server opencode.cli.server.Server
 function M.connect(server)
-  if not require("opencode.config").opts.events.enabled then
-    return
-  end
-
   M.disconnect()
 
   require("opencode.promise")
@@ -45,13 +41,15 @@ function M.connect(server)
             heartbeat_timer:start(OPENCODE_HEARTBEAT_INTERVAL_MS + 5000, 0, vim.schedule_wrap(M.disconnect))
           end
 
-          vim.api.nvim_exec_autocmds("User", {
-            pattern = "OpencodeEvent:" .. response.type,
-            data = {
-              event = response,
-              port = _server.port,
-            },
-          })
+          if require("opencode.config").opts.events.enabled then
+            vim.api.nvim_exec_autocmds("User", {
+              pattern = "OpencodeEvent:" .. response.type,
+              data = {
+                event = response,
+                port = _server.port,
+              },
+            })
+          end
         end,
         function()
           -- Server disappeared ungracefully, e.g. process killed, network error, etc.
