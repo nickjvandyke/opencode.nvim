@@ -1,5 +1,21 @@
 local M = {}
 
+---@class opencode.cli.server.Opts
+---
+---The port to look for `opencode` on.
+---When set, _only_ this port will be checked.
+---When not set, _all_ `opencode` processes will be checked.
+---Be sure to also launch `opencode` accordingly, e.g. `opencode --port 12345`.
+---@field port? number
+---
+---Start an `opencode` server.
+---Called when when none are found; will retry after.
+---@field start? fun()|false
+---
+---@field stop? fun()|false
+---
+---@field toggle? fun()|false
+
 ---An `opencode` server process and some details about it.
 ---@class opencode.cli.server.Server
 ---@field port number
@@ -176,7 +192,7 @@ end
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
 ---3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
----4. Calling `require("opencode.provider").start()` to launch a new server, then retrying the above.
+---4. Calling `opts.server.start()`, then retrying the above.
 ---
 ---Upon success, subscribes to the server's events.
 ---
@@ -185,10 +201,11 @@ end
 function M.get(launch)
   launch = launch ~= false
 
+  local opts = require("opencode.config").opts.server or {}
+
   local Promise = require("opencode.promise")
   return Promise.resolve(
-    require("opencode.events").connected_server and require("opencode.events").connected_server.port
-      or require("opencode.config").opts.port
+    require("opencode.events").connected_server and require("opencode.events").connected_server.port or opts.port
   )
     :next(function(priority_port) ---@param priority_port number
       if priority_port then
@@ -229,13 +246,13 @@ function M.get(launch)
       end
 
       return Promise.new(function(resolve, reject)
-        if launch then
-          local start_ok, start_result = pcall(require("opencode.provider").start)
+        if launch and opts.start then
+          local start_ok, start_result = pcall(opts.start)
           if not start_ok then
             return reject("Error starting `opencode`: " .. start_result)
           end
 
-          -- Wait for the provider to start
+          -- Wait for the server to start
           vim.defer_fn(function()
             resolve(true)
           end, 2000)

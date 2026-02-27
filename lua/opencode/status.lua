@@ -61,8 +61,7 @@ function M.update(event)
     M.status = "requesting_permission"
   elseif event.type == "session.error" then
     M.status = "error"
-  elseif event.type == "server.disconnected" then
-    -- NOTE: *we* send server.disconnected when unsubscribing or `opencode`'s heartbeat disappears
+  elseif event.type == "server.instance.disposed" then
     M.status = nil
   end
 end

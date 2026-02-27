@@ -85,7 +85,7 @@ handlers[ms.workspace_executeCommand] = function(params, callback)
   if params.command == "opencode.fix" or params.command == "opencode.explain" then
     local diagnostic = params.arguments[1]
     ---@cast diagnostic vim.Diagnostic
-    local filepath = require("opencode.context").format({ buf = diagnostic.bufnr })
+    local filepath = require("opencode.context").format(diagnostic.bufnr)
     local prompt_prefix = params.command == "opencode.fix" and "Fix diagnostic: " or "Explain diagnostic: "
     local prompt = prompt_prefix .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
 
@@ -110,13 +110,25 @@ local memoized_hover_results = {}
 ---@param callback fun(err?: lsp.ResponseError, result: lsp.Hover)
 handlers[ms.textDocument_hover] = function(params, callback)
   local symbol = vim.fn.expand("<cword>")
+  local phrase = vim.fn.expand("<cWORD>")
+
   -- local lines = vim.fn.readfile(params.textDocument.uri:gsub("^file://", ""))
   -- local text = table.concat(lines, "\n")
-  local location = require("opencode.context").format({
-    path = params.textDocument.uri:gsub("^file://", ""),
+
+  local location = require("opencode.context").format(params.textDocument.uri:gsub("^file://", ""), {
     start_line = params.position.line + 1,
     start_col = params.position.character + 1,
   })
+  if not location then
+    callback({ code = -32000, message = "Failed to get location for hover" }, {
+      kind = "markdown",
+      contents = {
+        kind = "markdown",
+        value = "Failed to get location for hover",
+      },
+    })
+    return
+  end
 
   -- TODO: Would be nice to get cache hits for the same symbol.
   -- But hard without semantic information.
@@ -141,7 +153,7 @@ handlers[ms.textDocument_hover] = function(params, callback)
   local prompt = {
     "The user has requested an LSP hover at " .. location,
     "The symbol under the cursor is: " .. symbol,
-    "It is part of the larger phrase: " .. vim.fn.expand("<cWORD>"),
+    "It is part of the larger phrase: " .. phrase,
     -- Sending text vs location doesn't seem to make a big difference in speed...
     -- "Here is the full text of the file:",
     -- "```",

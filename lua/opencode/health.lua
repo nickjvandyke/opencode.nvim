@@ -39,7 +39,7 @@ function M.check()
     vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local latest_tested_version = "1.1.11"
+    local latest_tested_version = "1.2.11"
     local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
     if found_version_parsed and latest_tested_version_parsed then
       if latest_tested_version_parsed[1] ~= found_version_parsed[1] then
@@ -83,13 +83,13 @@ function M.check()
   end
 
   -- Binaries for auto-finding `opencode` process (Unix only)
-  if vim.fn.has("win32") == 0 and (not vim.g.opencode_opts or not vim.g.opencode_opts.port) then
+  if vim.fn.has("win32") == 0 and (not vim.g.opencode_opts or not vim.g.opencode_opts.server.port) then
     if vim.fn.executable("pgrep") == 1 then
       vim.health.ok("`pgrep` available.")
     else
       vim.health.error(
         "`pgrep` executable not found in `$PATH`.",
-        { "Install `pgrep` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.port`." }
+        { "Install `pgrep` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.port`." }
       )
     end
     if vim.fn.executable("lsof") == 1 then
@@ -97,7 +97,7 @@ function M.check()
     else
       vim.health.error(
         "`lsof` executable not found in `$PATH`.",
-        { "Install `lsof` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.port`." }
+        { "Install `lsof` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.port`." }
       )
     end
   end
@@ -121,24 +121,6 @@ function M.check()
     end
   else
     vim.health.warn("`snacks.nvim` is not available: `ask()` and `select()` will not be enhanced.")
-  end
-
-  vim.health.start("opencode.nvim [providers]")
-
-  local configured_provider = require("opencode.config").provider
-  if configured_provider then
-    vim.health.ok("Configured `opencode` provider: `" .. configured_provider.name .. "`.")
-  else
-    vim.health.warn("No `opencode` provider configured.")
-  end
-
-  for _, provider in ipairs(require("opencode.provider").list()) do
-    local ok, advice = provider.health()
-    if ok == true then
-      vim.health.ok("The `" .. provider.name .. "` provider is available.")
-    else
-      vim.health.warn("The `" .. provider.name .. "` provider is not available — " .. ok, advice)
-    end
   end
 end
 

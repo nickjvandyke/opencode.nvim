@@ -44,7 +44,6 @@ Integrate the [opencode](https://github.com/sst/opencode) AI assistant with Neov
             },
           },
         },
-        terminal = {}, -- Enables the `snacks` provider
       },
     },
   },
@@ -123,154 +122,59 @@ Select or reference prompts to review, explain, and improve your code:
 | `review`      | Review `@this` for correctness and readability                         |
 | `test`        | Add tests for `@this`                                                  |
 
-### Provider
+### Server
 
-You can manually run `opencode` however you like and `opencode.nvim` will find them!
-
-If `opencode.nvim` can't find an existing `opencode`, it uses the configured provider (defaulting based on availability) to manage one for you.
+You can manually run `opencode`s however you like and `opencode.nvim` will find them!
 
 > [!IMPORTANT]
-> You _must_ run `opencode` with the `--port` flag to expose its server. Providers do so by default.
+> You _must_ run `opencode` with the `--port` flag to expose its server.
 
-<details>
-<summary><a href="https://neovim.io/doc/user/terminal.html">Neovim terminal</a></summary>
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    enabled = "terminal",
-    terminal = {
-      -- ...
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><a href="https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md">snacks.terminal</a></summary>
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    enabled = "snacks",
-    snacks = {
-      -- ...
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><a href="https://sw.kovidgoyal.net/kitty/">kitty</a></summary>
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    enabled = "kitty",
-    kitty = {
-      -- ...
-    }
-  }
-}
-```
-
-The kitty provider requires [remote control via a socket](https://sw.kovidgoyal.net/kitty/remote-control/#remote-control-via-a-socket) to be enabled.
-
-You can do this either by running Kitty with the following command:
-
-```bash
-# For Linux only:
-kitty -o allow_remote_control=yes --single-instance --listen-on unix:@mykitty
-
-# Other UNIX systems:
-kitty -o allow_remote_control=yes --single-instance --listen-on unix:/tmp/mykitty
-```
-
-OR, by adding the following to your `kitty.conf`:
-
-```
-# For Linux only:
-allow_remote_control yes
-listen_on unix:@mykitty
-# Other UNIX systems:
-allow_remote_control yes
-listen_on unix:/tmp/kitty
-```
-
-</details>
-
-<details>
-<summary><a href="https://wezterm.org/">wezterm</a></summary>
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    enabled = "wezterm",
-    wezterm = {
-      -- ...
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary><a href="https://github.com/tmux/tmux">tmux</a></summary>
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    enabled = "tmux",
-    tmux = {
-      -- ...
-    }
-  }
-}
-```
-
-</details>
-
-<details>
-<summary>custom</summary>
-
-Integrate your custom method for convenience!
-
-```lua
-vim.g.opencode_opts = {
-  provider = {
-    toggle = function(self)
-      -- ...
-    end,
-    start = function(self)
-      -- ...
-    end,
-    stop = function(self)
-      -- ...
-    end,
-  }
-}
-```
-
-</details>
-
-Please submit PRs adding new providers! 🙂
+If `opencode.nvim` can't find an existing `opencode`, it uses the configured server to start one for you, defaulting to an embedded terminal.
 
 #### Keymaps
 
-`opencode.nvim` sets these buffer-local keymaps in provider terminals for Neovim-like message navigation:
+`opencode.nvim` sets these normal-mode keymaps in the embedded terminal for Neovim-like message navigation:
 
 | Keymap  | Command                  | Description           |
 | ------- | ------------------------ | --------------------- |
 | `<C-u>` | `session.half.page.up`   | Scroll up half page   |
 | `<C-d>` | `session.half.page.down` | Scroll down half page |
-| `<Esc>` | `session.interrupt`      | Interrupt             |
 | `gg`    | `session.first`          | Go to first message   |
 | `G`     | `session.last`           | Go to last message    |
+| `<Esc>` | `session.interrupt`      | Interrupt             |
+
+#### Customization
+
+Example using [`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md) instead:
+
+```lua
+local opencode_cmd = 'opencode --port'
+---@type snacks.terminal.Opts
+local snacks_terminal_opts = {
+  win = {
+    position = 'right',
+    enter = false,
+    on_win = function(win)
+      -- Set up keymaps and cleanup for an arbitrary terminal
+      require('opencode.terminal').setup(win.win)
+    end,
+  },
+}
+---@type opencode.Opts
+vim.g.opencode_opts = {
+  server = {
+    start = function()
+      require('snacks.terminal').open(opencode_cmd, snacks_terminal_opts)
+    end,
+    stop = function()
+      require('snacks.terminal').get(opencode_cmd, snacks_terminal_opts):close()
+    end,
+    toggle = function()
+      require('snacks.terminal').toggle(opencode_cmd, snacks_terminal_opts)
+    end,
+  },
+}
+```
 
 ## 🚀 Usage
 
@@ -293,7 +197,7 @@ Select from all `opencode.nvim` functionality.
 - Prompts
 - Commands
   - Fetches custom commands from `opencode`
-- Provider controls
+- Server controls
 
 Highlights and previews items when using `snacks.picker`.
 
@@ -343,7 +247,7 @@ Command `opencode`:
 | LSP Function | `opencode.nvim` Handler                                                 |
 | ------------ | ----------------------------------------------------------------------- |
 | Hover        | Asks `opencode` for a brief explanation of the symbol under the cursor. |
-| Code Actions | Asks `opencode` to explain or fix diagnostics under the cursor.                    |
+| Code Actions | Asks `opencode` to explain or fix diagnostics under the cursor.         |
 
 ## 👀 Events
 

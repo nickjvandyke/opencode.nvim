@@ -61,8 +61,8 @@ handlers[ms.textDocument_completion] = function(params, callback)
       insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
       kind = vim.lsp.protocol.CompletionItemKind.Property,
       documentation = {
-        kind = "plaintext",
-        value = agent.description or "Agent",
+        kind = "markdown",
+        value = "```" .. agent.description or "Agent" .. "```",
       },
     }
     table.insert(items, item)
@@ -81,9 +81,13 @@ handlers[ms.completionItem_resolve] = function(params, callback)
     local rendered = context:render(item.label, {})
     -- Highlights won't match other locations, but there's no general way to control them.
     -- Would have to support each completion plugin separately.
+    -- Markdown code blocks to preserve formatting.
+    -- `blink.cmp` at least seems to render the doc window as markdown even when the kind is plaintext,
+    -- and then things like `~` in consecutive filepaths become strikethroughs.
+    -- Or matching `[]` disappears because it's interpreted as a markdown link with an empty URL.
     item.documentation = {
-      kind = "plaintext",
-      value = context.plaintext(rendered.output),
+      kind = "markdown",
+      value = "```" .. context.plaintext(rendered.output) .. "```",
     }
   end
 
