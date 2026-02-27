@@ -46,7 +46,7 @@ end
 ---@param body table?
 ---@param on_success fun(response: table)?
 ---@param on_error fun(code: number, msg: string?)?
----@param opts? { max_time?: number } Optional settings (max_time limits total request time in seconds)
+---@param opts? { max_time?: number }
 ---@return number job_id
 local function curl(url, method, body, on_success, on_error, opts)
   opts = opts or {}
@@ -163,10 +163,16 @@ end
 ---@param body table?
 ---@param on_success fun(response: table)?
 ---@param on_error fun(code: number, msg: string?)?
----@param opts? { max_time?: number } Optional settings (max_time limits total request time in seconds)
+---@param opts? { max_time?: number }
 ---@return number job_id
 function M.call(port, path, method, body, on_success, on_error, opts)
-    -- TODO: wraps `curl` unnecessarily
+  opts = opts
+    or {
+      -- `opencode` server is unresponsive when its job is suspended in the background.
+      -- Time out rather than hang indefinitely.
+      max_time = 2,
+    }
+  -- TODO: wraps `curl` unnecessarily
   return curl("http://localhost:" .. port .. path, method, body, on_success, on_error, opts)
 end
 
@@ -311,7 +317,10 @@ end
 ---@param on_error fun(code: number, msg: string?)|nil
 ---@return number job_id
 function M.sse_subscribe(port, on_success, on_error)
-  return M.call(port, "/event", "GET", nil, on_success, on_error)
+  return M.call(port, "/event", "GET", nil, on_success, on_error, {
+    -- Keep connection open indefinitely to continue receiving
+    max_time = 0,
+  })
 end
 
 return M
