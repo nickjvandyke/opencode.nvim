@@ -18,12 +18,11 @@ local OPENCODE_HEARTBEAT_INTERVAL_MS = 30000
 local subscription_job_id = nil
 
 ---The currently-connected `opencode` server, if any.
----Executes autocmds for received SSEs.
----Cleared when the server disposes itself, the connection errors, or the heartbeat disappears.
+---Executes autocmds for received SSEs with type `OpencodeEvent:<event.type>`, passing the event and server port as data.
+---Cleared when the server disposes itself, the connection errors, the heartbeat disappears, or we connect to a new server.
 ---@type opencode.cli.server.Server?
 M.connected_server = nil
 
----Subscribe to `opencode`'s Server-Sent Events (SSE) to execute `OpencodeEvent:<event.type>` autocmds.
 ---@param server opencode.cli.server.Server
 function M.connect(server)
   M.disconnect()

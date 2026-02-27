@@ -236,7 +236,10 @@ function M.get(launch)
       return get_server(port)
     end)
     :next(function(server) ---@param server opencode.cli.server.Server
-      require("opencode.events").connect(server)
+      local connected_server = require("opencode.events").connected_server
+      if not connected_server or connected_server.port ~= server.port then
+        require("opencode.events").connect(server)
+      end
       return server
     end)
     :catch(function(err)
