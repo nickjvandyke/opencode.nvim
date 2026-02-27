@@ -41,15 +41,23 @@ local function generate_uuid()
   )
 end
 
----@param url string
----@param method string
+---@param port number
+---@param path string
+---@param method "GET"|"POST"
 ---@param body table?
----@param on_success fun(response: table)?
----@param on_error fun(code: number, msg: string?)?
+---@param on_success? fun(response: table)
+---@param on_error? fun(code: number, msg: string?)
 ---@param opts? { max_time?: number }
 ---@return number job_id
-local function curl(url, method, body, on_success, on_error, opts)
-  opts = opts or {}
+local function curl(port, path, method, body, on_success, on_error, opts)
+  local url = "http://localhost:" .. port .. path
+  opts = opts
+    or {
+      -- `opencode` server is unresponsive when its job is suspended in the background.
+      -- Time out rather than hang indefinitely.
+      max_time = 2,
+    }
+
   local command = {
     "curl",
     "-s",
@@ -154,38 +162,18 @@ local function curl(url, method, body, on_success, on_error, opts)
   })
 end
 
----Call an opencode server endpoint.
----@param port number
----@param path string
----@param method "GET"|"POST"
----@param body table?
----@param on_success fun(response: table)?
----@param on_error fun(code: number, msg: string?)?
----@param opts? { max_time?: number }
----@return number job_id
-function M.call(port, path, method, body, on_success, on_error, opts)
-  opts = opts
-    or {
-      -- `opencode` server is unresponsive when its job is suspended in the background.
-      -- Time out rather than hang indefinitely.
-      max_time = 2,
-    }
-  -- TODO: wraps `curl` unnecessarily
-  return curl("http://localhost:" .. port .. path, method, body, on_success, on_error, opts)
-end
-
 ---@param text string
 ---@param port number
 ---@param callback fun(response: table)|nil
 function M.tui_append_prompt(text, port, callback)
-  M.call(port, "/tui/publish", "POST", { type = "tui.prompt.append", properties = { text = text } }, callback)
+  curl(port, "/tui/publish", "POST", { type = "tui.prompt.append", properties = { text = text } }, callback)
 end
 
 ---@param command opencode.Command|string
 ---@param port number
 ---@param callback fun(response: table)|nil
 function M.tui_execute_command(command, port, callback)
-  M.call(port, "/tui/publish", "POST", { type = "tui.command.execute", properties = { command = command } }, callback)
+  curl(port, "/tui/publish", "POST", { type = "tui.command.execute", properties = { command = command } }, callback)
 end
 
 ---@param prompt string
@@ -208,7 +196,7 @@ function M.send_message(prompt, session_id, port, provider_id, model_id, callbac
     },
   }
 
-  M.call(port, "/session/" .. session_id .. "/message", "POST", body, callback)
+  curl(port, "/session/" .. session_id .. "/message", "POST", body, callback)
 end
 
 ---@param port number
@@ -216,7 +204,7 @@ end
 ---@param reply "once"|"always"|"reject"
 ---@param callback? fun(session: table)
 function M.permit(port, permission, reply, callback)
-  M.call(port, "/permission/" .. permission .. "/reply", "POST", {
+  curl(port, "/permission/" .. permission .. "/reply", "POST", {
     reply = reply,
   }, callback)
 end
@@ -229,7 +217,7 @@ end
 ---@param port number
 ---@param callback fun(agents: opencode.cli.client.Agent[])
 function M.get_agents(port, callback)
-  M.call(port, "/agent", "GET", nil, callback)
+  curl(port, "/agent", "GET", nil, callback)
 end
 
 ---@class opencode.cli.client.Command
@@ -243,7 +231,7 @@ end
 ---@param port number
 ---@param callback fun(commands: opencode.cli.client.Command[])
 function M.get_commands(port, callback)
-  M.call(port, "/command", "GET", nil, callback)
+  curl(port, "/command", "GET", nil, callback)
 end
 
 ---@class opencode.cli.client.SessionTime
@@ -260,7 +248,7 @@ end
 ---@param port number
 ---@param callback fun(sessions: opencode.cli.client.Session[])
 function M.get_sessions(port, callback)
-  M.call(port, "/session", "GET", nil, callback)
+  curl(port, "/session", "GET", nil, callback)
 end
 
 ---@class opencode.cli.client.SessionStatus
@@ -270,7 +258,7 @@ end
 ---@param port number
 ---@param callback fun(statuses: opencode.cli.client.SessionStatus[])
 function M.get_sessions_status(port, callback)
-  M.call(port, "/session/status", "GET", nil, callback)
+  curl(port, "/session/status", "GET", nil, callback)
 end
 
 ---Select session in `opencode`.
@@ -278,7 +266,7 @@ end
 ---@param port number
 ---@param session_id string
 function M.select_session(port, session_id)
-  M.call(port, "/tui/select-session", "POST", { sessionID = session_id }, nil)
+  curl(port, "/tui/select-session", "POST", { sessionID = session_id }, nil)
 end
 
 ---@class opencode.cli.client.PathResponse
@@ -289,7 +277,7 @@ end
 ---@param on_success fun(response: opencode.cli.client.PathResponse)
 ---@param on_error fun()
 function M.get_path(port, on_success, on_error)
-  M.call(port, "/path", "GET", nil, on_success, on_error)
+  curl(port, "/path", "GET", nil, on_success, on_error)
 end
 
 ---@alias opencode.cli.client.event.type
@@ -308,14 +296,12 @@ end
 ---@field type opencode.cli.client.event.type|string
 ---@field properties table
 
----Calls the `/event` SSE endpoint and invokes `callback` for each event received.
----
 ---@param port number
----@param on_success fun(response: opencode.cli.client.Event)|nil
+---@param on_success fun(response: opencode.cli.client.Event)|nil Invoked with each received event.
 ---@param on_error fun(code: number, msg: string?)|nil
 ---@return number job_id
 function M.sse_subscribe(port, on_success, on_error)
-  return M.call(port, "/event", "GET", nil, on_success, on_error, {
+  return curl(port, "/event", "GET", nil, on_success, on_error, {
     -- Keep connection open indefinitely to continue receiving
     max_time = 0,
   })
