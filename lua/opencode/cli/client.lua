@@ -289,7 +289,7 @@ end
 ---@param on_success fun(response: opencode.cli.client.PathResponse)
 ---@param on_error fun()
 function M.get_path(port, on_success, on_error)
-  M.call(port, "/path", "GET", nil, on_success, on_error, { max_time = 2 })
+  M.call(port, "/path", "GET", nil, on_success, on_error)
 end
 
 ---@alias opencode.cli.client.event.type
