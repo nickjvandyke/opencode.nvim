@@ -53,8 +53,6 @@ local function curl(url, method, body, on_success, on_error, opts)
   local command = {
     "curl",
     "-s",
-    "--connect-timeout",
-    "1",
     "-X",
     method,
     "-H",
