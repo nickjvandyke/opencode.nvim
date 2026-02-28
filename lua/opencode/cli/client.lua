@@ -143,18 +143,14 @@ local function curl(port, path, method, body, on_success, on_error, opts)
         local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
 
         if on_error then
+          -- Prefer invoking `on_error` to allow higher-level handling
           on_error(code, stderr_message)
-        end
-
-        -- 18 = connection closed unexpectedly, 143 = SIGTERM.
-        -- Can happen for SSE connections.
-        -- Expected, and we handle those in `events` module's `on_error` callback - no need to notify the user about them.
-        if code ~= 18 and code ~= 143 then
+        else
+          -- TODO: Use `on_error` consistently to handle these more appropriately at a higher level
           local error_message = "curl command failed with exit code: "
             .. code
             .. "\nstderr:\n"
             .. (stderr_message or "<none>")
-          -- TODO: Use `on_error` consistently to handle these more appropriately at a higher level.
           vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
         end
       end

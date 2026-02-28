@@ -36,7 +36,6 @@ function M.connect(server)
           M.connected_server = _server
 
           if heartbeat_timer then
-            heartbeat_timer:stop()
             heartbeat_timer:start(OPENCODE_HEARTBEAT_INTERVAL_MS + 5000, 0, vim.schedule_wrap(M.disconnect))
           end
 
@@ -51,13 +50,18 @@ function M.connect(server)
           end
         end,
         function()
-          -- Server disappeared ungracefully, e.g. process killed, network error, etc.
-          M.disconnect()
+          -- This is also called when the connection is closed normally by `vim.fn.jobstop`.
+          -- i.e. when disconnecting before connecting to a new server.
+          -- In that case, don't re-execute disconnect - it'd disconnect from the new server.
+          if M.connected_server == _server then
+            -- Server disappeared ungracefully, e.g. process killed, network error, etc.
+            M.disconnect()
+          end
         end
       )
     end)
     :catch(function(err)
-      vim.notify("Failed to subscribe to SSE: " .. err, vim.log.levels.WARN)
+      vim.notify("Failed to subscribe to SSEs: " .. err, vim.log.levels.WARN, { title = "opencode" })
     end)
 end
 
