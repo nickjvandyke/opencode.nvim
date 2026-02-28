@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.5.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.4.0...v0.5.0) (2026-02-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **provider:** replace providers with simpler, more maintainable server option
+
+### Features
+
+* **server:** allow _all_ servers (but prioritize sharing CWD still) ([6d00f30](https://github.com/nickjvandyke/opencode.nvim/commit/6d00f3094af83748f94224647f62a215bca6a920))
+
+
+### Bug Fixes
+
+* **ask:** preserve formatting in completion docs ([9048f10](https://github.com/nickjvandyke/opencode.nvim/commit/9048f10130f76a39c4b5d0ba77890ec5031bb543))
+* **client:** prevent hanging when `opencode` is suspended ([#183](https://github.com/nickjvandyke/opencode.nvim/issues/183)) ([c1afcf5](https://github.com/nickjvandyke/opencode.nvim/commit/c1afcf5ab4dce992ee41108fb056522db7385dd6))
+* **context:** always pick the longer of overlapping placeholders ([e4f7555](https://github.com/nickjvandyke/opencode.nvim/commit/e4f755591db3ddf7b9ff6dcb4ae469faa36926b6))
+* **context:** diagnostics context error ([a4dff90](https://github.com/nickjvandyke/opencode.nvim/commit/a4dff90c1a13b0bc5fdfc750feeba4e2501f5ef5))
+* **context:** remove filename space suffix when no location, use `:`, join list contexts with `, ` ([8992d0c](https://github.com/nickjvandyke/opencode.nvim/commit/8992d0c6168ad28f91b03f7dcdb98b5ebb675c32))
+* **server:** cache connected server even when events are disabled ([6b3eed0](https://github.com/nickjvandyke/opencode.nvim/commit/6b3eed0bce4c4cff928a8ef7222a0513382adcfc))
+* **server:** don't needlessly reconnect to server ([1b90ae8](https://github.com/nickjvandyke/opencode.nvim/commit/1b90ae8936245255786b7789496f7d910ab8434d))
+* **server:** more reliably detect server disappearing ([67a09c8](https://github.com/nickjvandyke/opencode.nvim/commit/67a09c88ca2326c12e6ca02ffa669f716341ddf1))
+* **server:** race condition that'd disconnect from newly selected server ([c72a7bf](https://github.com/nickjvandyke/opencode.nvim/commit/c72a7bf28ac13fc54e3f12a99554b2309d0da175))
+
+
+### Code Refactoring
+
+* **provider:** replace providers with simpler, more maintainable server option ([82332cf](https://github.com/nickjvandyke/opencode.nvim/commit/82332cf924458dc9b6fcaecf25f52111544a1663))
+
 ## [0.4.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.3.0...v0.4.0) (2026-02-20)
 
 
