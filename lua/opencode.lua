@@ -86,6 +86,7 @@ M.select_server = function()
       return require("opencode.ui.select_server").select_server(servers)
     end)
     :next(function(server) ---@param server opencode.cli.server.Server
+      -- FIX: Race condition when already connected to another server
       require("opencode.events").connect(server)
       return server
     end)

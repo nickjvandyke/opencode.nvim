@@ -16,89 +16,12 @@ local M = {}
 ---
 ---@field toggle? fun()|false
 
----An `opencode` server process and some details about it.
+---An `opencode` server.
 ---@class opencode.cli.server.Server
 ---@field port number
 ---@field cwd string
 ---@field title string
 ---@field subagents opencode.cli.client.Agent[]
-
----An `opencode` process.
----Retrieval is platform-dependent.
----@class opencode.cli.server.Process
----@field pid number
----@field port number
-
----@return boolean
-local function is_windows()
-  return vim.fn.has("win32") == 1
-end
-
----@return opencode.cli.server.Process[]
-local function get_processes_unix()
-  -- Find PIDs by command line pattern.
-  -- We filter for `--port` to avoid matching other `opencode`-related processes (LSPs etc.)
-  local pgrep = vim.system({ "pgrep", "-f", "opencode.*--port" }, { text = true }):wait()
-  require("opencode.util").check_system_call(pgrep, "pgrep")
-
-  local processes = {}
-  for pgrep_line in pgrep.stdout:gmatch("[^\r\n]+") do
-    local pid = tonumber(pgrep_line)
-    if pid then
-      -- Get the port for the PID
-      local lsof = vim
-        .system({ "lsof", "-w", "-iTCP", "-sTCP:LISTEN", "-P", "-n", "-a", "-p", tostring(pid) }, { text = true })
-        :wait()
-      require("opencode.util").check_system_call(lsof, "lsof")
-      for line in lsof.stdout:gmatch("[^\r\n]+") do
-        local parts = vim.split(line, "%s+")
-        if parts[1] ~= "COMMAND" then -- Skip header
-          local port_str = parts[9] and parts[9]:match(":(%d+)$") -- e.g. "127.0.0.1:12345" -> "12345"
-          if port_str then
-            local port = tonumber(port_str)
-            if port then
-              table.insert(processes, {
-                pid = pid,
-                port = port,
-              })
-            end
-          end
-        end
-      end
-    end
-  end
-  return processes
-end
-
----@return opencode.cli.server.Process[]
-local function get_processes_windows()
-  local ps_script = [[
-Get-Process -Name '*opencode*' -ErrorAction SilentlyContinue |
-ForEach-Object {
-  $ports = Get-NetTCPConnection -State Listen -OwningProcess $_.Id -ErrorAction SilentlyContinue
-  if ($ports) {
-    foreach ($port in $ports) {
-      [PSCustomObject]@{pid=$_.Id; port=$port.LocalPort}
-    }
-  }
-} | ConvertTo-Json -Compress
-]]
-  local ps = vim.system({ "powershell", "-NoProfile", "-Command", ps_script }):wait()
-  require("opencode.util").check_system_call(ps, "PowerShell")
-  if ps.stdout == "" then
-    return {}
-  end
-  -- The Powershell script should return the response as JSON to ease parsing.
-  local ok, processes = pcall(vim.fn.json_decode, ps.stdout)
-  if not ok then
-    error("Failed to parse PowerShell output: " .. tostring(processes), 0)
-  end
-  if processes.pid then
-    -- A single process was found, so wrap it in a table.
-    processes = { processes }
-  end
-  return processes
-end
 
 ---@param port number
 ---@return Promise<opencode.cli.server.Server>
@@ -156,19 +79,14 @@ end
 function M.get_all()
   local Promise = require("opencode.promise")
   return Promise.new(function(resolve, reject)
-    local processes
-    if is_windows() then
-      processes = get_processes_windows()
-    else
-      processes = get_processes_unix()
-    end
+    local processes = require("opencode.cli.process").get()
     if #processes == 0 then
       reject("No `opencode` processes found")
     else
       resolve(processes)
     end
-  end):next(function(processes) ---@param processes opencode.cli.server.Process[]
-    local get_servers = vim.tbl_map(function(process) ---@param process opencode.cli.server.Process
+  end):next(function(processes) ---@param processes opencode.cli.process.Process[]
+    local get_servers = vim.tbl_map(function(process) ---@param process opencode.cli.process.Process
       return get_server(process.port)
     end, processes)
     return Promise.all_settled(get_servers):next(function(results)
@@ -187,7 +105,7 @@ function M.get_all()
   end)
 end
 
----Attempt to get the `opencode` server's port. Tries, in order:
+---Find an `opencode` server's port. Tries, in order:
 ---
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
@@ -201,11 +119,11 @@ end
 function M.get(launch)
   launch = launch ~= false
 
-  local opts = require("opencode.config").opts.server or {}
+  local server_opts = require("opencode.config").opts.server or {}
 
   local Promise = require("opencode.promise")
   return Promise.resolve(
-    require("opencode.events").connected_server and require("opencode.events").connected_server.port or opts.port
+    require("opencode.events").connected_server and require("opencode.events").connected_server.port or server_opts.port
   )
     :next(function(priority_port) ---@param priority_port number
       if priority_port then
@@ -249,8 +167,8 @@ function M.get(launch)
       end
 
       return Promise.new(function(resolve, reject)
-        if launch and opts.start then
-          local start_ok, start_result = pcall(opts.start)
+        if launch and server_opts.start then
+          local start_ok, start_result = pcall(server_opts.start)
           if not start_ok then
             return reject("Error starting `opencode`: " .. start_result)
           end

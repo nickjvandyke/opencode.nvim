@@ -10,9 +10,9 @@ local M = {}
 function M.check_system_call(obj, cmd)
   cmd = "`" .. cmd .. "`"
   if obj.code ~= 0 and (obj.code ~= 1 or obj.stderr ~= "") then
-    error(string.format("%s failed with code %d\n%s", cmd, obj.code, obj.stderr), 0)
+    error(string.format("`%s` command failed with code %d\n%s", cmd, obj.code, obj.stderr), 0)
   elseif not obj.stdout then
-    error(string.format("%s did not return any output", cmd), 0)
+    error(string.format("`%s` command did not return any output", cmd), 0)
   end
 end
 
