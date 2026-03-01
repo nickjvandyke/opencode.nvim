@@ -185,6 +185,8 @@ Input a prompt for `opencode`.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
+- Set `opts.ask.capture = "buffer"` for a larger centered floating buffer.
+  - Configure via `opts.ask.buffer` (for example: `submit_keys`, `cancel_keys`, `submit_on_write`, `linewrap`).
 - End the prompt with `\n` to append instead of submit.
 - Additionally, when using `snacks.input`:
   - Press `<S-CR>` to append instead of submit.
