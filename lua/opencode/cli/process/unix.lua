@@ -57,13 +57,15 @@ function M.get()
   end, vim.split(pgrep.stdout, "\n", { trimempty = true }))
   local pids_to_ports = get_ports(pids)
 
-  return vim.tbl_map(function(pid)
-    ---@type opencode.cli.process.Process
-    return {
-      pid = pid,
-      port = pids_to_ports[pid],
-    }
-  end, pids)
+  ---@type opencode.cli.process.Process[]
+  local processes = {}
+  for _, pid in ipairs(pids) do
+    local port = pids_to_ports[pid]
+    if port then
+      table.insert(processes, { pid = pid, port = port })
+    end
+  end
+  return processes
 end
 
 return M
