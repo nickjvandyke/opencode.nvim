@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.0...v0.5.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* **server:** sometimes returned processes without ports ([#195](https://github.com/nickjvandyke/opencode.nvim/issues/195)) ([12a7c4e](https://github.com/nickjvandyke/opencode.nvim/commit/12a7c4e5496cd6a2c38533356c37bb7f3ee6d4d7))
+
 ## [0.5.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.4.0...v0.5.0) (2026-03-02)
 
 
