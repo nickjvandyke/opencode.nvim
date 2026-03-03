@@ -51,19 +51,17 @@ function M.get()
   -- but that misses servers started by "bun" or "node" (or who knows what else) :(
   local pgrep = vim.system({ "pgrep", "-f", "opencode .*--port" }, { text = true }):wait()
   require("opencode.util").check_system_call(pgrep, "pgrep")
-
   local pids = vim.tbl_map(function(line)
     return tonumber(line)
   end, vim.split(pgrep.stdout, "\n", { trimempty = true }))
-  local pids_to_ports = get_ports(pids)
 
-  return vim.tbl_map(function(pid)
-    ---@type opencode.cli.process.Process
-    return {
-      pid = pid,
-      port = pids_to_ports[pid],
-    }
-  end, pids)
+  local pids_to_ports = get_ports(pids)
+  ---@type opencode.cli.process.Process[]
+  local processes = {}
+  for pid, port in pairs(pids_to_ports) do
+    table.insert(processes, { pid = pid, port = port })
+  end
+  return processes
 end
 
 return M
