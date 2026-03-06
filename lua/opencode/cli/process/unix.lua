@@ -3,7 +3,8 @@ local M = {}
 ---@param pids number[]
 ---@return table<number, number>
 local function get_ports(pids)
-  local pids_to_ports = {}
+  assert(#pids > 0, "`get_ports` should only be called with a non-empty list of PIDs to filter by")
+
   local lsof = vim
     .system({
       "lsof",
@@ -22,6 +23,7 @@ local function get_ports(pids)
     :wait()
   require("opencode.util").check_system_call(lsof, "lsof")
 
+  local pids_to_ports = {}
   local pid
   for line in lsof.stdout:gmatch("[^\n]+") do
     local prefix = line:sub(1, 1)
@@ -54,6 +56,10 @@ function M.get()
   local pids = vim.tbl_map(function(line)
     return tonumber(line)
   end, vim.split(pgrep.stdout, "\n", { trimempty = true }))
+
+  if #pids == 0 then
+    return {}
+  end
 
   local pids_to_ports = get_ports(pids)
   ---@type opencode.cli.process.Process[]
