@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.1...v0.5.2) (2026-03-06)
+
+
+### Bug Fixes
+
+* **server:** error correctly when no processes found on Unix ([df98bfb](https://github.com/nickjvandyke/opencode.nvim/commit/df98bfba94190ca3584f862f5f0526c6dcd016fc))
+* **terminal:** rare error when exiting Neovim and killing `opencode` ([c451511](https://github.com/nickjvandyke/opencode.nvim/commit/c451511a27d1a9c05bab173c919ef882cd6f72f3))
+
 ## [0.5.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.0...v0.5.1) (2026-03-03)
 
 
