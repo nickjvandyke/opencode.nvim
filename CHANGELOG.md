@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.2...v0.6.0) (2026-03-07)
+
+
+### Features
+
+* diff and accept/reject `opencode` edits ([8b4ec07](https://github.com/nickjvandyke/opencode.nvim/commit/8b4ec075cbaf869bb86f1a52e78f1478ea525000))
+
+
+### Bug Fixes
+
+* **diff:** don't close the diff after accepting/rejecting a single hunk ([c7adcfe](https://github.com/nickjvandyke/opencode.nvim/commit/c7adcfe997535add53ac094a564a15348ab0c0de))
+* **status:** handle new event types for busy and idle states, update permission event type ([3d07744](https://github.com/nickjvandyke/opencode.nvim/commit/3d07744a05cc682c6706db21d90e43e513702dc4))
+
 ## [0.5.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.1...v0.5.2) (2026-03-06)
 
 
