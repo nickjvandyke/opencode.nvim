@@ -25,10 +25,13 @@ local M = {}
 
 ---Verify that an `opencode` process is responding on the given port,
 ---and fetch some details about it.
----@param port number
+---@param port number?
 ---@return Promise<opencode.cli.server.Server>
 local function get_server(port)
   local Promise = require("opencode.promise")
+  if not port then
+    return Promise.reject("This process is not listening on any port.")
+  end
   return Promise
     .new(function(resolve, reject)
       require("opencode.cli.client").get_path(port, function(path)

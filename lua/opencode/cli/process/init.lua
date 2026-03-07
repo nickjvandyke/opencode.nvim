@@ -4,7 +4,7 @@ local M = {}
 ---Retrieval is platform-dependent.
 ---@class opencode.cli.process.Process
 ---@field pid number
----@field port number
+---@field port number?
 
 ---@return opencode.cli.process.Process[]
 function M.get()
