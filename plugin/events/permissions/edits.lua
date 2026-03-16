@@ -3,6 +3,11 @@ local current_edit_request_id = nil
 ---@type nil|integer
 local diff_tabpage = nil
 
+---@class opencode.events.permissions.edits.Opts
+---
+---Whether to display proposed edits from `opencode` and allow accepting/rejecting them from within Neovim.
+---@field enabled? boolean
+
 vim.api.nvim_create_autocmd("User", {
   group = vim.api.nvim_create_augroup("OpencodeEdits", { clear = true }),
   pattern = { "OpencodeEvent:permission.asked", "OpencodeEvent:permission.replied" },
@@ -13,12 +18,12 @@ vim.api.nvim_create_autocmd("User", {
     local port = args.data.port
 
     local opts = require("opencode.config").opts.events.permissions or {}
-    if not opts.enabled then
+    if not opts.enabled or not opts.edits.enabled then
       return
     end
 
     if event.type == "permission.asked" and event.properties.permission == "edit" then
-      local idle_delay_ms = opts.idle_delay_ms
+      local idle_delay_ms = opts.idle_delay_ms or 1000
       vim.notify(
         "`opencode` requested permission — awaiting idle…",
         vim.log.levels.INFO,

@@ -184,6 +184,9 @@ local defaults = {
     permissions = {
       enabled = true,
       idle_delay_ms = 1000,
+      edits = {
+        enabled = true,
+      },
     },
   },
 }
