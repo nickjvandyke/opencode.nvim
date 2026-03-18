@@ -4,7 +4,7 @@
 ---When set, _only_ this port will be checked.
 ---When not set, _all_ `opencode` processes will be checked.
 ---Be sure to also launch `opencode` accordingly, e.g. `opencode --port 12345`.
----@field port? number
+---@field port? number|fun(callback: fun(port?: number))
 ---
 ---Start an `opencode` server.
 ---Called when when none are found; will retry after.
@@ -333,12 +333,25 @@ end
 function Server.get(launch)
   launch = launch ~= false
   local server_opts = require("opencode.config").opts.server or {}
+  local configured_port = server_opts.port
   local connected_server = require("opencode.events").connected_server
   local Promise = require("opencode.promise")
 
   return (
     connected_server and Promise.resolve(connected_server) -- Maaayy want to verify the connected server is still valid, but it should pretty reliably disconnect itself ASAP
-    or server_opts.port and Server.new(server_opts.port)
+    or type(configured_port) == "number" and Server.new(configured_port)
+    or type(configured_port) == "function"
+      and Promise.new(function(resolve, reject)
+        configured_port(function(port) ---@param port number|nil
+          if port then
+            resolve(port)
+          else
+            reject("Configured port resolved to `nil`")
+          end
+        end)
+      end):next(function(port)
+        return Server.new(port)
+      end)
     or Server.get_all():next(function(servers) ---@param servers opencode.server.Server[]
       local nvim_cwd = vim.fn.getcwd()
       local servers_in_cwd = vim.tbl_filter(function(server)
