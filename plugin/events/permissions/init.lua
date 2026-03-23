@@ -19,7 +19,8 @@ vim.api.nvim_create_autocmd("User", {
     ---@type number
     local port = args.data.port
     ---@type opencode.server.Server
-    local server = require("opencode.server").new(port)
+    local Server = require("opencode.server")
+    local server = setmetatable({ port = port }, { __index = Server })
 
     local opts = require("opencode.config").opts.events.permissions or {}
     if not opts.enabled then
