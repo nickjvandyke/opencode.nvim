@@ -61,7 +61,7 @@ function M.start(cmd, opts)
   opts = vim.tbl_deep_extend("force", defaults, opts or {})
   if bufnr == nil then
     local previous_win = vim.api.nvim_get_current_win()
-    bufnr = vim.api.nvim_create_buf(true, false)
+    bufnr = vim.api.nvim_create_buf(false, false)
     winid = vim.api.nvim_open_win(bufnr, true, opts)
 
     M.setup(winid)
