@@ -338,8 +338,8 @@ end
 ---All open buffers.
 function Context:buffers()
   local file_list = {}
-  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-    local path = Context.format(buf)
+  for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
+    local path = Context.format(buf.bufnr)
     if path then
       table.insert(file_list, path)
     end

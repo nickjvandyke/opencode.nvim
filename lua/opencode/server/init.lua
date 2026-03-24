@@ -192,8 +192,13 @@ function Server:tui_execute_command(command, callback)
   )
 end
 
+---@alias opencode.server.permission.Reply
+---| "once"
+---| "always"
+---| "reject"
+
 ---@param permission number
----@param reply "once"|"always"|"reject"
+---@param reply opencode.server.permission.Reply
 ---@param callback? fun(session: table)
 function Server:permit(permission, reply, callback)
   return self:curl("/permission/" .. permission .. "/reply", "POST", { reply = reply }, callback)

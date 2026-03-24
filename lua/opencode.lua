@@ -122,7 +122,9 @@ end
 ---@param command opencode.Command|string The command to send. Can be built-in or reference your custom commands.
 M.command = function(command)
   require("opencode.api.command").command(command):catch(function(err)
-    vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+    if err then
+      vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+    end
   end)
 end
 

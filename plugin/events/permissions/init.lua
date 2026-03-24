@@ -18,8 +18,6 @@ vim.api.nvim_create_autocmd("User", {
     local event = args.data.event
     ---@type number
     local port = args.data.port
-    ---@type opencode.server.Server
-    local server = require("opencode.server").new(port)
 
     local opts = require("opencode.config").opts.events.permissions or {}
     if not opts.enabled then
@@ -44,9 +42,12 @@ vim.api.nvim_create_autocmd("User", {
             return item
           end,
         }, function(choice)
+          -- cat
           is_permission_request_open = false
           if choice then
-            server:permit(event.properties.id, choice:lower())
+            require("opencode.server").new(port):next(function(server) ---@param server opencode.server.Server
+              server:permit(event.properties.id, choice:lower())
+            end)
           end
         end)
       end)
