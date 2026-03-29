@@ -43,13 +43,20 @@ function M.check()
     local latest_tested_version = "1.2.11"
     local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
     if found_version_parsed and latest_tested_version_parsed then
-      if latest_tested_version_parsed[1] ~= found_version_parsed[1] then
+      local found_major = found_version_parsed[1] or 0
+      local latest_tested_major = latest_tested_version_parsed[1] or 0
+      local found_minor = found_version_parsed[2] or 0
+      local latest_tested_minor = latest_tested_version_parsed[2] or 0
+      local found_patch = found_version_parsed[3] or 0
+      local latest_tested_patch = latest_tested_version_parsed[3] or 0
+
+      if latest_tested_major ~= found_major then
         vim.health.warn(
           "`opencode` version has a `major` version mismatch with latest tested version `"
             .. latest_tested_version
             .. "`: may cause compatibility issues."
         )
-      elseif found_version_parsed[2] < latest_tested_version_parsed[2] then
+      elseif found_minor < latest_tested_minor then
         vim.health.warn(
           "`opencode` version has an older `minor` version than latest tested version `"
             .. latest_tested_version
@@ -58,7 +65,7 @@ function M.check()
             "Update `opencode`.",
           }
         )
-      elseif found_version_parsed[3] < latest_tested_version_parsed[3] then
+      elseif found_minor == latest_tested_minor and found_patch < latest_tested_patch then
         vim.health.warn(
           "`opencode` version has an older `patch` version than latest tested version `"
             .. latest_tested_version
