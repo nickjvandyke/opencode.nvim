@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.6.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.2...v0.6.0) (2026-03-29)
+
+
+### Features
+
+* diff and accept/reject `opencode` edits ([8b4ec07](https://github.com/nickjvandyke/opencode.nvim/commit/8b4ec075cbaf869bb86f1a52e78f1478ea525000))
+* **edits:** allow separately disabling edit permissions ([8804ffb](https://github.com/nickjvandyke/opencode.nvim/commit/8804ffb81f9784dcd0e9af43a2068fb55282c4dd))
+* **permissions:** fallback to generic permissions for edits when edits disabled ([53014bc](https://github.com/nickjvandyke/opencode.nvim/commit/53014bc40fbe529a26c6feafbe395ffe5e3acda5))
+* **server:** support arbitrary port discovery ([5067c80](https://github.com/nickjvandyke/opencode.nvim/commit/5067c80ee1f37b5f8a54244e184df44944175a84))
+
+
+### Bug Fixes
+
+* **checkhealth:** check `opencode` patch version only when minor matches ([#217](https://github.com/nickjvandyke/opencode.nvim/issues/217)) ([ecd6e9b](https://github.com/nickjvandyke/opencode.nvim/commit/ecd6e9b50d732280ef63f325ec29ec206f78be71))
+* **context:** use only listed buffers for `[@buffers](https://github.com/buffers)` ([#213](https://github.com/nickjvandyke/opencode.nvim/issues/213)) ([e64a4a1](https://github.com/nickjvandyke/opencode.nvim/commit/e64a4a1172401a9dffd732bf61f032d038fd947c))
+* **diff:** don't close the diff after accepting/rejecting a single hunk ([c7adcfe](https://github.com/nickjvandyke/opencode.nvim/commit/c7adcfe997535add53ac094a564a15348ab0c0de))
+* empty err notification when `command` server selection is cancelled ([9db5914](https://github.com/nickjvandyke/opencode.nvim/commit/9db59145730ff9b8029b3dc9c5c6e714cd5485a8))
+* **permissions:** error when replying to request ([931f94b](https://github.com/nickjvandyke/opencode.nvim/commit/931f94b99a6f70af43f5f7bce897a9e127b167c0))
+* **status:** handle new event types for busy and idle states, update permission event type ([3d07744](https://github.com/nickjvandyke/opencode.nvim/commit/3d07744a05cc682c6706db21d90e43e513702dc4))
+* **terminal:** exclude from session ([f8c46ed](https://github.com/nickjvandyke/opencode.nvim/commit/f8c46edbc1a905f35db3c076ee6cee73eab3df65))
+* **terminal:** prevent appearing in bufferline ([#214](https://github.com/nickjvandyke/opencode.nvim/issues/214)) ([4f4ff2c](https://github.com/nickjvandyke/opencode.nvim/commit/4f4ff2c2a4bd979bf8f20a90e44be1b86855cfea))
+
 ## [0.5.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.1...v0.5.2) (2026-03-06)
 
 
