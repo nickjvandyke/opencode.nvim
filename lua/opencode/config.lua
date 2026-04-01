@@ -190,17 +190,4 @@ if not snacks_ok or not snacks.config.get("input", {}).enabled then
   M.opts.ask.snacks = {}
 end
 
--- Allow removing default `contexts` and `prompts` by setting them to `false` in your user config.
--- TODO: Add to type definition, and apply to `opts.select.commands`.
-local user_opts = vim.g.opencode_opts or {}
-for _, field in ipairs({ "contexts", "prompts" }) do
-  if user_opts[field] and M.opts[field] then
-    for k, v in pairs(user_opts[field]) do
-      if not v then
-        M.opts[field][k] = nil
-      end
-    end
-  end
-end
-
 return M
