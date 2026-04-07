@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.6.0...v0.7.0) (2026-04-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** remove undocumented ability to clear built-in contexts and prompts
+* remove buggy `opts.clear` from `ask` and `prompt`
+
+### Bug Fixes
+
+* remove buggy `opts.clear` from `ask` and `prompt` ([3a0b484](https://github.com/nickjvandyke/opencode.nvim/commit/3a0b484831f9edb1aac6423b30093a03335672f2))
+* **terminal:** fallback win opts for backwards-compat ([fd7b4e5](https://github.com/nickjvandyke/opencode.nvim/commit/fd7b4e5899a4ade903e8bee4305ac72c1a36f522))
+
+
+### Code Refactoring
+
+* **config:** remove undocumented ability to clear built-in contexts and prompts ([78b720d](https://github.com/nickjvandyke/opencode.nvim/commit/78b720dfa6a55c3e2d167165320adc5c0ae87471))
+
 ## [0.6.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.5.2...v0.6.0) (2026-03-29)
 
 
