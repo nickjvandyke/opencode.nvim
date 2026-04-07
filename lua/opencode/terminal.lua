@@ -9,7 +9,9 @@ local bufnr
 ---@param cmd string
 ---@param opts? opencode.terminal.Opts
 function M.toggle(cmd, opts)
-  opts = opts or {}
+  opts = opts or {
+    relative = "editor"
+  }
 
   if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
     vim.api.nvim_win_hide(winid)
