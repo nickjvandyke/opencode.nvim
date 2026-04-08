@@ -286,7 +286,87 @@ When `opencode` requests a permission, `opencode.nvim` waits for idle to ask you
 
 #### Edits
 
-For edit requests, `opencode.nvim` opens the target file in a new tab and uses Neovim's `:diffpatch` to display the proposed changes side-by-side. See `:h 'diffopt'` for customization.
+For edit requests, `opencode.nvim` opens the target file in a new tab and displays the proposed changes with its built-in `:diffpatch` renderer by default. See `:h 'diffopt'` for customization.
+
+You can replace the renderer with a custom function. The renderer receives a context and can return a session with optional hunk navigation, hunk actions, and cleanup hooks.
+
+The context provides:
+
+- `ctx.request_id`: the edit request id.
+- `ctx.filepath`: normalized target filepath.
+- `ctx.diff`: the unified diff from `opencode`.
+- `ctx.proposed_text()`: lazily computes the patched file contents.
+- `ctx.permit(reply)`: sends `"once"` or `"reject"`.
+- `ctx.close()`: closes the active diff view.
+- `ctx.open_default()`: opens the built-in `:diffpatch` renderer and returns its session.
+
+The returned session can provide:
+
+- `bufnr`
+- `close()`
+- `next_hunk()` / `prev_hunk()`
+- `accept_hunk()` / `reject_hunk()`
+
+Edit keymaps are global and operate on the currently active `opencode` edit session instead of being buffer-local. If there is no active edit diff, they show a notification instead of failing silently.
+
+Default keymaps:
+
+- `da`: accept the edit request
+- `dr`: reject the edit request
+- `q`: close the edit diff
+- `dp`: accept the current hunk and reject the request
+- `do`: reject the current hunk and reject the request
+- `]c` / `[c`: next / previous hunk
+
+You can override or disable them:
+
+```lua
+vim.g.opencode_opts = {
+  events = {
+    permissions = {
+      edits = {
+        keymaps = {
+          accept = "<leader>oa",
+          reject = "<leader>or",
+          close = "<leader>oq",
+          accept_hunk = false,
+        },
+      },
+    },
+  },
+}
+```
+
+```lua
+vim.g.opencode_opts = {
+  events = {
+    permissions = {
+      edits = {
+        renderer = require("opencode").diff_renderers.mini_diff(),
+      },
+    },
+  },
+}
+```
+
+`mini.diff` users can optionally tweak the helper:
+
+```lua
+vim.g.opencode_opts = {
+  events = {
+    permissions = {
+      edits = {
+        renderer = require("opencode").diff_renderers.mini_diff({
+          open_cmd = "tabnew",
+          ensure_overlay = true,
+        }),
+      },
+    },
+  },
+}
+```
+
+If you need full control, `renderer` still accepts a custom function using the `ctx` helpers above.
 
 | Keymap  | Function                                                                      |
 | ------- | ----------------------------------------------------------------------------- |

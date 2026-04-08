@@ -166,5 +166,6 @@ end
 --------------------
 
 M.snacks_picker_send = require("opencode.integrations.pickers.snacks").send
+M.diff_renderers = require("opencode.integrations.diff")
 
 return M

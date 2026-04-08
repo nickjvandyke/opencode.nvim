@@ -172,6 +172,16 @@ local defaults = {
       idle_delay_ms = 1000,
       edits = {
         enabled = true,
+        renderer = nil,
+        keymaps = {
+          accept = "da",
+          reject = "dr",
+          close = "q",
+          accept_hunk = "dp",
+          reject_hunk = "do",
+          next_hunk = "]c",
+          prev_hunk = "[c",
+        },
       },
     },
   },
