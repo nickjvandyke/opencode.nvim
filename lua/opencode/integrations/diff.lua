@@ -4,11 +4,18 @@ local M = {}
 ---@field open_cmd? string Ex command used to open the target file. Defaults to `tabnew`.
 ---@field ensure_overlay? boolean Whether to enable `mini.diff` overlay while the edit session is active. Defaults to `true`.
 
+---@param mini_diff table
 ---@param buf integer
 ---@param line integer
-local function accept_hunk(buf, line)
-  local mini_diff = require("mini.diff")
+local function accept_hunk(mini_diff, buf, line)
   mini_diff.do_hunks(buf, "reset", { line_start = line, line_end = line })
+end
+
+---@return fun(ctx: opencode.events.permissions.edits.Context): opencode.events.permissions.edits.Session?
+function M.default()
+  return function(ctx)
+    return ctx.open_default()
+  end
 end
 
 ---Create an edit renderer backed by `mini.diff`.
@@ -24,15 +31,17 @@ function M.mini_diff(opts)
     ensure_overlay = true,
   })
 
+  local fallback = M.default()
+
   return function(ctx)
     local ok, mini_diff = pcall(require, "mini.diff")
-    if not ok then
-      return ctx.open_default()
+    if not ok or type(rawget(_G, "MiniDiff")) ~= "table" then
+      return fallback(ctx)
     end
 
     local proposed = ctx.proposed_text()
     if not proposed then
-      return ctx.open_default()
+      return fallback(ctx)
     end
 
     vim.cmd(("%s %s"):format(opts.open_cmd, vim.fn.fnameescape(ctx.filepath)))
@@ -47,7 +56,7 @@ function M.mini_diff(opts)
     local ref_ok = enabled and pcall(mini_diff.set_ref_text, bufnr, proposed)
     if not ref_ok then
       pcall(vim.cmd, "tabclose")
-      return ctx.open_default()
+      return fallback(ctx)
     end
 
     if opts.ensure_overlay then
@@ -87,7 +96,7 @@ function M.mini_diff(opts)
       end,
       accept_hunk = function()
         local line = vim.api.nvim_win_get_cursor(0)[1]
-        accept_hunk(bufnr, line)
+        accept_hunk(mini_diff, bufnr, line)
       end,
     }
   end
