@@ -324,30 +324,36 @@ function Server.get_all()
   end)
 end
 
+---Try to start an `opencode` server via `opts.server.start`.
+local function start()
+  local server_opts = require("opencode.config").opts.server or {}
+
+  if not server_opts.start then
+    error("No `opts.server.start` function configured", 0)
+  end
+
+  local start_ok, start_result = pcall(server_opts.start)
+  if not start_ok then
+    return error("Failed to start `opencode`: " .. start_result, 0)
+  end
+end
+
 ---Find an `opencode` server. Tries, in order:
 ---
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
 ---3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
----4. Calling `opts.server.start()` if `launch == true`, then retrying the above.
----
----Upon success, subscribes to the server's events.
----
----@param launch boolean? Whether to call `opts.server.start` if none found. Defaults to true.
 ---@return Promise<opencode.server.Server>
-function Server.get(launch)
-  launch = launch ~= false
-  local server_opts = require("opencode.config").opts.server or {}
-  local configured_port = server_opts.port
-  local connected_server = require("opencode.events").connected_server
+local function find()
   local Promise = require("opencode.promise")
+  local port_opt = require("opencode.config").opts.server.port
+  local connected_server = require("opencode.events").connected_server
 
-  return (
-    connected_server and Promise.resolve(connected_server) -- Maaayy want to verify the connected server is still valid, but it should pretty reliably disconnect itself ASAP
-    or type(configured_port) == "number" and Server.new(configured_port)
-    or type(configured_port) == "function"
+  return connected_server and Promise.resolve(connected_server)
+    or type(port_opt) == "number" and Server.new(port_opt)
+    or type(port_opt) == "function"
       and Promise.new(function(resolve, reject)
-        configured_port(function(port) ---@param port number|nil
+        port_opt(function(port) ---@param port number|nil
           if port then
             resolve(port)
           else
@@ -372,39 +378,69 @@ function Server.get(launch)
         return require("opencode.ui.select_server").select_server(servers)
       end
     end)
-  )
+end
+
+---Poll for an `opencode` server, rejecting if not found within five seconds.
+---@return Promise<opencode.server.Server>
+local function poll()
+  local Promise = require("opencode.promise")
+  local poll_timer, timer_err, timer_errname = vim.uv.new_timer()
+  if not poll_timer then
+    return Promise.reject("Failed to create timer to poll for `opencode`: " .. timer_errname .. ": " .. timer_err)
+  end
+
+  local retries = 0
+  return Promise.new(function(resolve, reject)
+    poll_timer:start(
+      1000,
+      1000,
+      vim.schedule_wrap(function()
+        find()
+          :next(function(server)
+            resolve(server)
+          end)
+          :catch(function(err)
+            retries = retries + 1
+            if retries >= 5 then
+              reject(err)
+            else
+              -- Wait for next retry
+            end
+          end)
+      end)
+    )
+  end):finally(function()
+    poll_timer:stop()
+    poll_timer:close()
+  end)
+end
+
+---@return Promise<opencode.server.Server>
+function Server.get()
+  local Promise = require("opencode.promise")
+  local connected_server = require("opencode.events").connected_server
+
+  return find()
+    :catch(function(err)
+      if not err then
+        -- Do nothing when server selection was cancelled
+        return Promise.reject()
+      end
+
+      local start_ok = pcall(start)
+      if not start_ok then
+        -- Propagate original error.
+        -- Maybe concat start error?
+        return Promise.reject(err)
+      end
+
+      return poll()
+    end)
     :next(function(server) ---@param server opencode.server.Server
       if not connected_server or connected_server.port ~= server.port then
         require("opencode.events").connect(server)
       end
       return server
-    end)
-    :catch(function(err)
-      if not err then
-        -- Do nothing when select is cancelled
-        return Promise.reject()
-      end
-
-      return Promise.new(function(resolve, reject)
-        if not launch or not server_opts.start then
-          -- Don't attempt to recover - just propagate the original error
-          reject(err)
-          return
-        end
-
-        local start_ok, start_result = pcall(server_opts.start)
-        if not start_ok then
-          return reject("Error starting `opencode`: " .. start_result)
-        end
-
-        -- Wait for the server to start
-        vim.defer_fn(function()
-          resolve(true)
-        end, 2000)
-      end):next(function()
-        -- Retry
-        return Server.get(false)
-      end)
     end)
 end
 
