@@ -1,6 +1,8 @@
 local M = {}
 
 ---@class opencode.terminal.Opts : vim.api.keyset.win_config
+---@class opencode.terminal.SetupOpts
+---@field restore_focus? boolean Return focus to the previously focused window after the initial redraw workaround. Defaults to true.
 
 local winid
 local bufnr
@@ -126,7 +128,12 @@ end
 --- - Keymaps for Neovim-like message navigation.
 --- - Properly clean up `opencode` process on close.
 ---@param win integer
-function M.setup(win)
+---@param opts? opencode.terminal.SetupOpts
+function M.setup(win, opts)
+  opts = vim.tbl_extend("keep", opts or {}, {
+    restore_focus = true,
+  })
+
   local buf = vim.api.nvim_win_get_buf(win)
   ---@type integer|nil
   local pid
@@ -154,7 +161,11 @@ function M.setup(win)
       if ev.data.cursor[1] > 1 then
         vim.api.nvim_del_autocmd(auid)
         vim.api.nvim_set_current_win(win)
-        vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+        if opts.restore_focus then
+          vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+        else
+          vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>", "n")]])
+        end
       end
     end,
   })

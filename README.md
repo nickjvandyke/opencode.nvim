@@ -157,8 +157,9 @@ local snacks_terminal_opts = {
     position = 'right',
     enter = false,
     on_win = function(win)
-      -- Set up keymaps and cleanup for an arbitrary terminal
-      require('opencode.terminal').setup(win.win)
+      -- Set up keymaps and cleanup for an arbitrary terminal.
+      -- `restore_focus = false` preserves the terminal backend's focus choice.
+      require('opencode.terminal').setup(win.win, { restore_focus = false })
     end,
   },
 }
