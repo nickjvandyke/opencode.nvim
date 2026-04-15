@@ -164,7 +164,7 @@ function M.setup(win, opts)
         if opts.restore_focus then
           vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
         else
-          vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>", "n")]])
+          vim.cmd("startinsert")
         end
       end
     end,
