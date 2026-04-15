@@ -56,6 +56,22 @@ function M.open(cmd, opts)
 
   M.setup(winid)
 
+  -- Redraw terminal buffer on initial render.
+  -- Fixes empty columns on the right side.
+  -- Only affects our implementation for some reason; I don't see this issue in `snacks.terminal`.
+  local auid
+  auid = vim.api.nvim_create_autocmd("TermRequest", {
+    buffer = bufnr,
+    callback = function(ev)
+      if ev.data.cursor[1] > 1 then
+        vim.api.nvim_del_autocmd(auid)
+        vim.api.nvim_set_current_win(winid)
+        -- Enter insert mode to trigger redraw, then exit and return to previous window.
+        vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+      end
+    end,
+  })
+
   vim.fn.jobstart(cmd, {
     term = true,
     on_exit = function()
