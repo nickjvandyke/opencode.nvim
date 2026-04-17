@@ -2,24 +2,44 @@ local M = {}
 
 ---@class opencode.terminal.Opts : vim.api.keyset.win_config
 
-local winid
-local bufnr
+---@class opencode.terminal.State
+---@field winid? integer
+---@field bufnr? integer
+
+---@type table<integer, opencode.terminal.State>
+local states = {}
+
+---@param tab? integer
+---@return opencode.terminal.State, integer
+local function get_state(tab)
+  tab = tab or vim.api.nvim_get_current_tabpage()
+  if not states[tab] then
+    states[tab] = {}
+  end
+  return states[tab], tab
+end
+
+---@param tab integer
+local function clear_state(tab)
+  states[tab] = nil
+end
 
 ---Start if not running, else show/hide the window.
 ---@param cmd string
 ---@param opts? opencode.terminal.Opts
 function M.toggle(cmd, opts)
+  local state = get_state()
   opts = opts or {
     split = "right",
     width = math.floor(vim.o.columns * 0.35),
   }
 
-  if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
-    vim.api.nvim_win_hide(winid)
-    winid = nil
-  elseif bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+  if state.winid ~= nil and vim.api.nvim_win_is_valid(state.winid) then
+    vim.api.nvim_win_hide(state.winid)
+    state.winid = nil
+  elseif state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr) then
     local previous_win = vim.api.nvim_get_current_win()
-    winid = vim.api.nvim_open_win(bufnr, true, opts)
+    state.winid = vim.api.nvim_open_win(state.bufnr, true, opts)
     vim.api.nvim_set_current_win(previous_win)
   else
     M.open(cmd, opts)
@@ -29,7 +49,8 @@ end
 ---@param cmd string
 ---@param opts? opencode.terminal.Opts
 function M.open(cmd, opts)
-  if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+  local state, tab = get_state()
+  if state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr) then
     return
   end
 
@@ -39,8 +60,8 @@ function M.open(cmd, opts)
   }
 
   local previous_win = vim.api.nvim_get_current_win()
-  bufnr = vim.api.nvim_create_buf(false, false)
-  winid = vim.api.nvim_open_win(bufnr, true, opts)
+  state.bufnr = vim.api.nvim_create_buf(false, false)
+  state.winid = vim.api.nvim_open_win(state.bufnr, true, opts)
 
   vim.api.nvim_create_autocmd("ExitPre", {
     once = true,
@@ -48,22 +69,24 @@ function M.open(cmd, opts)
       -- Delete the buffer so session doesn't save + restore it.
       -- Not worth the complexity to handle a restored terminal,
       -- and this is consistent with most other Neovim terminal plugins.
-      M.close()
+      M.close_all()
     end,
   })
 
-  M.setup(winid)
+  M.setup(state.winid)
 
   -- Redraw terminal buffer on initial render.
   -- Fixes empty columns on the right side.
   -- Only affects our implementation for some reason; I don't see this issue in `snacks.terminal`.
   local auid
   auid = vim.api.nvim_create_autocmd("TermRequest", {
-    buffer = bufnr,
+    buffer = state.bufnr,
     callback = function(ev)
       if ev.data.cursor[1] > 1 then
         vim.api.nvim_del_autocmd(auid)
-        vim.api.nvim_set_current_win(winid)
+        if state.winid and vim.api.nvim_win_is_valid(state.winid) then
+          vim.api.nvim_set_current_win(state.winid)
+        end
         -- Enter insert mode to trigger redraw, then exit and return to previous window.
         vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
       end
@@ -73,26 +96,49 @@ function M.open(cmd, opts)
   vim.fn.jobstart(cmd, {
     term = true,
     on_exit = function()
-      M.close()
+      M.close(tab)
     end,
   })
 
   vim.api.nvim_set_current_win(previous_win)
 end
 
-function M.close()
-  local job_id = bufnr and vim.b[bufnr].terminal_job_id
+---@param tab? integer
+function M.close(tab)
+  local state
+  state, tab = get_state(tab)
+  local job_id = state.bufnr and vim.b[state.bufnr].terminal_job_id
   if job_id then
     vim.fn.jobstop(job_id)
   end
 
-  if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
-    vim.api.nvim_win_close(winid, true)
-    winid = nil
+  if state.winid ~= nil and vim.api.nvim_win_is_valid(state.winid) then
+    vim.api.nvim_win_close(state.winid, true)
+    state.winid = nil
   end
-  if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    vim.api.nvim_buf_delete(bufnr, { force = true })
-    bufnr = nil
+  if state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr) then
+    vim.api.nvim_buf_delete(state.bufnr, { force = true })
+    state.bufnr = nil
+  end
+
+  clear_state(tab)
+end
+
+function M.close_all()
+  for tab, state in pairs(states) do
+    local job_id = state.bufnr and vim.b[state.bufnr].terminal_job_id
+    if job_id then
+      vim.fn.jobstop(job_id)
+    end
+
+    if state.winid ~= nil and vim.api.nvim_win_is_valid(state.winid) then
+      vim.api.nvim_win_close(state.winid, true)
+    end
+    if state.bufnr ~= nil and vim.api.nvim_buf_is_valid(state.bufnr) then
+      vim.api.nvim_buf_delete(state.bufnr, { force = true })
+    end
+
+    states[tab] = nil
   end
 end
 
