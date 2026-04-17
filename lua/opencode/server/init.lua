@@ -344,10 +344,14 @@ end
 ---2. The configured port in `require("opencode.config").opts.port`.
 ---3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
 ---@return Promise<opencode.server.Server>
-local function find()
+---@param tab? integer
+local function find(tab)
   local Promise = require("opencode.promise")
   local port_opt = require("opencode.config").opts.server.port
-  local connected_server = require("opencode.events").connected_server
+  local events = require("opencode.events")
+  local connected_server = events.get_connected_server(tab)
+  local tabnr = tab and vim.api.nvim_tabpage_get_number(tab) or nil
+  local nvim_cwd = tabnr and vim.fn.getcwd(-1, tabnr) or vim.fn.getcwd()
 
   return connected_server and Promise.resolve(connected_server)
     or type(port_opt) == "number" and Server.new(port_opt)
@@ -364,7 +368,6 @@ local function find()
         return Server.new(port)
       end)
     or Server.get_all():next(function(servers) ---@param servers opencode.server.Server[]
-      local nvim_cwd = vim.fn.getcwd()
       local servers_in_cwd = vim.tbl_filter(function(server)
         -- Overlaps in either direction, with no non-empty mismatch
         return server.cwd:find(nvim_cwd, 0, true) == 1 or nvim_cwd:find(server.cwd, 0, true) == 1
@@ -375,14 +378,15 @@ local function find()
         return servers_in_cwd[1]
       else
         -- Can't guess which one the user wants based on CWD - select from *all*
-        return require("opencode.ui.select_server").select_server(servers)
+        return require("opencode.ui.select_server").select_server(servers, { cwd = nvim_cwd })
       end
     end)
 end
 
 ---Poll for an `opencode` server, rejecting if not found within five seconds.
 ---@return Promise<opencode.server.Server>
-local function poll()
+---@param tab? integer
+local function poll(tab)
   local Promise = require("opencode.promise")
   local poll_timer, timer_err, timer_errname = vim.uv.new_timer()
   if not poll_timer then
@@ -395,7 +399,7 @@ local function poll()
       1000,
       1000,
       vim.schedule_wrap(function()
-        find()
+        find(tab)
           :next(function(server)
             resolve(server)
           end)
@@ -418,9 +422,11 @@ end
 ---@return Promise<opencode.server.Server>
 function Server.get()
   local Promise = require("opencode.promise")
-  local connected_server = require("opencode.events").connected_server
+  local events = require("opencode.events")
+  local tab = vim.api.nvim_get_current_tabpage()
+  local connected_server = events.get_connected_server(tab)
 
-  return find()
+  return find(tab)
     :catch(function(err)
       if not err then
         -- Do nothing when server selection was cancelled
@@ -434,11 +440,11 @@ function Server.get()
         return Promise.reject(err)
       end
 
-      return poll()
+      return poll(tab)
     end)
     :next(function(server) ---@param server opencode.server.Server
       if not connected_server or connected_server.port ~= server.port then
-        require("opencode.events").connect(server)
+        events.connect(server, tab)
       end
       return server
     end)

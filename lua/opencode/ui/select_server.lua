@@ -29,9 +29,11 @@ end
 ---Select an `opencode` server from a given list.
 ---
 ---@param servers opencode.server.Server[]
+---@param opts? { cwd?: string }
 ---@return Promise<opencode.server.Server>
-function M.select_server(servers)
-  local nvim_cwd = vim.fn.getcwd()
+function M.select_server(servers, opts)
+  opts = opts or {}
+  local nvim_cwd = opts.cwd or vim.fn.getcwd()
 
   -- Sort servers by common prefix overlap with Neovim's CWD
   table.sort(servers, function(a, b)
