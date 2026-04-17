@@ -92,9 +92,13 @@ function M.connect(server, tab)
         refresh_compat_connected_server()
 
         if state.heartbeat_timer then
-          state.heartbeat_timer:start(OPENCODE_HEARTBEAT_INTERVAL_MS + 5000, 0, vim.schedule_wrap(function()
-            M.disconnect(tab)
-          end))
+          state.heartbeat_timer:start(
+            OPENCODE_HEARTBEAT_INTERVAL_MS + 5000,
+            0,
+            vim.schedule_wrap(function()
+              M.disconnect(tab)
+            end)
+          )
         end
 
         if require("opencode.config").opts.events.enabled then

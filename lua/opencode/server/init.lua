@@ -398,7 +398,7 @@ local function poll(tab)
     poll_timer:start(
       1000,
       1000,
-        vim.schedule_wrap(function()
+      vim.schedule_wrap(function()
         find(tab)
           :next(function(server)
             resolve(server)
