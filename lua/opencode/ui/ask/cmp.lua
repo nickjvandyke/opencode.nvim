@@ -38,7 +38,7 @@ handlers[ms.textDocument_completion] = function(params, callback)
     table.insert(items, item)
   end
 
-  local connected_server = require("opencode.events").connected_server
+  local connected_server = require("opencode.events").get_connected_server()
   local agents = connected_server and connected_server.subagents or {}
   for _, agent in ipairs(agents) do
     local label = "@" .. agent.name

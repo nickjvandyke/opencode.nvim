@@ -61,7 +61,7 @@ _G.opencode_completion = function(ArgLead, CmdLine, CursorPos)
   for placeholder, _ in pairs(require("opencode.config").opts.contexts) do
     table.insert(completions, placeholder)
   end
-  local server = require("opencode.events").connected_server
+  local server = require("opencode.events").get_connected_server()
   local agents = server and server.subagents or {}
   for _, agent in ipairs(agents) do
     table.insert(completions, "@" .. agent.name)
