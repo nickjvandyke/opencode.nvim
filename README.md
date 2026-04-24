@@ -110,7 +110,7 @@ programs.nixvim = {
 
 ### Prompts
 
-Select or reference prompts to review, explain, and improve your code:
+Select prompts to review, explain, and improve your code:
 
 | Name          | Prompt                                                                 |
 | ------------- | ---------------------------------------------------------------------- |
@@ -206,9 +206,8 @@ Highlights and previews items when using `snacks.picker`.
 
 Prompt `opencode`.
 
-- Resolves named references to configured prompts.
 - Injects configured contexts.
-- `opencode` will interpret `@` references to files or subagents.
+- `opencode` will interpret references to files or subagents.
 
 ### Operator — `require("opencode").operator()`
 

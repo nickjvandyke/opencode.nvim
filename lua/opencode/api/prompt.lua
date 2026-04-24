@@ -11,9 +11,6 @@ local M = {}
 ---@param opts? opencode.api.prompt.Opts
 ---@return Promise
 function M.prompt(prompt, opts)
-  -- TODO: Referencing `ask = true` prompts doesn't actually ask.
-  local referenced_prompt = require("opencode.config").opts.prompts[prompt]
-  prompt = referenced_prompt and referenced_prompt.prompt or prompt
   opts = {
     submit = opts and opts.submit or false,
     context = opts and opts.context or require("opencode.context").new(),
