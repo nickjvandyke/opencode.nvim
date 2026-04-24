@@ -342,7 +342,7 @@ end
 ---
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
----3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
+---3. All local servers that overlap with Neovim's CWD. Automatically returns if just one, otherwise prompts to select from those.
 ---@return Promise<opencode.server.Server>
 local function find()
   local Promise = require("opencode.promise")
@@ -365,17 +365,19 @@ local function find()
       end)
     or Server.get_all():next(function(servers) ---@param servers opencode.server.Server[]
       local nvim_cwd = vim.fn.getcwd()
-      local servers_in_cwd = vim.tbl_filter(function(server)
+      local servers_sharing_cwd = vim.tbl_filter(function(server)
         -- Overlaps in either direction, with no non-empty mismatch
         return server.cwd:find(nvim_cwd, 0, true) == 1 or nvim_cwd:find(server.cwd, 0, true) == 1
       end, servers)
 
-      if #servers_in_cwd == 1 then
-        -- User most likely wants to connect to the single server in their CWD
-        return servers_in_cwd[1]
+      if #servers_sharing_cwd == 0 then
+        -- We prefer falling back to `opts.server.start` over selecting from servers that don't match the CWD.
+        -- Manual selection is still available for that rare need.
+        error("No `opencode` servers found with overlapping CWD", 0)
+      elseif #servers_sharing_cwd == 1 then
+        return servers_sharing_cwd[1]
       else
-        -- Can't guess which one the user wants based on CWD - select from *all*
-        return require("opencode.ui.select_server").select_server(servers)
+        return require("opencode.ui.select_server").select_server(servers_sharing_cwd)
       end
     end)
 end

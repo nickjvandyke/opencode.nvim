@@ -76,6 +76,7 @@ end
 
 ---Select an `opencode` server to connect to,
 ---sending future requests to it and subscribing to its events.
+---Lists all local servers.
 M.select_server = function()
   -- Should we also offer connected and configured server here?
   return require("opencode.server")
