@@ -10,10 +10,8 @@ local M = {}
 --- - Press the up arrow to browse recent asks.
 --- - Highlights and completes contexts and `opencode` subagents.
 ---   - Press `<Tab>` to trigger built-in completion.
---- - End the prompt with `\n` to append instead of submit.
---- - Additionally, when using `snacks.input`:
----   - Press `<S-CR>` to append instead of submit.
----   - Offers completions via in-process LSP.
+--- - End the prompt with a space to append instead of submit.
+--- - When using `snacks.input`, offers completions via in-process LSP.
 ---
 ---@param default? string Text to pre-fill the input with.
 ---@param opts? opencode.api.prompt.Opts Options for `prompt()`.
@@ -24,13 +22,12 @@ M.ask = function(default, opts)
   return require("opencode.ui.ask")
     .ask(default, opts.context)
     :next(function(input) ---@param input string
-      -- TODO: Remove `opts.submit` in favor of just checking if the input ends with `\n`?
+      -- TODO: Remove `opts.submit` in favor of just checking if the input ends with a space?
       -- (maybe even in `prompt()` itself?)
       -- Confusing to have both.
       -- I think it's better, but don't love the breaking change.
       -- Although for most users, I imagine they just use `opts.submit = false` and thus won't be affected.
-      if input:sub(-2) == "\\n" then
-        input = input:sub(1, -3) .. "\n" -- Remove the escaped `\n` and add an actual newline character for `opencode` to interpret.
+      if input:sub(-1) == " " then
         opts.submit = false
       end
       opts.context:clear()

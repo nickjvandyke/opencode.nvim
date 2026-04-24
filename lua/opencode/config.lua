@@ -98,19 +98,7 @@ local defaults = {
           i_cr = {
             desc = "submit",
           },
-          i_s_cr = {
-            "<S-CR>",
-            function(win)
-              -- Append `\n` to leverage `ask()`'s auto-append behavior in that case
-              local text = win:text() .. "\\n"
-              vim.api.nvim_buf_set_lines(win.buf, 0, -1, false, { text })
-              win:execute("confirm")
-            end,
-            mode = "i",
-            desc = "append",
-          },
         },
-        footer_keys = { "<CR>", "<S-CR>" },
         b = {
           completion = true,
         },
