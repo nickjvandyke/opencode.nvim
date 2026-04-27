@@ -1,9 +1,9 @@
 local M = {}
 
 ---@param pids number[]
----@return table<number, number>
-local function get_ports(pids)
-  assert(#pids > 0, "`get_ports` should only be called with a non-empty list of PIDs to filter by")
+---@return opencode.server.process.Process[]
+local function get_processes_with_ports(pids)
+  assert(#pids > 0, "`get_processes` should only be called with a non-empty list of PIDs to filter by")
 
   local lsof = vim
     .system({
@@ -23,7 +23,8 @@ local function get_ports(pids)
     :wait()
   require("opencode.util").check_system_call(lsof, "lsof")
 
-  local pids_to_ports = {}
+  ---@type opencode.server.process.Process[]
+  local processes = {}
   local pid
   for line in lsof.stdout:gmatch("[^\n]+") do
     local prefix = line:sub(1, 1)
@@ -33,14 +34,16 @@ local function get_ports(pids)
       -- PID line
       pid = tonumber(value)
     elseif prefix == "n" then
-      -- Network interface line - look for ":PORT" at the end of the string
+      -- Network interface line - look for ":PORT" at the end of the string.
+      -- Emit one process entry per (PID, port) since a single PID may listen on multiple ports.
       local port = tonumber(value:match(":(%d+)$"))
-      -- Associate the port with the most recently seen PID (they're always in this order)
-      pids_to_ports[pid] = port
+      if port then
+        processes[#processes + 1] = { pid = pid, port = port }
+      end
     end
   end
 
-  return pids_to_ports
+  return processes
 end
 
 ---@return opencode.server.process.Process[]
@@ -61,13 +64,7 @@ function M.get()
     return {}
   end
 
-  local pids_to_ports = get_ports(pids)
-  ---@type opencode.server.process.Process[]
-  local processes = {}
-  for pid, port in pairs(pids_to_ports) do
-    table.insert(processes, { pid = pid, port = port })
-  end
-  return processes
+  return get_processes_with_ports(pids)
 end
 
 return M
