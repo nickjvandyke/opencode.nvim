@@ -88,9 +88,9 @@ function Server:curl(path, method, body, on_success, on_error, opts)
 
   local command = {
     "curl",
-    "-s",
-    "-S",
-    "--fail",
+    "-s", -- Silent
+    "-S", -- Except for errors/stderr
+    "--fail-with-body",
     "-X",
     method,
     "-H",
