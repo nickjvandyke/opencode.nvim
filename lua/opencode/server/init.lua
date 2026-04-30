@@ -114,6 +114,15 @@ function Server:curl(path, method, body, on_success, on_error, opts)
 
   table.insert(command, url)
 
+  local function on_error_wrapper(code, msg)
+    if on_error then
+      on_error(code, msg)
+    else
+      -- TODO: Eventually all errors should go through `on_error` for higher-level handling
+      vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+    end
+  end
+
   local response_buffer = {}
   local function process_response_buffer()
     if #response_buffer > 0 then
@@ -132,11 +141,7 @@ function Server:curl(path, method, body, on_success, on_error, opts)
             .. full_event
             .. "\nError: "
             .. result
-          if on_error then
-            on_error(-1, error_message)
-          else
-            vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
-          end
+          on_error_wrapper(-1, error_message)
         end
       end)
     end
@@ -173,18 +178,14 @@ function Server:curl(path, method, body, on_success, on_error, opts)
         local response_message = #response_buffer > 0 and table.concat(response_buffer, "\n") or nil
         local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
         local detail_lines = { "Request to " .. url .. " failed with exit code: " .. code }
-        if stderr_message and stderr_message ~= "" then
-          table.insert(detail_lines, "stderr:\n" .. stderr_message)
-        end
         if response_message and response_message ~= "" then
-          table.insert(detail_lines, "response:\n" .. response_message)
+          table.insert(detail_lines, "Response:\n" .. response_message)
+        end
+        if stderr_message and stderr_message ~= "" then
+          table.insert(detail_lines, "Stderr:\n" .. stderr_message)
         end
         local error_message = table.concat(detail_lines, "\n")
-        if on_error then
-          on_error(code, error_message)
-        else
-          vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
-        end
+        on_error_wrapper(code, error_message)
       end
     end,
   })
