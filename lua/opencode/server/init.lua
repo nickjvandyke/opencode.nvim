@@ -33,6 +33,7 @@ function Server.new(port)
   local unavailable_message = "No `opencode` responding on port: " .. port
 
   return Promise.new(function(resolve, reject)
+    -- Serially get path first to confirm that this is a valid `opencode` server before making other requests in parallel
     self:get_path(function(path)
       local cwd = path.directory or path.worktree
       if cwd then
@@ -47,22 +48,18 @@ function Server.new(port)
     :next(function(cwd) ---@param cwd string
       return Promise.all({
         cwd,
-        Promise.new(function(resolve, reject)
+        Promise.new(function(resolve)
           self:get_sessions(function(session)
             local title = session[1] and session[1].title or "<No sessions>"
             resolve(title)
-          end, function(_, msg)
-            reject(msg or unavailable_message)
           end)
         end),
-        Promise.new(function(resolve, reject)
+        Promise.new(function(resolve)
           self:get_agents(function(agents)
             local subagents = vim.tbl_filter(function(agent)
               return agent.mode == "subagent"
             end, agents)
             resolve(subagents)
-          end, function(_, msg)
-            reject(msg or unavailable_message)
           end)
         end),
       })
@@ -223,7 +220,6 @@ end
 ---@field mode "primary"|"subagent"
 
 ---@param callback fun(agents: opencode.server.Agent[])
----@param on_error? fun(code: number, msg: string?)
 function Server:get_agents(callback, on_error)
   return self:curl("/agent", "GET", nil, callback, on_error)
 end
@@ -254,7 +250,6 @@ end
 ---Get sessions from `opencode`.
 ---
 ---@param callback fun(sessions: opencode.server.Session[])
----@param on_error? fun(code: number, msg: string?)
 function Server:get_sessions(callback, on_error)
   return self:curl("/session", "GET", nil, callback, on_error)
 end
