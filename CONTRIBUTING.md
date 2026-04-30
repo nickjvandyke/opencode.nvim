@@ -20,8 +20,8 @@ If unsure, propose changes in an issue or discussion first!
 
 - Prefer simple, robust, and general solutions.
 - Consider existing project patterns and edge cases.
-- Heavily considered when re-implementing `opencode` features.
+- Heavily considered when re-implementing `opencode` TUI features.
 
 ## Code of Conduct
 
-Please be respectful and constructive. See the [Code of Conduct](./CODE_OF_CONDUCT.md).
+Please be respectful and constructive. See the [Code of Conduct](./CODE_OF_CONDUCT.md) for details.
