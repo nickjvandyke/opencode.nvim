@@ -23,8 +23,8 @@
 local Server = {}
 Server.__index = Server
 
----Attempt to connect to an `opencode` server process and fetch its details.
----Rejects if connection or fetching details fails.
+---Attempt to connect to an `opencode` server and fetch its details.
+---Rejects if the connection or requests fail — the last line of defense against false-positive server discovery.
 ---@param port number
 ---@return Promise<opencode.server.Server>
 function Server.new(port)
@@ -238,7 +238,6 @@ end
 ---However, currently it does not seem to support executing these commands.
 ---
 ---@param callback fun(commands: opencode.server.Command[])
----@param on_error? fun(code: number, msg: string?)
 function Server:get_commands(callback, on_error)
   return self:curl("/command", "GET", nil, callback, on_error)
 end
@@ -258,16 +257,6 @@ end
 ---@param on_error? fun(code: number, msg: string?)
 function Server:get_sessions(callback, on_error)
   return self:curl("/session", "GET", nil, callback, on_error)
-end
-
----@class opencode.server.SessionStatus
-
----Get sessions' status from `opencode`.
----
----@param callback fun(statuses: opencode.server.SessionStatus[])
----@param on_error? fun(code: number, msg: string?)
-function Server:get_sessions_status(callback, on_error)
-  return self:curl("/session/status", "GET", nil, callback, on_error)
 end
 
 ---Select session in `opencode`.
