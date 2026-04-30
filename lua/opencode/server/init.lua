@@ -120,17 +120,22 @@ function Server:curl(path, method, body, on_success, on_error, opts)
       local full_event = table.concat(response_buffer)
       response_buffer = {}
       vim.schedule(function()
-        local ok, response = pcall(vim.fn.json_decode, full_event)
+        local ok, result = pcall(vim.fn.json_decode, full_event)
         if ok then
           if on_success then
-            on_success(response)
+            on_success(result)
           end
         else
-          local error_message = "Failed to decode response from " .. url .. ": " .. response
+          local error_message = "Failed to decode response from "
+            .. url
+            .. "\nResponse: "
+            .. full_event
+            .. "\nError: "
+            .. result
           if on_error then
-            on_error(-1, error_message .. "\nresponse:\n" .. full_event)
+            on_error(-1, error_message)
           else
-            vim.notify(error_message .. "\nresponse:\n" .. full_event, vim.log.levels.ERROR, { title = "opencode" })
+            vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
           end
         end
       end)
