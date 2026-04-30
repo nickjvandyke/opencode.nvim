@@ -226,8 +226,8 @@ end
 ---@field mode "primary"|"subagent"
 
 ---@param callback fun(agents: opencode.server.Agent[])
-function Server:get_agents(callback, on_error)
-  return self:curl("/agent", "GET", nil, callback, on_error)
+function Server:get_agents(callback)
+  return self:curl("/agent", "GET", nil, callback)
 end
 
 ---@class opencode.server.Command
@@ -240,8 +240,8 @@ end
 ---However, currently it does not seem to support executing these commands.
 ---
 ---@param callback fun(commands: opencode.server.Command[])
-function Server:get_commands(callback, on_error)
-  return self:curl("/command", "GET", nil, callback, on_error)
+function Server:get_commands(callback)
+  return self:curl("/command", "GET", nil, callback)
 end
 
 ---@class opencode.server.SessionTime
@@ -256,8 +256,8 @@ end
 ---Get sessions from `opencode`.
 ---
 ---@param callback fun(sessions: opencode.server.Session[])
-function Server:get_sessions(callback, on_error)
-  return self:curl("/session", "GET", nil, callback, on_error)
+function Server:get_sessions(callback)
+  return self:curl("/session", "GET", nil, callback)
 end
 
 ---Select session in `opencode`.
