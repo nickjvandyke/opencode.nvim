@@ -30,6 +30,7 @@ Server.__index = Server
 function Server.new(port)
   local self = setmetatable({ port = port }, Server)
   local Promise = require("opencode.promise")
+  local unavailable_message = "No `opencode` responding on port: " .. port
 
   return Promise.new(function(resolve, reject)
     self:get_path(function(path)
@@ -37,27 +38,31 @@ function Server.new(port)
       if cwd then
         resolve(cwd)
       else
-        reject("No `opencode` responding on port: " .. port)
+        reject(unavailable_message)
       end
     end, function()
-      reject("No `opencode` responding on port: " .. port)
+      reject(unavailable_message)
     end)
   end)
     :next(function(cwd) ---@param cwd string
       return Promise.all({
         cwd,
-        Promise.new(function(resolve)
+        Promise.new(function(resolve, reject)
           self:get_sessions(function(session)
             local title = session[1] and session[1].title or "<No sessions>"
             resolve(title)
+          end, function(_, msg)
+            reject(msg or unavailable_message)
           end)
         end),
-        Promise.new(function(resolve)
+        Promise.new(function(resolve, reject)
           self:get_agents(function(agents)
             local subagents = vim.tbl_filter(function(agent)
               return agent.mode == "subagent"
             end, agents)
             resolve(subagents)
+          end, function(_, msg)
+            reject(msg or unavailable_message)
           end)
         end),
       })
@@ -87,6 +92,8 @@ function Server:curl(path, method, body, on_success, on_error, opts)
   local command = {
     "curl",
     "-s",
+    "-S",
+    "--fail",
     "-X",
     method,
     "-H",
@@ -122,11 +129,12 @@ function Server:curl(path, method, body, on_success, on_error, opts)
             on_success(response)
           end
         else
-          vim.notify(
-            "Response decode error: " .. full_event .. "; " .. response,
-            vim.log.levels.ERROR,
-            { title = "opencode" }
-          )
+          local error_message = "Failed to decode response from " .. url .. ": " .. response
+          if on_error then
+            on_error(-1, error_message .. "\nresponse:\n" .. full_event)
+          else
+            vim.notify(error_message .. "\nresponse:\n" .. full_event, vim.log.levels.ERROR, { title = "opencode" })
+          end
         end
       end)
     end
@@ -160,14 +168,19 @@ function Server:curl(path, method, body, on_success, on_error, opts)
       if code == 0 then
         process_response_buffer()
       else
+        local response_message = #response_buffer > 0 and table.concat(response_buffer, "\n") or nil
         local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
+        local detail_lines = { "Request to " .. url .. " failed with exit code: " .. code }
+        if stderr_message and stderr_message ~= "" then
+          table.insert(detail_lines, "stderr:\n" .. stderr_message)
+        end
+        if response_message and response_message ~= "" then
+          table.insert(detail_lines, "response:\n" .. response_message)
+        end
+        local error_message = table.concat(detail_lines, "\n")
         if on_error then
-          on_error(code, stderr_message)
+          on_error(code, error_message)
         else
-          local error_message = "curl command failed with exit code: "
-            .. code
-            .. "\nstderr:\n"
-            .. (stderr_message or "<none>")
           vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
         end
       end
@@ -210,8 +223,9 @@ end
 ---@field mode "primary"|"subagent"
 
 ---@param callback fun(agents: opencode.server.Agent[])
-function Server:get_agents(callback)
-  return self:curl("/agent", "GET", nil, callback)
+---@param on_error? fun(code: number, msg: string?)
+function Server:get_agents(callback, on_error)
+  return self:curl("/agent", "GET", nil, callback, on_error)
 end
 
 ---@class opencode.server.Command
@@ -224,8 +238,9 @@ end
 ---However, currently it does not seem to support executing these commands.
 ---
 ---@param callback fun(commands: opencode.server.Command[])
-function Server:get_commands(callback)
-  return self:curl("/command", "GET", nil, callback)
+---@param on_error? fun(code: number, msg: string?)
+function Server:get_commands(callback, on_error)
+  return self:curl("/command", "GET", nil, callback, on_error)
 end
 
 ---@class opencode.server.SessionTime
@@ -240,8 +255,9 @@ end
 ---Get sessions from `opencode`.
 ---
 ---@param callback fun(sessions: opencode.server.Session[])
-function Server:get_sessions(callback)
-  return self:curl("/session", "GET", nil, callback)
+---@param on_error? fun(code: number, msg: string?)
+function Server:get_sessions(callback, on_error)
+  return self:curl("/session", "GET", nil, callback, on_error)
 end
 
 ---@class opencode.server.SessionStatus
@@ -249,8 +265,9 @@ end
 ---Get sessions' status from `opencode`.
 ---
 ---@param callback fun(statuses: opencode.server.SessionStatus[])
-function Server:get_sessions_status(callback)
-  return self:curl("/session/status", "GET", nil, callback)
+---@param on_error? fun(code: number, msg: string?)
+function Server:get_sessions_status(callback, on_error)
+  return self:curl("/session/status", "GET", nil, callback, on_error)
 end
 
 ---Select session in `opencode`.
