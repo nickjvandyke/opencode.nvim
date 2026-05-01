@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.0...v0.8.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* **server:** correctly detect and discard discovered non-servers ([#244](https://github.com/nickjvandyke/opencode.nvim/issues/244)) ([97fbb2a](https://github.com/nickjvandyke/opencode.nvim/commit/97fbb2afde37d48d4bf4f222af559f179f54a043))
+* **server:** process discovery on NixOS ([#245](https://github.com/nickjvandyke/opencode.nvim/issues/245)) ([840b2fa](https://github.com/nickjvandyke/opencode.nvim/commit/840b2fa8c3c03d716a4018a736797b9c6aed046b))
+
 ## [0.8.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.7.0...v0.8.0) (2026-04-29)
 
 
