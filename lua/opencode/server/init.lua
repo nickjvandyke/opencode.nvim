@@ -98,6 +98,16 @@ function Server:curl(path, method, body, on_success, on_error, opts)
     "-N",
   }
 
+  -- Route the request to the TUI whose working directory matches Neovim's.
+  -- In single-TUI / integrated-mode setups this matches the only TUI trivially.
+  -- In multi-TUI setups (`opencode serve` + several `opencode attach --dir ...`)
+  -- this ensures `tui.*` events are delivered to the intended TUI.
+  local nvim_cwd = vim.fn.getcwd()
+  if nvim_cwd and nvim_cwd ~= "" then
+    table.insert(command, "-H")
+    table.insert(command, "x-opencode-directory: " .. nvim_cwd)
+  end
+
   if opts.max_time then
     table.insert(command, "--max-time")
     table.insert(command, tostring(opts.max_time))
