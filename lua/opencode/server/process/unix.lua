@@ -54,7 +54,9 @@ function M.get()
   -- Filter by `--port` because it's required to expose the server.
   -- We can aaaalmost skip this and just use "-c opencode" with `lsof`,
   -- but that misses servers started by "bun" or "node" (or who knows what else) :(
-  local pgrep = vim.system({ "pgrep", "-f", "opencode .*--port" }, { text = true }):wait()
+  -- Also we should consider that on Nix binary can be called "opencode-wrapped"
+  -- (so we cannot do "opencode .*--port").
+  local pgrep = vim.system({ "pgrep", "-f", "opencode.*--port" }, { text = true }):wait()
   require("opencode.util").check_system_call(pgrep, "pgrep")
   local pids = vim.tbl_map(function(line)
     return tonumber(line)
