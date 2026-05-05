@@ -83,6 +83,10 @@ local function curl(url, method, body, on_success, on_error)
           if on_success then
             on_success(response)
           end
+        elseif on_error then
+          -- Caller is doing speculative probing (e.g. server discovery) - let it
+          -- decide whether the failure is interesting; don't pop a global notify.
+          on_error(0, "Response decode error: " .. full_event .. "; " .. response)
         else
           vim.notify(
             "Response decode error: " .. full_event .. "; " .. response,

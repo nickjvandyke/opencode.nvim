@@ -20,8 +20,12 @@ end
 ---@return opencode.cli.server.Process[]
 local function get_processes_unix()
   -- Find PIDs by command line pattern.
-  -- We filter for `--port` to avoid matching other `opencode`-related processes (LSPs etc.)
-  local pgrep = vim.system({ "pgrep", "-f", "opencode.*--port" }, { text = true }):wait()
+  -- We filter for `--port` to avoid matching other `opencode`-related processes (LSPs etc.).
+  -- The leading `[^ ]*` constrains the match to processes whose argv[0] ends in `opencode`,
+  -- so wrappers/launchers that happen to mention `opencode` somewhere later in their argv
+  -- (e.g. `proxy-tool exec -- npx -y opencode-ai@latest --port`, `npm exec opencode-ai@latest`,
+  -- `node .../opencode-ai/bin/.opencode --port`) don't get picked up.
+  local pgrep = vim.system({ "pgrep", "-f", "^[^ ]*opencode --port" }, { text = true }):wait()
   require("opencode.util").check_system_call(pgrep, "pgrep")
 
   local processes = {}
