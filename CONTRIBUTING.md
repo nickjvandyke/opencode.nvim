@@ -12,15 +12,15 @@ I maintain this in my free time — please allow for variable response times and
 
 If unsure, propose changes in an issue or discussion first!
 
-- Bridge Neovim and `opencode`'s TUI to maintain flow.
+- Bridge Neovim and `opencode` to maintain flow.
 - Provide novel functionality first, and convenience second.
-- Simple, intuitive UX.
+- Simple and intuitive UX.
 
 ### Minimize maintenance burden
 
 - Prefer simple, robust, and general solutions.
 - Consider existing project patterns and edge cases.
-- Heavily considered when re-implementing `opencode` TUI features.
+- Prefer functionality unique from `opencode`'s TUI.
 
 ## Code of Conduct
 
