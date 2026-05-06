@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.1...v0.8.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **context:** reference file-backed bufs with non-empty buftype ([f77904d](https://github.com/nickjvandyke/opencode.nvim/commit/f77904d53bee4618e0b1e92796db4f154739777d))
+
 ## [0.8.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.0...v0.8.1) (2026-05-01)
 
 
