@@ -1,11 +1,10 @@
-name: opencode-review
+name: review
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
-  id-token: write
   contents: read
   pull-requests: write
 
