@@ -4,14 +4,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: read
+  issues: write
+
 jobs:
   review:
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-      pull-requests: read
-      issues: read
     steps:
       - uses: actions/checkout@v6
         with:
