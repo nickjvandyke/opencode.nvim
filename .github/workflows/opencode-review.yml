@@ -22,7 +22,7 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/minimax-m2.5-free
+          model: opencode/big-pickle
           use_github_token: true
           prompt: |
             Review this pull request:
