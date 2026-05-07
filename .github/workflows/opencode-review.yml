@@ -28,3 +28,4 @@ jobs:
             - Check for code quality issues
             - Look for potential bugs
             - Suggest improvements
+            - Reference CONTRIBUTING.md for more guidelines to consider
