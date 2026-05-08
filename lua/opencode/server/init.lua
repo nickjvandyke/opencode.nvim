@@ -6,6 +6,12 @@
 ---Be sure to also launch `opencode` accordingly, e.g. `opencode --port 12345`.
 ---@field port? number|fun(callback: fun(port?: number))
 ---
+---Basic auth username.
+---@field username? string
+---
+---Basic auth password.
+---@field password? string
+---
 ---Start an `opencode` server.
 ---Called when when none are found; will retry after.
 ---@field start? fun()|false
@@ -23,31 +29,35 @@
 local Server = {}
 Server.__index = Server
 
----Attempt to connect to an `opencode` server and fetch its details.
----Rejects if the connection or requests fail — the last line of defense against false-positive server discovery.
+---Attempt to connect to an `opencode` server and fetch its health and details.
+---Rejects if the health fails — the last line of defense against false-positive server discovery.
+---Rejection message is non-empty if from a valid `opencode` server.
 ---@param port number
 ---@return Promise<opencode.server.Server>
 function Server.new(port)
   local self = setmetatable({ port = port }, Server)
   local Promise = require("opencode.promise")
-  local unavailable_message = "No `opencode` responding on port: " .. port
 
   return Promise.new(function(resolve, reject)
-    -- Serially get path first to confirm that this is a valid `opencode` server before making other requests in parallel
-    self:get_path(function(path)
-      local cwd = path.directory or path.worktree
-      if cwd then
-        resolve(cwd)
+    -- Serially check health first to confirm that this is a valid and authenticated `opencode` server
+    self:get_health(function()
+      resolve(true)
+    end, function(_, _, status) ---@param status number
+      if status == 401 then
+        reject("Unauthorized response from `opencode` on port " .. self.port)
       else
-        reject(unavailable_message)
+        reject()
       end
-    end, function()
-      reject(unavailable_message)
     end)
   end)
-    :next(function(cwd) ---@param cwd string
+    :next(function()
       return Promise.all({
-        cwd,
+        Promise.new(function(resolve)
+          self:get_path(function(path)
+            local cwd = path.directory or path.worktree
+            resolve(cwd)
+          end)
+        end),
         Promise.new(function(resolve)
           self:get_sessions(function(session)
             local title = session[1] and session[1].title or "<No sessions>"
@@ -65,7 +75,6 @@ function Server.new(port)
       })
     end)
     :next(function(results) ---@param results { [1]: string, [2]: string, [3]: opencode.server.Agent[] }
-      self.port = port
       self.cwd = results[1]
       self.title = results[2]
       self.subagents = results[3]
@@ -77,16 +86,16 @@ end
 ---@param method "GET"|"POST"
 ---@param body table?
 ---@param on_success? fun(response: table)
----@param on_error? fun(code: number, msg: string?)
----@param opts? { max_time?: number }
+---@param on_error? fun(code: number, msg: string?, status: number?)
+---@param opts? { persistent?: boolean }
 ---@return number job_id
 function Server:curl(path, method, body, on_success, on_error, opts)
   local url = "http://localhost:" .. self.port .. path
   opts = opts or {
-    max_time = 2,
+    persistent = false,
   }
 
-  local command = {
+  local cmd = {
     "curl",
     "-s", -- Silent
     "-S", -- Except for errors/stderr
@@ -102,21 +111,32 @@ function Server:curl(path, method, body, on_success, on_error, opts)
     "-N",
   }
 
-  if opts.max_time then
-    table.insert(command, "--max-time")
-    table.insert(command, tostring(opts.max_time))
+  local username = require("opencode.config").opts.server.username
+  local password = require("opencode.config").opts.server.password
+  if username and password then
+    -- We can always send credentials; servers with no auth set just ignore them
+    -- TODO: Track auth per-server?
+    -- Seems like an uncommon need.
+    -- Would require more robust discovery configuration.
+    table.insert(cmd, "--user")
+    table.insert(cmd, username .. ":" .. password)
+  end
+
+  if not opts.persistent then
+    table.insert(cmd, "--max-time")
+    table.insert(cmd, 2)
   end
 
   if body then
-    table.insert(command, "-d")
-    table.insert(command, vim.fn.json_encode(body))
+    table.insert(cmd, "-d")
+    table.insert(cmd, vim.fn.json_encode(body))
   end
 
-  table.insert(command, url)
+  table.insert(cmd, url)
 
-  local function on_error_wrapper(code, msg)
+  local function on_error_wrapper(code, msg, status)
     if on_error then
-      on_error(code, msg)
+      on_error(code, msg, status)
     else
       -- TODO: Eventually all errors should go through `on_error` for higher-level handling
       vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
@@ -148,13 +168,13 @@ function Server:curl(path, method, body, on_success, on_error, opts)
   end
 
   local stderr_lines = {}
-  return vim.fn.jobstart(command, {
+  return vim.fn.jobstart(cmd, {
     on_stdout = function(_, data)
       if not data then
         return
       end
       for _, line in ipairs(data) do
-        if line == "" then
+        if line == "" and opts.persistent then
           process_response_buffer()
         else
           local clean_line = (line:gsub("^data: ?", ""))
@@ -176,19 +196,31 @@ function Server:curl(path, method, body, on_success, on_error, opts)
         process_response_buffer()
       else
         local response_message = #response_buffer > 0 and table.concat(response_buffer, "\n") or nil
-        local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
+        local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "") or nil
+        local status
+
         local detail_lines = { "Request to " .. url .. " failed with exit code: " .. code }
         if response_message and response_message ~= "" then
           table.insert(detail_lines, "Response:\n" .. response_message)
         end
         if stderr_message and stderr_message ~= "" then
           table.insert(detail_lines, "Stderr:\n" .. stderr_message)
+          -- Afaict `curl` requires manual parsing of the response code one way or another regardless of flags :/
+          status = stderr_message:match("The requested URL returned error: (%d+)$")
+          status = tonumber(status)
         end
+
         local error_message = table.concat(detail_lines, "\n")
-        on_error_wrapper(code, error_message)
+        on_error_wrapper(code, error_message, status)
       end
     end,
   })
+end
+
+---@param on_success fun(response: opencode.server.PathResponse)
+---@param on_error fun(code: number, msg: string?, status: number?)
+function Server:get_health(on_success, on_error)
+  return self:curl("/global/health", "GET", nil, on_success, on_error)
 end
 
 ---@param text string
@@ -272,7 +304,6 @@ end
 ---@field worktree string
 
 ---@param on_success fun(response: opencode.server.PathResponse)
----@param on_error fun()
 function Server:get_path(on_success, on_error)
   return self:curl("/path", "GET", nil, on_success, on_error)
 end
@@ -297,7 +328,7 @@ end
 ---@param on_error fun(code: number, msg: string?)|nil
 ---@return number job_id
 function Server:sse_subscribe(on_success, on_error)
-  return self:curl("/event", "GET", nil, on_success, on_error, { max_time = 0 })
+  return self:curl("/event", "GET", nil, on_success, on_error, { persistent = true })
 end
 
 ---@return Promise<opencode.server.Server[]>
@@ -306,7 +337,7 @@ function Server.get_all()
   return Promise.new(function(resolve, reject)
     local processes = require("opencode.server.process").get()
     if #processes == 0 then
-      reject("No `opencode` processes found")
+      reject("No `opencode ... --port` processes found")
     else
       resolve(processes)
     end
@@ -314,7 +345,7 @@ function Server.get_all()
     return Promise.all_settled(vim.tbl_map(function(process) ---@param process opencode.server.process.Process
       return Server.new(process.port)
     end, processes)):next(
-      function(results) ---@param results Promise<{status: string, value?: opencode.server.Server, reason?: any}[]>
+      function(results) ---@param results { status: string, value?: opencode.server.Server, reason?: any }[]
         local servers = {}
         for _, result in ipairs(results) do
           -- We expect non-servers to reject
@@ -322,7 +353,15 @@ function Server.get_all()
             table.insert(servers, result.value)
           end
         end
+
         if #servers == 0 then
+          -- Prefer to surface a rejection from a valid server (e.g. unauthenticated)
+          for _, result in ipairs(results) do
+            if result.status == "rejected" and result.reason then
+              error(result.reason, 0)
+            end
+          end
+
           error("No `opencode` servers found", 0)
         end
         return servers
@@ -357,7 +396,13 @@ local function find()
   local connected_server = require("opencode.events").connected_server
 
   return connected_server and Promise.resolve(connected_server)
-    or type(port_opt) == "number" and Server.new(port_opt)
+    or type(port_opt) == "number" and Server.new(port_opt):catch(function(err)
+      if err then
+        error(err, 0)
+      else
+        error("No `opencode` responding on port " .. port_opt, 0)
+      end
+    end)
     or type(port_opt) == "function"
       and Promise.new(function(resolve, reject)
         port_opt(function(port) ---@param port number|nil

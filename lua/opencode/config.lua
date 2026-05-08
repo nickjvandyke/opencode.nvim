@@ -44,6 +44,8 @@ vim.g.opencode_opts = vim.g.opencode_opts
 local defaults = {
   server = {
     port = nil,
+    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as `opencode`
+    password = vim.env.OPENCODE_SERVER_PASSWORD,
     start = function()
       require("opencode.terminal").open("opencode --port", {
         split = "right",
