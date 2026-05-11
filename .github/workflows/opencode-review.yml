@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   review:
-    if: github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false && !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
