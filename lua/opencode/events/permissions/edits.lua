@@ -9,6 +9,8 @@ local M = {}
 local current_edit_request_id = nil
 ---@type nil|integer
 local diff_tabpage = nil
+---@type nil|integer
+local diff_new_buf = nil
 
 ---@param event opencode.server.Event
 ---@param server opencode.server.Server
@@ -46,10 +48,19 @@ function M.diff(event, server)
       -- Diffing changes some of the buffer's display options (namely folding) to make it easier to compare side-by-side,
       -- so open the target file in a new tab first.
       vim.cmd("tabnew " .. filepath)
+      local bufname = vim.api.nvim_buf_get_name(0)
       -- FIX: Sometimes rejects? Or displays no changes? Particularly with a single inline change. Malformed patch?
       vim.cmd("silent vert diffpatch " .. patch_filepath)
 
       diff_tabpage = vim.api.nvim_get_current_tabpage()
+      diff_new_buf = vim.api.nvim_get_current_buf()
+
+      if vim.api.nvim_buf_get_name(diff_new_buf) == bufname .. ".new" then
+        vim.bo[diff_new_buf].buflisted = false
+      else
+        diff_new_buf = nil
+      end
+
       current_edit_request_id = event.properties.id
 
       ---@param reply opencode.server.permission.Reply
@@ -86,6 +97,11 @@ function M.diff(event, server)
         vim.cmd("tabclose")
         current_edit_request_id = nil
         diff_tabpage = nil
+
+        if diff_new_buf and vim.api.nvim_buf_is_valid(diff_new_buf) then
+          vim.api.nvim_buf_delete(diff_new_buf, { force = true })
+        end
+        diff_new_buf = nil
       end, { buffer = true, desc = "Close opencode edit diff" })
     end)
   elseif event.type == "permission.replied" and current_edit_request_id == event.properties.requestID then
@@ -96,6 +112,11 @@ function M.diff(event, server)
       vim.cmd("tabclose")
       diff_tabpage = nil
     end
+
+    if diff_new_buf and vim.api.nvim_buf_is_valid(diff_new_buf) then
+      vim.api.nvim_buf_delete(diff_new_buf, { force = true })
+    end
+    diff_new_buf = nil
   end
 end
 
