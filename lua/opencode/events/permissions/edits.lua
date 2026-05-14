@@ -7,8 +7,22 @@ local M = {}
 
 ---@type string?
 local current_edit_request_id = nil
+---@type string?
+local current_edit_filepath = nil
 ---@type nil|integer
 local diff_tabpage = nil
+
+---@param filepath string?
+local function wipe_new_buffer(filepath)
+  if not filepath then
+    return
+  end
+
+  local bufnr = vim.fn.bufnr(filepath .. ".new")
+  if bufnr ~= -1 then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
+end
 
 ---@param event opencode.server.Event
 ---@param server opencode.server.Server
@@ -41,16 +55,17 @@ function M.diff(event, server)
 
       local filepath = event.properties.metadata.filepath
       -- Close any buffer with the same name, to avoid "Buffer with this name already exists" error when successive edit requests come in for the same file.
-      vim.cmd("silent! bwipeout " .. filepath .. ".new")
+      wipe_new_buffer(filepath)
 
       -- Diffing changes some of the buffer's display options (namely folding) to make it easier to compare side-by-side,
       -- so open the target file in a new tab first.
-      vim.cmd("tabnew " .. filepath)
+      vim.cmd("tabnew " .. vim.fn.fnameescape(filepath))
       -- FIX: Sometimes rejects? Or displays no changes? Particularly with a single inline change. Malformed patch?
-      vim.cmd("silent vert diffpatch " .. patch_filepath)
+      vim.cmd("silent vert diffpatch " .. vim.fn.fnameescape(patch_filepath))
 
       diff_tabpage = vim.api.nvim_get_current_tabpage()
       current_edit_request_id = event.properties.id
+      current_edit_filepath = filepath
 
       ---@param reply opencode.server.permission.Reply
       local function permit(reply)
@@ -84,7 +99,9 @@ function M.diff(event, server)
       -- Close diff
       vim.keymap.set("n", "q", function()
         vim.cmd("tabclose")
+        wipe_new_buffer(current_edit_filepath)
         current_edit_request_id = nil
+        current_edit_filepath = nil
         diff_tabpage = nil
       end, { buffer = true, desc = "Close opencode edit diff" })
     end)
@@ -96,6 +113,8 @@ function M.diff(event, server)
       vim.cmd("tabclose")
       diff_tabpage = nil
     end
+    wipe_new_buffer(current_edit_filepath)
+    current_edit_filepath = nil
   end
 end
 
