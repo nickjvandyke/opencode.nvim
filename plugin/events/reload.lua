@@ -1,7 +1,7 @@
 vim.api.nvim_create_autocmd("User", {
   group = vim.api.nvim_create_augroup("OpencodeReload", { clear = true }),
   pattern = "OpencodeEvent:file.edited",
-  callback = function(args)
+  callback = function()
     if require("opencode.config").opts.events.reload then
       if not vim.o.autoread then
         -- Unfortunately `autoread` is kinda necessary, for `:checktime`.

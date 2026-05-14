@@ -14,35 +14,6 @@ Context.__index = Context
 
 local ns_id = vim.api.nvim_create_namespace("OpencodeContext")
 
----Returns the filename for a buffer if it has one, else nil.
----@param buf number
-local function get_filename(buf)
-  if vim.api.nvim_get_option_value("buftype", { buf = buf }) == "" then
-    local name = vim.api.nvim_buf_get_name(buf)
-    if name ~= "" then
-      return name
-    end
-  end
-
-  return nil
-end
-
-local function last_used_valid_win()
-  local last_used_win = 0
-  local latest_last_used = 0
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    if get_filename(buf) then
-      local last_used = vim.fn.getbufinfo(buf)[1].lastused or 0
-      if last_used > latest_last_used then
-        latest_last_used = last_used
-        last_used_win = win
-      end
-    end
-  end
-  return last_used_win
-end
-
 ---@class opencode.context.Range
 ---@field from integer[] { line, col } (1,0-based)
 ---@field to integer[] { line, col } (1,0-based)
@@ -100,8 +71,8 @@ Context.current = nil
 ---@param range? opencode.context.Range The range of the operator or visual selection. Defaults to current visual selection, if any.
 function Context.new(range)
   local self = setmetatable({}, Context)
-  self.win = last_used_valid_win()
-  self.buf = vim.api.nvim_win_get_buf(self.win)
+  self.win = vim.api.nvim_get_current_win()
+  self.buf = vim.api.nvim_get_current_buf()
   self.cursor = vim.api.nvim_win_get_cursor(self.win)
   self.range = range or selection(self.buf)
 
@@ -271,9 +242,8 @@ end
 function Context.format(loc, args)
   assert(type(loc) ~= "string" or #loc > 0, "Filepath cannot be an empty string")
 
-  -- Not we check number, not integer - I think integer is only an annotations thing, and at runtime only numbers exist?
-  local filepath = (type(loc) == "number" and get_filename(loc)) or type(loc) == "string" and loc or nil
-  if not filepath then
+  local filepath = (type(loc) == "string" and loc) or (type(loc) == "number" and vim.api.nvim_buf_get_name(loc)) or nil
+  if not filepath or filepath == "" then
     return nil
   end
 

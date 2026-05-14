@@ -110,7 +110,7 @@ programs.nixvim = {
 
 ### Prompts
 
-Select or reference prompts to review, explain, and improve your code:
+Select prompts to review, explain, and improve your code:
 
 | Name          | Prompt                                                                 |
 | ------------- | ---------------------------------------------------------------------- |
@@ -187,10 +187,8 @@ Input a prompt for `opencode`.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-- End the prompt with `\n` to append instead of submit.
-- Additionally, when using `snacks.input`:
-  - Press `<S-CR>` to append instead of submit.
-  - Offers completions via in-process LSP.
+- End the prompt with a space to append instead of submit.
+- When using `snacks.input`, offers completions via in-process LSP.
 
 ### Select — `require("opencode").select()`
 
@@ -206,9 +204,8 @@ Highlights and previews items when using `snacks.picker`.
 
 Prompt `opencode`.
 
-- Resolves named references to configured prompts.
 - Injects configured contexts.
-- `opencode` will interpret `@` references to files or subagents.
+- `opencode` will interpret references to files or subagents.
 
 ### Operator — `require("opencode").operator()`
 

@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.8.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.1...v0.8.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **context:** reference file-backed bufs with non-empty buftype ([f77904d](https://github.com/nickjvandyke/opencode.nvim/commit/f77904d53bee4618e0b1e92796db4f154739777d))
+
+## [0.8.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.0...v0.8.1) (2026-05-01)
+
+
+### Bug Fixes
+
+* **server:** correctly detect and discard discovered non-servers ([#244](https://github.com/nickjvandyke/opencode.nvim/issues/244)) ([97fbb2a](https://github.com/nickjvandyke/opencode.nvim/commit/97fbb2afde37d48d4bf4f222af559f179f54a043))
+* **server:** process discovery on NixOS ([#245](https://github.com/nickjvandyke/opencode.nvim/issues/245)) ([840b2fa](https://github.com/nickjvandyke/opencode.nvim/commit/840b2fa8c3c03d716a4018a736797b9c6aed046b))
+
+## [0.8.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.7.0...v0.8.0) (2026-04-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* **ask:** trigger append on space suffix instead of \n; remove snacks.input append keymap
+* **prompts:** remove resolving named prompts in `prompt()`
+
+### Features
+
+* **ask:** trigger append on space suffix instead of \n; remove snacks.input append keymap ([ceb0371](https://github.com/nickjvandyke/opencode.nvim/commit/ceb03717b7bb2060d8d3504b8d56017035f0edcc))
+* **lsp:** attach to connected server (if any) for hover ([f5a8413](https://github.com/nickjvandyke/opencode.nvim/commit/f5a841314dd5a189fe2d34630cf7d3e6386d731d))
+* **prompts:** remove resolving named prompts in `prompt()` ([16e2243](https://github.com/nickjvandyke/opencode.nvim/commit/16e2243ae66aee81b397e9799cb5e272bdaa6d32))
+* **server:** don't auto-select servers that don't overlap CWD ([ad48ee2](https://github.com/nickjvandyke/opencode.nvim/commit/ad48ee24c7e2f90305134ca7762ca00c639a18e3))
+
+
+### Bug Fixes
+
+* **server:** emit one process entry per (PID, port) pair ([#242](https://github.com/nickjvandyke/opencode.nvim/issues/242)) ([0e3ae21](https://github.com/nickjvandyke/opencode.nvim/commit/0e3ae21c6c4c8def63e3503b238870f1251288e4))
+* **server:** poll for 5s to account for slow `opencode` startup ([4002092](https://github.com/nickjvandyke/opencode.nvim/commit/4002092d701007acbb5b8fb1a47924ea719241b0))
+* **terminal:** don't override focus behavior of other terminal integrations ([b3cdd74](https://github.com/nickjvandyke/opencode.nvim/commit/b3cdd746a5ca321b6884badefa0ba22c86c3d45e))
+
 ## [0.7.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.6.0...v0.7.0) (2026-04-07)
 
 

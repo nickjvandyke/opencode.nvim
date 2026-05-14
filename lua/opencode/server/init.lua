@@ -6,6 +6,12 @@
 ---Be sure to also launch `opencode` accordingly, e.g. `opencode --port 12345`.
 ---@field port? number|fun(callback: fun(port?: number))
 ---
+---Basic auth username.
+---@field username? string
+---
+---Basic auth password.
+---@field password? string
+---
 ---Start an `opencode` server.
 ---Called when when none are found; will retry after.
 ---@field start? fun()|false
@@ -23,8 +29,9 @@
 local Server = {}
 Server.__index = Server
 
----Attempt to connect to an `opencode` server process and fetch its details.
----Rejects if connection or fetching details fails.
+---Attempt to connect to an `opencode` server and fetch its health and details.
+---Rejects if the health fails — the last line of defense against false-positive server discovery.
+---Rejection message is non-empty if from a valid `opencode` server.
 ---@param port number
 ---@return Promise<opencode.server.Server>
 function Server.new(port)
@@ -32,20 +39,25 @@ function Server.new(port)
   local Promise = require("opencode.promise")
 
   return Promise.new(function(resolve, reject)
-    self:get_path(function(path)
-      local cwd = path.directory or path.worktree
-      if cwd then
-        resolve(cwd)
+    -- Serially check health first to confirm that this is a valid and authenticated `opencode` server
+    self:get_health(function()
+      resolve(true)
+    end, function(_, _, status) ---@param status number
+      if status == 401 then
+        reject("Unauthorized response from `opencode` on port " .. self.port)
       else
-        reject("No `opencode` responding on port: " .. port)
+        reject()
       end
-    end, function()
-      reject("No `opencode` responding on port: " .. port)
     end)
   end)
-    :next(function(cwd) ---@param cwd string
+    :next(function()
       return Promise.all({
-        cwd,
+        Promise.new(function(resolve)
+          self:get_path(function(path)
+            local cwd = path.directory or path.worktree
+            resolve(cwd)
+          end)
+        end),
         Promise.new(function(resolve)
           self:get_sessions(function(session)
             local title = session[1] and session[1].title or "<No sessions>"
@@ -63,7 +75,6 @@ function Server.new(port)
       })
     end)
     :next(function(results) ---@param results { [1]: string, [2]: string, [3]: opencode.server.Agent[] }
-      self.port = port
       self.cwd = results[1]
       self.title = results[2]
       self.subagents = results[3]
@@ -75,18 +86,20 @@ end
 ---@param method "GET"|"POST"
 ---@param body table?
 ---@param on_success? fun(response: table)
----@param on_error? fun(code: number, msg: string?)
----@param opts? { max_time?: number }
+---@param on_error? fun(code: number, msg: string?, status: number?)
+---@param opts? { persistent?: boolean }
 ---@return number job_id
 function Server:curl(path, method, body, on_success, on_error, opts)
   local url = "http://localhost:" .. self.port .. path
   opts = opts or {
-    max_time = 2,
+    persistent = false,
   }
 
-  local command = {
+  local cmd = {
     "curl",
-    "-s",
+    "-s", -- Silent
+    "-S", -- Except for errors/stderr
+    "--fail-with-body",
     "-X",
     method,
     "-H",
@@ -113,12 +126,37 @@ function Server:curl(path, method, body, on_success, on_error, opts)
     table.insert(command, tostring(opts.max_time))
   end
 
-  if body then
-    table.insert(command, "-d")
-    table.insert(command, vim.fn.json_encode(body))
+  local username = require("opencode.config").opts.server.username
+  local password = require("opencode.config").opts.server.password
+  if username and password then
+    -- We can always send credentials; servers with no auth set just ignore them
+    -- TODO: Track auth per-server?
+    -- Seems like an uncommon need.
+    -- Would require more robust discovery configuration.
+    table.insert(cmd, "--user")
+    table.insert(cmd, username .. ":" .. password)
   end
 
-  table.insert(command, url)
+  if not opts.persistent then
+    table.insert(cmd, "--max-time")
+    table.insert(cmd, 2)
+  end
+
+  if body then
+    table.insert(cmd, "-d")
+    table.insert(cmd, vim.fn.json_encode(body))
+  end
+
+  table.insert(cmd, url)
+
+  local function on_error_wrapper(code, msg, status)
+    if on_error then
+      on_error(code, msg, status)
+    else
+      -- TODO: Eventually all errors should go through `on_error` for higher-level handling
+      vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+    end
+  end
 
   local response_buffer = {}
   local function process_response_buffer()
@@ -126,30 +164,32 @@ function Server:curl(path, method, body, on_success, on_error, opts)
       local full_event = table.concat(response_buffer)
       response_buffer = {}
       vim.schedule(function()
-        local ok, response = pcall(vim.fn.json_decode, full_event)
+        local ok, result = pcall(vim.fn.json_decode, full_event)
         if ok then
           if on_success then
-            on_success(response)
+            on_success(result)
           end
         else
-          vim.notify(
-            "Response decode error: " .. full_event .. "; " .. response,
-            vim.log.levels.ERROR,
-            { title = "opencode" }
-          )
+          local error_message = "Failed to decode response from "
+            .. url
+            .. "\nResponse: "
+            .. full_event
+            .. "\nError: "
+            .. result
+          on_error_wrapper(-1, error_message)
         end
       end)
     end
   end
 
   local stderr_lines = {}
-  return vim.fn.jobstart(command, {
+  return vim.fn.jobstart(cmd, {
     on_stdout = function(_, data)
       if not data then
         return
       end
       for _, line in ipairs(data) do
-        if line == "" then
+        if line == "" and opts.persistent then
           process_response_buffer()
         else
           local clean_line = (line:gsub("^data: ?", ""))
@@ -170,19 +210,32 @@ function Server:curl(path, method, body, on_success, on_error, opts)
       if code == 0 then
         process_response_buffer()
       else
-        local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "\n") or nil
-        if on_error then
-          on_error(code, stderr_message)
-        else
-          local error_message = "curl command failed with exit code: "
-            .. code
-            .. "\nstderr:\n"
-            .. (stderr_message or "<none>")
-          vim.notify(error_message, vim.log.levels.ERROR, { title = "opencode" })
+        local response_message = #response_buffer > 0 and table.concat(response_buffer, "\n") or nil
+        local stderr_message = #stderr_lines > 0 and table.concat(stderr_lines, "") or nil
+        local status
+
+        local detail_lines = { "Request to " .. url .. " failed with exit code: " .. code }
+        if response_message and response_message ~= "" then
+          table.insert(detail_lines, "Response:\n" .. response_message)
         end
+        if stderr_message and stderr_message ~= "" then
+          table.insert(detail_lines, "Stderr:\n" .. stderr_message)
+          -- Afaict `curl` requires manual parsing of the response code one way or another regardless of flags :/
+          status = stderr_message:match("The requested URL returned error: (%d+)$")
+          status = tonumber(status)
+        end
+
+        local error_message = table.concat(detail_lines, "\n")
+        on_error_wrapper(code, error_message, status)
       end
     end,
   })
+end
+
+---@param on_success fun(response: opencode.server.PathResponse)
+---@param on_error fun(code: number, msg: string?, status: number?)
+function Server:get_health(on_success, on_error)
+  return self:curl("/global/health", "GET", nil, on_success, on_error)
 end
 
 ---@param text string
@@ -254,15 +307,6 @@ function Server:get_sessions(callback)
   return self:curl("/session", "GET", nil, callback)
 end
 
----@class opencode.server.SessionStatus
-
----Get sessions' status from `opencode`.
----
----@param callback fun(statuses: opencode.server.SessionStatus[])
-function Server:get_sessions_status(callback)
-  return self:curl("/session/status", "GET", nil, callback)
-end
-
 ---Select session in `opencode`.
 ---
 ---@param session_id string
@@ -275,7 +319,6 @@ end
 ---@field worktree string
 
 ---@param on_success fun(response: opencode.server.PathResponse)
----@param on_error fun()
 function Server:get_path(on_success, on_error)
   return self:curl("/path", "GET", nil, on_success, on_error)
 end
@@ -300,7 +343,7 @@ end
 ---@param on_error fun(code: number, msg: string?)|nil
 ---@return number job_id
 function Server:sse_subscribe(on_success, on_error)
-  return self:curl("/event", "GET", nil, on_success, on_error, { max_time = 0 })
+  return self:curl("/event", "GET", nil, on_success, on_error, { persistent = true })
 end
 
 ---@return Promise<opencode.server.Server[]>
@@ -309,7 +352,7 @@ function Server.get_all()
   return Promise.new(function(resolve, reject)
     local processes = require("opencode.server.process").get()
     if #processes == 0 then
-      reject("No `opencode` processes found")
+      reject("No `opencode ... --port` processes found")
     else
       resolve(processes)
     end
@@ -317,7 +360,7 @@ function Server.get_all()
     return Promise.all_settled(vim.tbl_map(function(process) ---@param process opencode.server.process.Process
       return Server.new(process.port)
     end, processes)):next(
-      function(results) ---@param results Promise<{status: string, value?: opencode.server.Server, reason?: any}[]>
+      function(results) ---@param results { status: string, value?: opencode.server.Server, reason?: any }[]
         local servers = {}
         for _, result in ipairs(results) do
           -- We expect non-servers to reject
@@ -325,7 +368,15 @@ function Server.get_all()
             table.insert(servers, result.value)
           end
         end
+
         if #servers == 0 then
+          -- Prefer to surface a rejection from a valid server (e.g. unauthenticated)
+          for _, result in ipairs(results) do
+            if result.status == "rejected" and result.reason then
+              error(result.reason, 0)
+            end
+          end
+
           error("No `opencode` servers found", 0)
         end
         return servers
@@ -352,7 +403,7 @@ end
 ---
 ---1. The currently subscribed server in `opencode.events`.
 ---2. The configured port in `require("opencode.config").opts.port`.
----3. All servers, prioritizing one sharing CWD with Neovim, and prompting the user to select if multiple are found.
+---3. All local servers that overlap with Neovim's CWD. Automatically returns if just one, otherwise prompts to select from those.
 ---@return Promise<opencode.server.Server>
 local function find()
   local Promise = require("opencode.promise")
@@ -360,7 +411,13 @@ local function find()
   local connected_server = require("opencode.events").connected_server
 
   return connected_server and Promise.resolve(connected_server)
-    or type(port_opt) == "number" and Server.new(port_opt)
+    or type(port_opt) == "number" and Server.new(port_opt):catch(function(err)
+      if err then
+        error(err, 0)
+      else
+        error("No `opencode` responding on port " .. port_opt, 0)
+      end
+    end)
     or type(port_opt) == "function"
       and Promise.new(function(resolve, reject)
         port_opt(function(port) ---@param port number|nil
@@ -375,17 +432,19 @@ local function find()
       end)
     or Server.get_all():next(function(servers) ---@param servers opencode.server.Server[]
       local nvim_cwd = vim.fn.getcwd()
-      local servers_in_cwd = vim.tbl_filter(function(server)
+      local servers_sharing_cwd = vim.tbl_filter(function(server)
         -- Overlaps in either direction, with no non-empty mismatch
         return server.cwd:find(nvim_cwd, 0, true) == 1 or nvim_cwd:find(server.cwd, 0, true) == 1
       end, servers)
 
-      if #servers_in_cwd == 1 then
-        -- User most likely wants to connect to the single server in their CWD
-        return servers_in_cwd[1]
+      if #servers_sharing_cwd == 0 then
+        -- We prefer falling back to `opts.server.start` over selecting from servers that don't match the CWD.
+        -- Manual selection is still available for that rare need.
+        error("No `opencode` servers found with overlapping CWD", 0)
+      elseif #servers_sharing_cwd == 1 then
+        return servers_sharing_cwd[1]
       else
-        -- Can't guess which one the user wants based on CWD - select from *all*
-        return require("opencode.ui.select_server").select_server(servers)
+        return require("opencode.ui.select_server").select_server(servers_sharing_cwd)
       end
     end)
 end

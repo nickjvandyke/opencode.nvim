@@ -44,6 +44,8 @@ vim.g.opencode_opts = vim.g.opencode_opts
 local defaults = {
   server = {
     port = nil,
+    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as `opencode`
+    password = vim.env.OPENCODE_SERVER_PASSWORD,
     start = function()
       require("opencode.terminal").open("opencode --port", {
         split = "right",
@@ -98,19 +100,7 @@ local defaults = {
           i_cr = {
             desc = "submit",
           },
-          i_s_cr = {
-            "<S-CR>",
-            function(win)
-              -- Append `\n` to leverage `ask()`'s auto-append behavior in that case
-              local text = win:text() .. "\\n"
-              vim.api.nvim_buf_set_lines(win.buf, 0, -1, false, { text })
-              win:execute("confirm")
-            end,
-            mode = "i",
-            desc = "append",
-          },
         },
-        footer_keys = { "<CR>", "<S-CR>" },
         b = {
           completion = true,
         },
