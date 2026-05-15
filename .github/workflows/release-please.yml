@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   release-please:
+    if: github.event.repository.fork == false
     runs-on: ubuntu-latest
     steps:
       - uses: googleapis/release-please-action@v5

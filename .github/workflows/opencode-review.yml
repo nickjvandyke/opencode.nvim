@@ -1,21 +1,19 @@
 name: opencode-review
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
   pull-requests: write
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
 jobs:
   review:
-    if: github.event.pull_request.draft == false && !contains(join(github.event.pull_request.labels.*.name, ','), 'autorelease')
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/review') &&
+      github.event.comment.author_association == 'OWNER'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
