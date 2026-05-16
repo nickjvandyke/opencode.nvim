@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.9.0...v0.9.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **operator:** remove duplicate line number when operating on a single line ([6b5acdc](https://github.com/nickjvandyke/opencode.nvim/commit/6b5acdcb4b2268c3a2b4b791457bf5b12e38e1bb))
+
 ## [0.9.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.3...v0.9.0) (2026-05-16)
 
 
