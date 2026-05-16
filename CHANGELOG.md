@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.3...v0.9.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** move `opts.prompts` to `opts.select.prompts`, unnest `opts.select.sections`
+* **prompts:** simplify `opts.prompts` to string, use postfixes for ask and append
+* **api:** only expose select server and session in `select` menu, not API
+
+### Features
+
+* **api:** only expose select server and session in `select` menu, not API ([fcfd017](https://github.com/nickjvandyke/opencode.nvim/commit/fcfd017a908a820085c04e8aba06153d76e55c92))
+* **config:** move `opts.prompts` to `opts.select.prompts`, unnest `opts.select.sections` ([e2288db](https://github.com/nickjvandyke/opencode.nvim/commit/e2288db06c3865b0703d93c1d434a870ca119e43))
+* **prompt:** replace `opts.submit` with ending space ([f6e1efd](https://github.com/nickjvandyke/opencode.nvim/commit/f6e1efd3455f0c56d8e45c517d148406f7cb19e3))
+* **prompts:** simplify `opts.prompts` to string, use postfixes for ask and append ([48d0965](https://github.com/nickjvandyke/opencode.nvim/commit/48d09650dad64677c1318eab8de5458211b98835))
+* **select:** clarify server item descriptions ([f7cd638](https://github.com/nickjvandyke/opencode.nvim/commit/f7cd63801da202b345cf030ee4acec3cec260d90))
+
+
+### Bug Fixes
+
+* **context:** highlighting visual block mode ([82ba668](https://github.com/nickjvandyke/opencode.nvim/commit/82ba6686ff7acdc39cb2ed019908d20f7a52b66d))
+* **select:** override prompts and commands with passed opts ([bbed2b7](https://github.com/nickjvandyke/opencode.nvim/commit/bbed2b758c652e2b6262fede6ea5b298e852143e))
+
 ## [0.8.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.2...v0.8.3) (2026-05-15)
 
 
