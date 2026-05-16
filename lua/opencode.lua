@@ -64,9 +64,8 @@ M.statusline = require("opencode.status").statusline
 
 ---Prompt `opencode`.
 ---
---- - Resolves `prompt` if it references an `opts.prompts` entry by name.
 --- - Injects `opts.contexts` into `prompt`.
---- - `opencode` will interpret `@` references to files or subagents
+--- - `opencode` will interpret references to files or subagents
 ---
 ---@param prompt string
 ---@param opts? opencode.api.prompt.Opts

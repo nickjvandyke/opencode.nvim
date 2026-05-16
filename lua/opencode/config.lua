@@ -19,11 +19,6 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
 ---
----Prompts to select from.
----Postfix with a space to append instead of submit the prompt.
----Postfix with "..." to open the prompt in `ask()` before sending.
----@field prompts? table<string, string>
----
 ---Options for `ask()`.
 ---Supports [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field ask? opencode.ask.Opts
@@ -72,18 +67,6 @@ local defaults = {
     ["@marks"] = function(context) return context:marks() end,
     ["@grapple"] = function(context) return context:grapple_tags() end,
   },
-  prompts = {
-    ask = "...",
-    diagnostics = "Explain @diagnostics",
-    diff = "Review the following git diff for correctness and readability: @diff",
-    document = "Add comments documenting @this",
-    explain = "Explain @this and its context",
-    fix = "Fix @diagnostics",
-    implement = "Implement @this",
-    optimize = "Optimize @this for performance and readability",
-    review = "Review @this for correctness and readability",
-    test = "Add tests for @this",
-  },
   ask = {
     prompt = "Ask opencode: ",
     completion = "customlist,v:lua.opencode_completion",
@@ -117,22 +100,31 @@ local defaults = {
   },
   select = {
     prompt = "opencode: ",
-    sections = {
-      prompts = true,
-      commands = {
-        ["session.new"] = "Start a new session",
-        ["session.select"] = "Select a session",
-        ["session.share"] = "Share the current session",
-        ["session.interrupt"] = "Interrupt the current session",
-        ["session.compact"] = "Compact the current session (reduce context size)",
-        ["session.undo"] = "Undo the last action in the current session",
-        ["session.redo"] = "Redo the last undone action in the current session",
-        ["agent.cycle"] = "Cycle the selected agent",
-        ["prompt.submit"] = "Submit the current prompt",
-        ["prompt.clear"] = "Clear the current prompt",
-      },
-      server = true,
+    prompts = {
+      ask = "...",
+      diagnostics = "Explain @diagnostics",
+      diff = "Review the following git diff for correctness and readability: @diff",
+      document = "Add comments documenting @this",
+      explain = "Explain @this and its context",
+      fix = "Fix @diagnostics",
+      implement = "Implement @this",
+      optimize = "Optimize @this for performance and readability",
+      review = "Review @this for correctness and readability",
+      test = "Add tests for @this",
     },
+    commands = {
+      ["session.new"] = "Start a new session",
+      ["session.select"] = "Select a session",
+      ["session.share"] = "Share the current session",
+      ["session.interrupt"] = "Interrupt the current session",
+      ["session.compact"] = "Compact the current session (reduce context size)",
+      ["session.undo"] = "Undo the last action in the current session",
+      ["session.redo"] = "Redo the last undone action in the current session",
+      ["agent.cycle"] = "Cycle the selected agent",
+      ["prompt.submit"] = "Submit the current prompt",
+      ["prompt.clear"] = "Clear the current prompt",
+    },
+    server = true,
     snacks = {
       preview = "preview",
       layout = {

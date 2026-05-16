@@ -4,19 +4,16 @@ local M = {}
 
 ---@class opencode.select.Opts : snacks.picker.ui_select.Opts
 ---
----Configure the displayed sections.
----@field sections? opencode.select.sections.Opts
-
----@class opencode.select.sections.Opts
----
----Whether to show the prompts section.
----@field prompts? boolean
+---Prompts to display.
+---Postfix with a space to append instead of submit the prompt.
+---Postfix with "..." to open the prompt in `ask()` before sending.
+---@field prompts? table<string, string>|false
 ---
 ---Commands to display, and their descriptions.
----Or `false` to hide the commands section.
 ---@field commands? table<opencode.Command|string, string>|false
 ---
----@field server? boolean Whether to show server controls.
+---Whether to show server controls.
+---@field server? boolean
 
 ---Select from all `opencode.nvim` functionality.
 ---
@@ -35,7 +32,7 @@ function M.select(opts)
       local items = {}
 
       -- Prompts section
-      if opts.sections.prompts then
+      if opts.prompts then
         table.insert(items, { __group = true, name = "PROMPT", preview = { text = "" } })
         local prompt_items = {}
         for name, prompt in pairs(prompts) do
@@ -62,7 +59,7 @@ function M.select(opts)
       end
 
       -- Commands section
-      if type(opts.sections.commands) == "table" then
+      if opts.commands then
         table.insert(items, { __group = true, name = "COMMAND", preview = { text = "" } })
         local command_items = {}
         for name, description in pairs(commands) do
@@ -85,7 +82,7 @@ function M.select(opts)
       end
 
       -- Server section
-      if opts.sections.server then
+      if opts.server then
         table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
         table.insert(items, {
           __type = "server",
@@ -156,7 +153,7 @@ function M.select(opts)
     :next(function(choice) ---@param choice opencode.select.Item
       if choice.__type == "prompt" then
         ---@type string
-        local prompt = require("opencode.config").opts.prompts[choice.name]
+        local prompt = require("opencode.config").opts.select.prompts[choice.name]
         local ask = prompt:match("%.%.%.$")
         if ask then
           return require("opencode").ask(prompt:gsub("%.%.%.$", ""), { context = context })
