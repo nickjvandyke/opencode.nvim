@@ -185,13 +185,21 @@ function M.select(opts)
         end
       elseif choice.__type == "command" then
         if choice.name == "session.select" then
-          return require("opencode").select_session()
+          return require("opencode.ui.select_session").select_session()
         else
           return require("opencode").command(choice.name)
         end
       elseif choice.__type == "server" then
         if choice.name == "server.select" then
-          return require("opencode").select_server()
+          return require("opencode.server")
+            .get_all()
+            :next(function(servers) ---@param servers opencode.server.Server[]
+              return require("opencode.ui.select_server").select_server(servers)
+            end)
+            :next(function(server) ---@param server opencode.server.Server
+              require("opencode.events").connect(server)
+              return server
+            end)
         elseif choice.name == "server.start" then
           return require("opencode").start()
         elseif choice.name == "server.stop" then

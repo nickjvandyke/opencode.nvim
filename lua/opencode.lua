@@ -57,41 +57,6 @@ M.select = function(opts)
   end)
 end
 
----Select the active `opencode` session.
-M.select_session = function()
-  return require("opencode.ui.select_session")
-    .select_session()
-    :next(function(result) ---@param result { session: opencode.server.Session, server: opencode.server.Server }
-      result.server:select_session(result.session.id)
-    end)
-    :catch(function(err)
-      if err then
-        vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-      end
-    end)
-end
-
----Select an `opencode` server to connect to,
----sending future requests to it and subscribing to its events.
----Lists all local servers.
-M.select_server = function()
-  -- Should we also offer connected and configured server here?
-  return require("opencode.server")
-    .get_all()
-    :next(function(servers) ---@param servers opencode.server.Server[]
-      return require("opencode.ui.select_server").select_server(servers)
-    end)
-    :next(function(server) ---@param server opencode.server.Server
-      require("opencode.events").connect(server)
-      return server
-    end)
-    :catch(function(err)
-      if err then
-        vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-      end
-    end)
-end
-
 M.statusline = require("opencode.status").statusline
 
 ------------------------
