@@ -23,7 +23,6 @@ M.ask = function(default, opts)
     .ask(default, opts.context)
     :next(function(input) ---@param input string
       -- TODO: Remove `opts.submit` in favor of just checking if the input ends with a space?
-      -- (maybe even in `prompt()` itself?)
       -- Confusing to have both.
       -- I think it's better, but don't love the breaking change.
       -- Although for most users, I imagine they just use `opts.submit = false` and thus won't be affected.

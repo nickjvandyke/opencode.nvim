@@ -19,14 +19,16 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---Contexts to inject into prompts, keyed by their placeholder.
 ---@field contexts? table<string, fun(context: opencode.Context): string|nil>
 ---
----Prompts to reference or select from.
----@field prompts? table<string, opencode.Prompt>
+---Prompts to select from.
+---Postfix with a space to append instead of submit the prompt.
+---Postfix with "..." to open the prompt in `ask()` before sending.
+---@field prompts? table<string, string>
 ---
 ---Options for `ask()`.
 ---Supports [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field ask? opencode.ask.Opts
 ---
----Options for `select()`.
+---Options and items for `select()`.
 ---Supports [`snacks.picker`](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---@field select? opencode.select.Opts
 ---
@@ -35,10 +37,6 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---
 ---Options for `opencode` event handling.
 ---@field events? opencode.events.Opts
-
----@class opencode.Prompt : opencode.api.prompt.Opts
----@field prompt string The prompt to send to `opencode`.
----@field ask? boolean Call `ask(prompt)` instead of `prompt(prompt)`. Useful for prompts that expect additional user input.
 
 ---@type opencode.Opts
 local defaults = {
@@ -75,16 +73,16 @@ local defaults = {
     ["@grapple"] = function(context) return context:grapple_tags() end,
   },
   prompts = {
-    ask = { prompt = "", ask = true, submit = true },
-    diagnostics = { prompt = "Explain @diagnostics", submit = true },
-    diff = { prompt = "Review the following git diff for correctness and readability: @diff", submit = true },
-    document = { prompt = "Add comments documenting @this", submit = true },
-    explain = { prompt = "Explain @this and its context", submit = true },
-    fix = { prompt = "Fix @diagnostics", submit = true },
-    implement = { prompt = "Implement @this", submit = true },
-    optimize = { prompt = "Optimize @this for performance and readability", submit = true },
-    review = { prompt = "Review @this for correctness and readability", submit = true },
-    test = { prompt = "Add tests for @this", submit = true },
+    ask = "...",
+    diagnostics = "Explain @diagnostics",
+    diff = "Review the following git diff for correctness and readability: @diff",
+    document = "Add comments documenting @this",
+    explain = "Explain @this and its context",
+    fix = "Fix @diagnostics",
+    implement = "Implement @this",
+    optimize = "Optimize @this for performance and readability",
+    review = "Review @this for correctness and readability",
+    test = "Add tests for @this",
   },
   ask = {
     prompt = "Ask opencode: ",

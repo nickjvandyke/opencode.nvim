@@ -25,17 +25,13 @@ local M = {}
 function M.select(opts)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
 
-  -- TODO: Should merge with prompts' optional contexts
   local context = require("opencode.context").new()
   local Promise = require("opencode.promise")
 
   return require("opencode.server")
     .get()
     :next(function(server) ---@param server opencode.server.Server
-      local prompts = require("opencode.config").opts.prompts or {}
-      local commands = require("opencode.config").opts.select.sections.commands or {}
-
-      ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server", ask?: boolean, submit?: boolean }
+      ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server" }
       local items = {}
 
       -- Prompts section
@@ -43,35 +39,22 @@ function M.select(opts)
         table.insert(items, { __group = true, name = "PROMPT", preview = { text = "" } })
         local prompt_items = {}
         for name, prompt in pairs(prompts) do
-          local rendered = context:render(prompt.prompt, server.subagents)
+          local rendered = context:render(prompt, server.subagents)
           ---@type snacks.picker.finder.Item
           local item = {
             __type = "prompt",
             name = name,
-            text = prompt.prompt .. (prompt.ask and "…" or ""),
+            text = prompt,
             highlights = rendered.input, -- `snacks.picker`'s `select` seems to ignore this, so we incorporate it ourselves in `format_item`
             preview = {
               text = context.plaintext(rendered.output),
               extmarks = context.extmarks(rendered.output),
             },
-            ask = prompt.ask,
-            submit = prompt.submit,
           }
           table.insert(prompt_items, item)
         end
-        -- Sort: ask=true, submit=false, name
         table.sort(prompt_items, function(a, b)
-          if a.ask and not b.ask then
-            return true
-          elseif not a.ask and b.ask then
-            return false
-          elseif not a.submit and b.submit then
-            return true
-          elseif a.submit and not b.submit then
-            return false
-          else
-            return a.name < b.name
-          end
+          return a.name < b.name
         end)
         for _, item in ipairs(prompt_items) do
           table.insert(items, item)
@@ -148,9 +131,6 @@ function M.select(opts)
               return { { item.name, "Title" } }
             end
             local formatted = vim.deepcopy(item.highlights or {})
-            if item.ask then
-              table.insert(formatted, { "…", "Keyword" })
-            end
             table.insert(formatted, 1, { item.name, "Keyword" })
             table.insert(formatted, 2, { string.rep(" ", 18 - #item.name) })
             return formatted
@@ -175,13 +155,14 @@ function M.select(opts)
     end)
     :next(function(choice) ---@param choice opencode.select.Item
       if choice.__type == "prompt" then
-        ---@type opencode.Prompt
+        ---@type string
         local prompt = require("opencode.config").opts.prompts[choice.name]
-        prompt.context = context
-        if prompt.ask then
-          return require("opencode").ask(prompt.prompt, prompt)
+        local ask = prompt:match("%.%.%.$")
+        if ask then
+          return require("opencode").ask(prompt:gsub("%.%.%.$", ""), { context = context })
         else
-          return require("opencode").prompt(prompt.prompt, prompt)
+          local submit = not prompt:match(" $")
+          return require("opencode").prompt(prompt, { context = context, submit = submit })
         end
       elseif choice.__type == "command" then
         if choice.name == "session.select" then
