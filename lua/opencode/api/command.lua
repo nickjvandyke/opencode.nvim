@@ -26,6 +26,10 @@ local M = {}
 function M.command(command)
   return require("opencode.server.discovery").get():next(function(server) ---@param server opencode.server.Server
     server:tui_execute_command(command)
+    -- opencode v1.0 prompts for a second interrupt; keep the Neovim command single-action.
+    if command == "session.interrupt" then
+      server:tui_execute_command(command)
+    end
   end)
 end
 
