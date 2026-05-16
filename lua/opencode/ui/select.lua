@@ -35,7 +35,7 @@ function M.select(opts)
       if opts.prompts then
         table.insert(items, { __group = true, name = "PROMPT", preview = { text = "" } })
         local prompt_items = {}
-        for name, prompt in pairs(prompts) do
+        for name, prompt in pairs(opts.prompts) do
           local rendered = context:render(prompt, server.subagents)
           ---@type snacks.picker.finder.Item
           local item = {
@@ -62,7 +62,7 @@ function M.select(opts)
       if opts.commands then
         table.insert(items, { __group = true, name = "COMMAND", preview = { text = "" } })
         local command_items = {}
-        for name, description in pairs(commands) do
+        for name, description in pairs(opts.commands) do
           table.insert(command_items, {
             __type = "command",
             name = name, -- TODO: Truncate if it'd run into `text`
