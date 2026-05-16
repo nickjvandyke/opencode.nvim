@@ -311,7 +311,7 @@ function Context:this()
     return Context.format(self.buf, {
       start_line = self.range.from[1],
       start_col = (self.range.kind ~= "line") and self.range.from[2] or nil,
-      end_line = self.range.to[1],
+      end_line = (self.range.kind ~= "line" or self.range.from[1] ~= self.range.to[1]) and self.range.to[1] or nil,
       end_col = (self.range.kind ~= "line") and self.range.to[2] or nil,
     })
   else
