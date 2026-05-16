@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.2...v0.8.3) (2026-05-15)
+
+
+### Features
+
+* **server:** support auth ([0dd8824](https://github.com/nickjvandyke/opencode.nvim/commit/0dd88243b151b25e291e714d572d303a694b5f7c))
+
+
+### Bug Fixes
+
+* **config:** ensure all config type defs can be found by Lua LSP ([03da482](https://github.com/nickjvandyke/opencode.nvim/commit/03da4820f30e8a6dce6d4f366e59eaa8f1f6d130))
+
 ## [0.8.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.1...v0.8.2) (2026-05-06)
 
 
