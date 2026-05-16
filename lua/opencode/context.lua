@@ -38,6 +38,9 @@ local function selection(buf)
   if from[1] > to[1] or (from[1] == to[1] and from[2] > to[2]) then
     from, to = to, from
   end
+  if kind == "block" and from[2] > to[2] then
+    from[2], to[2] = to[2], from[2]
+  end
 
   return {
     from = { from[1], from[2] },
@@ -49,18 +52,37 @@ end
 ---@param buf integer
 ---@param range opencode.context.Range
 local function highlight(buf, range)
-  -- FIX: In visual block mode, it highlights _all_ the cols between the start and end
-  local end_row = range.to[1] - (range.kind == "line" and 0 or 1)
-  local end_col = nil
-  if range.kind ~= "line" then
-    local line = vim.api.nvim_buf_get_lines(buf, end_row, end_row + 1, false)[1] or ""
-    end_col = math.min(range.to[2] + 1, #line)
+  local from_row = range.from[1] - 1
+  local from_col = range.from[2]
+
+  if range.kind == "block" then
+    local start_row = range.from[1] - 1
+    local end_row = range.to[1] - 1
+    local start_col = range.from[2]
+    local end_col = range.to[2]
+    for row = start_row, end_row do
+      local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+      local clamp_col = math.min(end_col + 1, #line)
+      if clamp_col > start_col then
+        vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col, {
+          end_col = clamp_col,
+          hl_group = "Visual",
+        })
+      end
+    end
+  else
+    local end_row = range.kind ~= "line" and range.to[1] - 1 or range.to[1]
+    local end_col = nil
+    if range.kind ~= "line" then
+      local line = vim.api.nvim_buf_get_lines(buf, end_row, end_row + 1, false)[1] or ""
+      end_col = math.min(range.to[2] + 1, #line)
+    end
+    vim.api.nvim_buf_set_extmark(buf, ns_id, from_row, from_col, {
+      end_row = end_row,
+      end_col = end_col,
+      hl_group = "Visual",
+    })
   end
-  vim.api.nvim_buf_set_extmark(buf, ns_id, range.from[1] - 1, range.from[2], {
-    end_row = end_row,
-    end_col = end_col,
-    hl_group = "Visual",
-  })
 end
 
 ---The currently active context.
