@@ -9,6 +9,54 @@ local M = {}
 local current_edit_request_id = nil
 ---@type nil|integer
 local diff_tabpage = nil
+---@type nil|integer
+local diff_new_buf = nil
+---@type nil|integer
+local diff_tab_closed_autocmd = nil
+
+local diff_cleanup_group = vim.api.nvim_create_augroup("OpencodeEditDiffCleanup", { clear = false })
+
+local function clear_tab_closed_autocmd()
+  if diff_tab_closed_autocmd then
+    pcall(vim.api.nvim_del_autocmd, diff_tab_closed_autocmd)
+    diff_tab_closed_autocmd = nil
+  end
+end
+
+local function cleanup_diff()
+  clear_tab_closed_autocmd()
+  current_edit_request_id = nil
+  diff_tabpage = nil
+
+  if diff_new_buf and vim.api.nvim_buf_is_valid(diff_new_buf) then
+    vim.api.nvim_buf_delete(diff_new_buf, { force = true })
+  end
+  diff_new_buf = nil
+end
+
+local function close_diff_tab()
+  if diff_tabpage and vim.api.nvim_tabpage_is_valid(diff_tabpage) then
+    vim.api.nvim_set_current_tabpage(diff_tabpage)
+    vim.cmd("tabclose")
+  end
+
+  cleanup_diff()
+end
+
+local function register_diff_tab_cleanup()
+  clear_tab_closed_autocmd()
+
+  local tabpage = diff_tabpage
+  diff_tab_closed_autocmd = vim.api.nvim_create_autocmd("TabClosed", {
+    group = diff_cleanup_group,
+    callback = function()
+      if tabpage and not vim.api.nvim_tabpage_is_valid(tabpage) then
+        cleanup_diff()
+      end
+    end,
+    desc = "Clean up opencode edit diff buffer",
+  })
+end
 
 ---@param event opencode.server.Event
 ---@param server opencode.server.Server
@@ -40,16 +88,19 @@ function M.diff(event, server)
       end
 
       local filepath = event.properties.metadata.filepath
-      -- Close any buffer with the same name, to avoid "Buffer with this name already exists" error when successive edit requests come in for the same file.
-      vim.cmd("silent! bwipeout " .. filepath .. ".new")
 
       -- Diffing changes some of the buffer's display options (namely folding) to make it easier to compare side-by-side,
       -- so open the target file in a new tab first.
-      vim.cmd("tabnew " .. filepath)
+      vim.cmd("tabnew " .. vim.fn.fnameescape(filepath))
       -- FIX: Sometimes rejects? Or displays no changes? Particularly with a single inline change. Malformed patch?
-      vim.cmd("silent vert diffpatch " .. patch_filepath)
+      vim.cmd("silent vert diffpatch " .. vim.fn.fnameescape(patch_filepath))
 
       diff_tabpage = vim.api.nvim_get_current_tabpage()
+      diff_new_buf = vim.api.nvim_get_current_buf()
+      register_diff_tab_cleanup()
+
+      vim.bo[diff_new_buf].buflisted = false
+
       current_edit_request_id = event.properties.id
 
       ---@param reply opencode.server.permission.Reply
@@ -83,19 +134,12 @@ function M.diff(event, server)
       end, { buffer = true, desc = "Reject opencode edit" })
       -- Close diff
       vim.keymap.set("n", "q", function()
-        vim.cmd("tabclose")
-        current_edit_request_id = nil
-        diff_tabpage = nil
+        close_diff_tab()
       end, { buffer = true, desc = "Close opencode edit diff" })
     end)
   elseif event.type == "permission.replied" and current_edit_request_id == event.properties.requestID then
     -- Entire edit was accepted or rejected, either in the plugin or TUI; close the diff
-    current_edit_request_id = nil
-    if diff_tabpage and vim.api.nvim_tabpage_is_valid(diff_tabpage) then
-      vim.api.nvim_set_current_tabpage(diff_tabpage)
-      vim.cmd("tabclose")
-      diff_tabpage = nil
-    end
+    close_diff_tab()
   end
 end
 
