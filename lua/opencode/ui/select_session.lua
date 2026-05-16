@@ -12,7 +12,7 @@ end
 
 ---@return Promise<{ session: opencode.server.Session, server: opencode.server.Server }>
 function M.select_session()
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
       return require("opencode.promise").new(function(resolve)

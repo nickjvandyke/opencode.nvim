@@ -18,7 +18,7 @@ local M = {}
 function M.ask(default, context)
   local Promise = require("opencode.promise")
 
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
       ---@type snacks.input.Opts

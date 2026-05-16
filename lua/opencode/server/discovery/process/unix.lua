@@ -1,7 +1,7 @@
 local M = {}
 
 ---@param pids number[]
----@return opencode.server.process.Process[]
+---@return opencode.server.discovery.process.Process[]
 local function get_processes_with_ports(pids)
   assert(#pids > 0, "`get_processes` should only be called with a non-empty list of PIDs to filter by")
 
@@ -23,7 +23,7 @@ local function get_processes_with_ports(pids)
     :wait()
   require("opencode.util").check_system_call(lsof, "lsof")
 
-  ---@type opencode.server.process.Process[]
+  ---@type opencode.server.discovery.process.Process[]
   local processes = {}
   local pid
   for line in lsof.stdout:gmatch("[^\n]+") do
@@ -46,9 +46,12 @@ local function get_processes_with_ports(pids)
   return processes
 end
 
----@return opencode.server.process.Process[]
+---@return opencode.server.discovery.process.Process[]
 function M.get()
-  assert(vim.fn.has("unix") == 1, "`opencode.server.process.unix.get` should only be called on Unix-like systems")
+  assert(
+    vim.fn.has("unix") == 1,
+    "`opencode.server.discovery.process.unix.get` should only be called on Unix-like systems"
+  )
 
   -- Find PIDs by command line pattern.
   -- Filter by `--port` because it's required to expose the server.

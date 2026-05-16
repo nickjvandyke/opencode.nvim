@@ -13,7 +13,7 @@ function M.prompt(prompt, opts)
   local context = opts and opts.context or require("opencode.context").new()
 
   local Promise = require("opencode.promise")
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
       local rendered = context:render(prompt, server.subagents)

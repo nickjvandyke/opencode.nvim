@@ -25,7 +25,7 @@ function M.select(opts)
   local context = require("opencode.context").new()
   local Promise = require("opencode.promise")
 
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
       ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server" }
@@ -168,7 +168,7 @@ function M.select(opts)
         end
       elseif choice.__type == "server" then
         if choice.name == "server.select" then
-          return require("opencode.server")
+          return require("opencode.server.discovery")
             .get_all()
             :next(function(servers) ---@param servers opencode.server.Server[]
               return require("opencode.ui.select_server").select_server(servers)
