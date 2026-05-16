@@ -29,10 +29,7 @@ function M.ask(default, context)
           return context.input_highlight(rendered.input)
         end,
       }
-      -- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config,
-      -- and to keep its fields optional. Double-merge is kinda ugly but seems like the lesser evil.
       input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
-      input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask.snacks)
 
       return Promise.input(input_opts)
     end)

@@ -170,4 +170,8 @@ if not snacks_ok or not snacks.config.get("input", {}).enabled then
   M.opts.ask.snacks = {}
 end
 
+-- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config, and to keep its fields optional.
+-- But then merge it here for what `snacks.input` expects.
+M.opts.ask = vim.tbl_deep_extend("force", M.opts.ask, M.opts.ask.snacks)
+
 return M
