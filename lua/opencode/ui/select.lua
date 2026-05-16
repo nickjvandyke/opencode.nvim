@@ -88,28 +88,28 @@ function M.select(opts)
           __type = "server",
           name = "server.select",
           text = "Select server",
-          highlights = { { "Select server", "Comment" } },
+          highlights = { { "Select local server", "Comment" } },
           preview = { text = "" },
         })
         table.insert(items, {
           __type = "server",
           name = "server.start",
           text = "Start server",
-          highlights = { { "Start server", "Comment" } },
+          highlights = { { "Start configured server", "Comment" } },
           preview = { text = "" },
         })
         table.insert(items, {
           __type = "server",
           name = "server.stop",
           text = "Stop server",
-          highlights = { { "Stop server", "Comment" } },
+          highlights = { { "Stop configured server", "Comment" } },
           preview = { text = "" },
         })
         table.insert(items, {
           __type = "server",
           name = "server.toggle",
           text = "Toggle server",
-          highlights = { { "Toggle server", "Comment" } },
+          highlights = { { "Toggle configured server", "Comment" } },
           preview = { text = "" },
         })
       end
