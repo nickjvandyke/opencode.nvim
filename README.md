@@ -184,11 +184,11 @@ vim.g.opencode_opts = {
 
 Input a prompt for `opencode`.
 
+- End the prompt with a space to append instead of submit.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-- End the prompt with a space to append instead of submit.
-- When using `snacks.input`, offers completions via in-process LSP.
+  - Provided by in-process LSP when using `snacks.input`.
 
 ### Select — `require("opencode").select()`
 
@@ -204,6 +204,7 @@ Highlights and previews items when using `snacks.picker`.
 
 Prompt `opencode`.
 
+- End the prompt with a space to append instead of submit.
 - Injects configured contexts.
 - `opencode` will interpret references to files or subagents.
 

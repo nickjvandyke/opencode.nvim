@@ -92,7 +92,7 @@ Handlers[vim.lsp.protocol.Methods.workspace_executeCommand] = function(params, c
     local prompt = prompt_prefix .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
 
     require("opencode")
-      .prompt(prompt, { submit = true })
+      .prompt(prompt)
       :next(function()
         callback(nil, nil) -- Indicate success
       end)

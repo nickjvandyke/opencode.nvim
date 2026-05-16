@@ -7,14 +7,14 @@ local M = {}
 
 ---Input a prompt for `opencode`.
 ---
---- - Press the up arrow to browse recent asks.
+--- - End the prompt with a space to append instead of submit.
+--- - Press `<Up>` to browse recent asks.
 --- - Highlights and completes contexts and `opencode` subagents.
 ---   - Press `<Tab>` to trigger built-in completion.
---- - End the prompt with a space to append instead of submit.
---- - When using `snacks.input`, offers completions via in-process LSP.
+---   - Provided by in-process LSP when using `snacks.input`.
 ---
 ---@param default? string Text to pre-fill the input with.
----@param opts? opencode.api.prompt.Opts Options for `prompt()`.
+---@param opts? opencode.api.prompt.Opts
 M.ask = function(default, opts)
   opts = opts or {}
   opts.context = opts.context or require("opencode.context").new()
@@ -22,14 +22,6 @@ M.ask = function(default, opts)
   return require("opencode.ui.ask")
     .ask(default, opts.context)
     :next(function(input) ---@param input string
-      -- TODO: Remove `opts.submit` in favor of just checking if the input ends with a space?
-      -- Confusing to have both.
-      -- I think it's better, but don't love the breaking change.
-      -- Although for most users, I imagine they just use `opts.submit = false` and thus won't be affected.
-      if input:sub(-1) == " " then
-        opts.submit = false
-      end
-      opts.context:clear()
       return require("opencode.api.prompt").prompt(input, opts)
     end)
     :catch(function(err)
@@ -64,6 +56,7 @@ M.statusline = require("opencode.status").statusline
 
 ---Prompt `opencode`.
 ---
+--- - End the prompt with a space to append instead of submit.
 --- - Injects `opts.contexts` into `prompt`.
 --- - `opencode` will interpret references to files or subagents
 ---

@@ -5,8 +5,8 @@ local M = {}
 ---@class opencode.select.Opts : snacks.picker.ui_select.Opts
 ---
 ---Prompts to display.
----Postfix with a space to append instead of submit the prompt.
----Postfix with "..." to open the prompt in `ask()` before sending.
+---End the prompt with a space to append instead of submit.
+---End the prompt with "..." to open it in `ask()` before sending.
 ---@field prompts? table<string, string>|false
 ---
 ---Commands to display, and their descriptions.
@@ -158,8 +158,7 @@ function M.select(opts)
         if ask then
           return require("opencode").ask(prompt:gsub("%.%.%.$", ""), { context = context })
         else
-          local submit = not prompt:match(" $")
-          return require("opencode").prompt(prompt, { context = context, submit = submit })
+          return require("opencode").prompt(prompt, { context = context })
         end
       elseif choice.__type == "command" then
         if choice.name == "session.select" then
