@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.10.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.9.0...v0.10.0) (2026-05-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **server:** support arbitrary and remote URLs
+
+### Features
+
+* **server:** support arbitrary and remote URLs ([6151568](https://github.com/nickjvandyke/opencode.nvim/commit/6151568e08b507edc2f471b50ad9eeb31d387bf4))
+
+
+### Bug Fixes
+
+* **operator:** remove duplicate line number when operating on a single line ([6b5acdc](https://github.com/nickjvandyke/opencode.nvim/commit/6b5acdcb4b2268c3a2b4b791457bf5b12e38e1bb))
+* **server:** inverted initial SSE connection error propagation ([0a21de6](https://github.com/nickjvandyke/opencode.nvim/commit/0a21de6f00a6b84c3e9903b0aee967492e233c00))
+* **server:** propagate `start` error rather than original error ([ae67311](https://github.com/nickjvandyke/opencode.nvim/commit/ae67311268cc3a8aa57e23d6ad6cda5976be6bbe))
+* **server:** propagate initial SSE connection success and error ([140c895](https://github.com/nickjvandyke/opencode.nvim/commit/140c8959719b0510f5ab32afc6ea3fa27f27138a))
+
 ## [0.9.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.3...v0.9.0) (2026-05-16)
 
 
