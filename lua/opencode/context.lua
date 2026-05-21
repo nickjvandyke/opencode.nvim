@@ -271,7 +271,7 @@ function Context.format(loc, args)
 
   local result = ""
 
-  local absolute_path = vim.fn.fnamemodify(filepath, ":p:~")
+  local absolute_path = vim.fn.fnamemodify(filepath, ":p")
   result = result .. absolute_path
 
   if args and args.start_line then
