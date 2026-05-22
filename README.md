@@ -131,7 +131,7 @@ Run local `opencode`s however you like and `opencode.nvim` will find them! Or po
 > [!IMPORTANT]
 > You _must_ run `opencode` with the `--port` flag to expose its server.
 
-If `opencode.nvim` can't find an existing `opencode`, it starts one for you via `vim.g.opencode_opts.server.start`, defaulting to an embedded terminal.
+If `opencode.nvim` can't find an existing `opencode`, it starts one for you via `vim.g.opencode_opts.server.start`, defaulting to an embedded terminal. Pass `focus_on_open = true` to keep focus after opening.
 
 #### Custom
 

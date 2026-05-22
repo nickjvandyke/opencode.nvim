@@ -1,6 +1,7 @@
 local M = {}
 
 ---@class opencode.terminal.Opts : vim.api.keyset.win_config
+---@field focus_on_open? boolean Keep focus in the terminal window after opening instead of returning to the previous window.
 
 local winid
 local bufnr
@@ -19,8 +20,15 @@ function M.toggle(cmd, opts)
     winid = nil
   elseif bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
     local previous_win = vim.api.nvim_get_current_win()
+    local focus_on_open = opts.focus_on_open
+    opts.focus_on_open = nil
     winid = vim.api.nvim_open_win(bufnr, true, opts)
-    vim.api.nvim_set_current_win(previous_win)
+    opts.focus_on_open = focus_on_open
+    if focus_on_open then
+      vim.cmd("startinsert")
+    else
+      vim.api.nvim_set_current_win(previous_win)
+    end
   else
     M.open(cmd, opts)
   end
@@ -40,7 +48,10 @@ function M.open(cmd, opts)
 
   local previous_win = vim.api.nvim_get_current_win()
   bufnr = vim.api.nvim_create_buf(false, false)
+  local focus_on_open = opts.focus_on_open
+  opts.focus_on_open = nil
   winid = vim.api.nvim_open_win(bufnr, true, opts)
+  opts.focus_on_open = focus_on_open
 
   vim.api.nvim_create_autocmd("ExitPre", {
     once = true,
@@ -65,7 +76,10 @@ function M.open(cmd, opts)
         vim.api.nvim_del_autocmd(auid)
         vim.api.nvim_set_current_win(winid)
         -- Enter insert mode to trigger redraw, then exit and return to previous window.
-        vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+        vim.cmd("startinsert")
+        if not opts.focus_on_open then
+          vim.cmd([[call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
+        end
       end
     end,
   })
@@ -77,7 +91,9 @@ function M.open(cmd, opts)
     end,
   })
 
-  vim.api.nvim_set_current_win(previous_win)
+  if not opts.focus_on_open then
+    vim.api.nvim_set_current_win(previous_win)
+  end
 end
 
 function M.close()
