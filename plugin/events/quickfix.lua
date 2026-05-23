@@ -26,6 +26,7 @@ vim.api.nvim_create_autocmd("User", {
     end
     local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
 
+    -- TODO: Would love to have line/col... but event only includes the file
     local new_item = { filename = file, bufnr = vim.fn.bufnr(file), type = "I" }
     local item_already_exists = vim.iter(existing.items):any(function(i)
       return i.filename == new_item.filename or i.bufnr == new_item.bufnr
