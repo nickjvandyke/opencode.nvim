@@ -37,9 +37,9 @@ vim.api.nvim_create_autocmd("User", {
       vim.fn.setqflist({ new_item }, "a")
     end
 
-    local previous_win = vim.api.nvim_get_current_win()
+    local prev_win = vim.api.nvim_get_current_win()
     vim.cmd.copen()
-    vim.api.nvim_set_current_win(previous_win)
+    vim.api.nvim_set_current_win(prev_win)
   end,
   desc = "Add files edited by OpenCode to a quickfix list",
 })

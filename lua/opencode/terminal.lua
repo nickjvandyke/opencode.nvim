@@ -18,9 +18,9 @@ function M.toggle(cmd, opts)
     vim.api.nvim_win_hide(winid)
     winid = nil
   elseif bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    local previous_win = vim.api.nvim_get_current_win()
+    local prev_win = vim.api.nvim_get_current_win()
     winid = vim.api.nvim_open_win(bufnr, true, opts)
-    vim.api.nvim_set_current_win(previous_win)
+    vim.api.nvim_set_current_win(prev_win)
   else
     M.open(cmd, opts)
   end
@@ -38,7 +38,7 @@ function M.open(cmd, opts)
     width = math.floor(vim.o.columns * 0.35),
   }
 
-  local previous_win = vim.api.nvim_get_current_win()
+  local prev_win = vim.api.nvim_get_current_win()
   bufnr = vim.api.nvim_create_buf(false, false)
   winid = vim.api.nvim_open_win(bufnr, true, opts)
 
@@ -77,7 +77,7 @@ function M.open(cmd, opts)
     end,
   })
 
-  vim.api.nvim_set_current_win(previous_win)
+  vim.api.nvim_set_current_win(prev_win)
 end
 
 function M.close()
