@@ -13,20 +13,20 @@ vim.api.nvim_create_autocmd("User", {
     local event = args.data.event
     local file = event.properties.file
 
+    -- TODO: Probably some way to simplify this
     if qf_list_nr then
       local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
       if existing.nr ~= qf_list_nr then
         qf_list_nr = nil
       end
     end
-
     if not qf_list_nr then
       vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
       qf_list_nr = vim.fn.getqflist({ nr = 0 }).nr
     end
+    local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
 
     local new_item = { filename = file, bufnr = vim.fn.bufnr(file), type = "I" }
-    local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
     local item_already_exists = vim.iter(existing.items):any(function(i)
       return i.filename == new_item.filename or i.bufnr == new_item.bufnr
     end)
