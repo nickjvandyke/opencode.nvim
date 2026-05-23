@@ -1,4 +1,5 @@
 local QUICKFIX_LIST_TITLE = "OpenCode edits"
+local qf_list_nr
 
 vim.api.nvim_create_autocmd("User", {
   group = vim.api.nvim_create_augroup("OpencodeQuickfix", { clear = true }),
@@ -12,32 +13,30 @@ vim.api.nvim_create_autocmd("User", {
     local event = args.data.event
     local file = event.properties.file
 
-    local qf_lists = vim.fn.getqflist({ all = 1 })
-    local target_qf_list_nr
-    if type(qf_lists.nr) == "table" then
-      for _, nr in ipairs(qf_lists.nr) do
-        if vim.fn.getqflist({ nr = nr, title = 0 }).title == QUICKFIX_LIST_TITLE then
-          target_qf_list_nr = nr
-          break
-        end
+    if qf_list_nr then
+      local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
+      if existing.nr ~= qf_list_nr then
+        qf_list_nr = nil
       end
     end
 
-    local new_item = { filename = file, type = "I" }
-    if target_qf_list_nr then
-      local existing_qf_list = vim.fn.getqflist({ nr = target_qf_list_nr, items = 0 })
-      local item_already_exists = vim.iter(existing_qf_list.items):any(function(i)
-        return i.filename == new_item.filename
-      end)
-      if not item_already_exists then
-        table.insert(existing_qf_list.items, new_item)
-        vim.fn.setqflist({}, " ", { nr = target_qf_list_nr, items = existing_qf_list.items })
-      end
-    else
-      vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE, items = { new_item } })
+    if not qf_list_nr then
+      vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
+      qf_list_nr = vim.fn.getqflist({ nr = 0 }).nr
+    end
+
+    local new_item = { filename = file, bufnr = vim.fn.bufnr(file), type = "I" }
+    local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
+    local item_already_exists = vim.iter(existing.items):any(function(i)
+      return i.filename == new_item.filename or i.bufnr == new_item.bufnr
+    end)
+
+    if not item_already_exists then
+      -- TODO: Need to focus/set to this list
+      vim.fn.setqflist({ new_item }, "a")
     end
 
     vim.cmd.copen()
   end,
-  desc = "Track files edited by OpenCode in a quickfix list",
+  desc = "Add files edited by OpenCode to a quickfix list",
 })
