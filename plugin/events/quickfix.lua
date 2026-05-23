@@ -6,18 +6,13 @@ vim.api.nvim_create_autocmd("User", {
       return
     end
 
-    --[[
-      {
-        id = "evt_e54f03994001ig2dC1jXjQV6zL",
-        properties = {
-          file = "/Users/nvandyke/dev/opencode.nvim/plugin/events/quickfix.lua"
-        },
-        type = "file.edited"
-      }
-    ]]
     ---@type opencode.server.event.FileEdited
     local event = args.data.event
     local file = event.properties.file
+
+    vim.fn.setqflist({
+      { filename = file },
+    }, "a")
   end,
   desc = "Add files edited by opencode to the quickfix list",
 })
