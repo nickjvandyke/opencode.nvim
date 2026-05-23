@@ -1,5 +1,5 @@
-local QUICKFIX_LIST_TITLE = "OpenCode edits"
-local qf_list_nr
+local QUICKFIX_LIST_TITLE = "OpenCode"
+local qf_list_id
 
 vim.api.nvim_create_autocmd("User", {
   group = vim.api.nvim_create_augroup("OpencodeQuickfix", { clear = true }),
@@ -14,17 +14,17 @@ vim.api.nvim_create_autocmd("User", {
     local file = event.properties.file
 
     -- TODO: Probably some way to simplify this
-    if qf_list_nr then
-      local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
-      if existing.nr ~= qf_list_nr then
-        qf_list_nr = nil
+    if qf_list_id then
+      local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
+      if existing.id ~= qf_list_id then
+        qf_list_id = nil
       end
     end
-    if not qf_list_nr then
+    if not qf_list_id then
       vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
-      qf_list_nr = vim.fn.getqflist({ nr = 0 }).nr
+      qf_list_id = vim.fn.getqflist({ id = 0 }).id
     end
-    local existing = vim.fn.getqflist({ nr = qf_list_nr, items = 0 })
+    local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
 
     local new_item = { filename = file, bufnr = vim.fn.bufnr(file), type = "I" }
     local item_already_exists = vim.iter(existing.items):any(function(i)
@@ -36,6 +36,7 @@ vim.api.nvim_create_autocmd("User", {
       vim.fn.setqflist({ new_item }, "a")
     end
 
+    -- TODO: Don't focus?
     vim.cmd.copen()
   end,
   desc = "Add files edited by OpenCode to a quickfix list",
