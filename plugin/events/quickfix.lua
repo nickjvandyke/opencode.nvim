@@ -33,8 +33,9 @@ vim.api.nvim_create_autocmd("User", {
     end)
 
     if not item_already_exists then
-      -- TODO: Need to focus/set to this list
-      vim.fn.setqflist({ new_item }, "a")
+      table.insert(existing.items, new_item)
+      -- TODO: Needs to use `nr` to modify specific list? Need to fetch from id first.
+      vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing.items })
     end
 
     local prev_win = vim.api.nvim_get_current_win()
