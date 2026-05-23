@@ -11,7 +11,7 @@ vim.api.nvim_create_autocmd("User", {
     local file = event.properties.file
 
     vim.fn.setqflist({
-      { filename = file },
+      { filename = file, text = "Edited by OpenCode", type = "I" },
     }, "a")
   end,
   desc = "Add files edited by opencode to the quickfix list",
