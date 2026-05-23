@@ -323,7 +323,7 @@ function Server:get_path(on_success, on_error)
   return self:curl("/path", "GET", nil, on_success, on_error)
 end
 
----@alias opencode.server.event.type
+---@alias opencode.server.event.Type
 ---| "server.connected"
 ---| "server.instance.disposed"
 ---| "session.idle"
@@ -336,8 +336,13 @@ end
 ---| "session.error"
 
 ---@class opencode.server.Event
----@field type opencode.server.event.type|string
+---@field id string
+---@field type string
 ---@field properties table
+
+---@class opencode.server.event.FileEdited : opencode.server.Event
+---@field type "file.edited"
+---@field properties { file: string }
 
 ---@param on_success fun(response: opencode.server.Event)|nil Invoked with each received event.
 ---@param on_error fun(code: number, msg: string?)|nil

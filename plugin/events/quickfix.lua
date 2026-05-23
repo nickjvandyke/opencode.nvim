@@ -15,12 +15,9 @@ vim.api.nvim_create_autocmd("User", {
         type = "file.edited"
       }
     ]]
-    ---@type opencode.server.Event
+    ---@type opencode.server.event.FileEdited
     local event = args.data.event
-    ---@type string
     local file = event.properties.file
-
-
   end,
   desc = "Add files edited by opencode to the quickfix list",
 })
