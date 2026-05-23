@@ -136,6 +136,7 @@ local defaults = {
   events = {
     enabled = true,
     reload = true,
+    quickfix = true,
     permissions = {
       enabled = true,
       idle_delay_ms = 1000,

@@ -9,6 +9,9 @@ local M = {}
 ---Requires `vim.o.autoread = true`.
 ---@field reload? boolean
 ---
+---Add files edited by `opencode` to the quickfix list.
+---@field quickfix? boolean
+---
 ---@field permissions? opencode.events.permissions.Opts
 
 return M
