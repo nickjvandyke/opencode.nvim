@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.0...v0.10.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **context:** don't shorten to home directory for more reliable READs ([985764e](https://github.com/nickjvandyke/opencode.nvim/commit/985764ebd36387a193550afd05d03d23a394a946))
+* **select:** only include server fns when they're configured ([47ce749](https://github.com/nickjvandyke/opencode.nvim/commit/47ce74944142d2f2e8e52a8f93801ed9eee68497))
+* **status:** improve reliability and simplicity ([677dddb](https://github.com/nickjvandyke/opencode.nvim/commit/677dddb6be04d5d8a7b380278613219b0384c6b7))
+
 ## [0.10.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.9.0...v0.10.0) (2026-05-17)
 
 
