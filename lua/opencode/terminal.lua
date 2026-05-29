@@ -8,7 +8,10 @@ local bufnr
 ---Start if not running, else show/hide the window.
 ---@param cmd string
 ---@param opts? opencode.terminal.Opts
+---@return Promise
 function M.toggle(cmd, opts)
+  local Promise = require("opencode.promise")
+
   opts = opts or {
     split = "right",
     width = math.floor(vim.o.columns * 0.35),
@@ -17,67 +20,68 @@ function M.toggle(cmd, opts)
   if winid ~= nil and vim.api.nvim_win_is_valid(winid) then
     vim.api.nvim_win_hide(winid)
     winid = nil
+    return Promise.resolve()
   elseif bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    local previous_win = vim.api.nvim_get_current_win()
-    winid = vim.api.nvim_open_win(bufnr, true, opts)
-    vim.api.nvim_set_current_win(previous_win)
+    winid = vim.api.nvim_open_win(bufnr, false, opts)
+    return Promise.resolve()
   else
-    M.open(cmd, opts)
+    return M.open(cmd, opts)
   end
 end
 
 ---@param cmd string
 ---@param opts? opencode.terminal.Opts
+---@return Promise
 function M.open(cmd, opts)
+  local Promise = require("opencode.promise")
+
   if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    return
+    return Promise.resolve()
   end
 
-  opts = opts or {
-    split = "right",
-    width = math.floor(vim.o.columns * 0.35),
-  }
+  return Promise.new(function(resolve)
+    opts = opts or {
+      split = "right",
+      width = math.floor(vim.o.columns * 0.35),
+    }
 
-  local previous_win = vim.api.nvim_get_current_win()
-  bufnr = vim.api.nvim_create_buf(false, false)
-  winid = vim.api.nvim_open_win(bufnr, true, opts)
+    bufnr = vim.api.nvim_create_buf(false, false)
+    winid = vim.api.nvim_open_win(bufnr, false, opts)
 
-  vim.api.nvim_create_autocmd("ExitPre", {
-    once = true,
-    callback = function()
-      -- Delete the buffer so session doesn't save + restore it.
-      -- Not worth the complexity to handle a restored terminal,
-      -- and this is consistent with most other Neovim terminal plugins.
-      M.close()
-    end,
-  })
+    vim.api.nvim_create_autocmd("ExitPre", {
+      once = true,
+      callback = function()
+        -- Delete the buffer so session doesn't save + restore it.
+        -- Not worth the complexity to handle a restored terminal,
+        -- and this is consistent with most other Neovim terminal plugins.
+        M.close()
+      end,
+    })
 
-  M.setup(winid)
+    M.setup(winid)
 
-  -- Redraw terminal buffer on initial render.
-  -- Fixes empty columns on the right side.
-  -- Only affects our implementation for some reason; I don't see this issue in `snacks.terminal`.
-  local auid
-  auid = vim.api.nvim_create_autocmd("TermRequest", {
-    buffer = bufnr,
-    callback = function(ev)
-      if ev.data.cursor[1] > 1 then
-        vim.api.nvim_del_autocmd(auid)
-        vim.api.nvim_set_current_win(winid)
-        -- Enter insert mode to trigger redraw, then exit and return to previous window.
-        vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
-      end
-    end,
-  })
+    -- Wait for initial terminal render before resolving,
+    -- so that caller can be sure it's visible and ready for input.
+    local auid
+    auid = vim.api.nvim_create_autocmd("TermRequest", {
+      buffer = bufnr,
+      callback = function(ev)
+        if ev.data.cursor[1] > 1 then
+          vim.api.nvim_del_autocmd(auid)
+          resolve()
+        end
+      end,
+    })
 
-  vim.fn.jobstart(cmd, {
-    term = true,
-    on_exit = function()
-      M.close()
-    end,
-  })
-
-  vim.api.nvim_set_current_win(previous_win)
+    vim.api.nvim_buf_call(bufnr, function()
+      vim.fn.jobstart(cmd, {
+        term = true,
+        on_exit = function()
+          M.close()
+        end,
+      })
+    end)
+  end)
 end
 
 function M.close()

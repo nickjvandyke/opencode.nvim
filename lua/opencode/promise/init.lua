@@ -46,10 +46,15 @@ Promise.__index = Promise
 
 local PromiseStatus = { Pending = "pending", Fulfilled = "fulfilled", Rejected = "rejected" }
 
+---Whether the given value is a `Promise`.
+---@param v any
+---@return boolean
 local is_promise = function(v)
   local tbl = getmetatable(v)
   return tbl ~= nil and tbl._is_promise == true
 end
+
+Promise.is_promise = is_promise
 
 local new_empty_userdata = function()
   return newproxy(true)

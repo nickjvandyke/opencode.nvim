@@ -106,6 +106,13 @@ function M.get()
         return Promise.reject("Failed to start `opencode`: " .. start_result)
       end
 
+      if Promise.is_promise(start_result) then
+        ---@cast start_result Promise
+        return start_result:next(function()
+          return poll()
+        end)
+      end
+
       return poll()
     end)
     :next(function(server) ---@param server opencode.server.Server

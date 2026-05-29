@@ -14,11 +14,13 @@
 ---
 ---Start an `opencode` server.
 ---Called when when none are found; will retry after.
----@field start? fun()|false
+---May return a `Promise` that resolves when the server is ready;
+---if so, server discovery polling waits for it.
+---@field start? fun(): Promise?|false
 ---
----@field stop? fun()|false
+---@field stop? fun(): Promise?|false
 ---
----@field toggle? fun()|false
+---@field toggle? fun(): Promise?|false
 
 ---An `opencode` server.
 ---@class opencode.server.Server
