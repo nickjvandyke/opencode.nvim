@@ -16,11 +16,11 @@
 ---Called when when none are found; will retry after.
 ---May return a `Promise` that resolves when the server is ready;
 ---if so, server discovery polling waits for it.
----@field start? fun(): Promise?|false
+---@field start? (fun(): Promise?)|false
 ---
----@field stop? fun(): Promise?|false
+---@field stop? (fun(): Promise?)|false
 ---
----@field toggle? fun(): Promise?|false
+---@field toggle? (fun(): Promise?)|false
 
 ---An `opencode` server.
 ---@class opencode.server.Server
