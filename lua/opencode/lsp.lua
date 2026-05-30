@@ -92,7 +92,7 @@ Handlers[vim.lsp.protocol.Methods.workspace_executeCommand] = function(params, c
     local prompt = prompt_prefix .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
 
     require("opencode")
-      .prompt(prompt, { submit = true })
+      .prompt(prompt)
       :next(function()
         callback(nil, nil) -- Indicate success
       end)
@@ -178,13 +178,13 @@ Handlers[vim.lsp.protocol.Methods.textDocument_hover] = function(params, callbac
   -- Check connected server directly rather than `server.get()`.
   -- The latter is disruptive when it doesn't find an obvious match and prompts for selection.
   -- We could use it if it allowed configuring its methods.
-  local connected_server = require("opencode.events").connected_server
+  local connected_server = require("opencode.server").connected
   if connected_server then
     -- Attach to bypass cold-start.
     -- But we still use `opencode run` instead of `prompt()` because this is a one-off,
     -- and shouldn't be added to current session.
     table.insert(cmd, "--attach")
-    table.insert(cmd, "http://localhost:" .. connected_server.port)
+    table.insert(cmd, connected_server.url)
   end
 
   local configured_model = require("opencode.config").opts.lsp.handlers.hover.model

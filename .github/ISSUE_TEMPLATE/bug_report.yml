@@ -3,24 +3,13 @@ description: File a bug/issue
 title: "bug: "
 labels: [bug]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Usage questions such as ***"How do I...?"*** belong in [Discussions](https://github.com/nickjvandyke/opencode.nvim/discussions).
   - type: checkboxes
     attributes:
-      label: Did you check docs and existing issues?
-      description: Make sure you checked all of the below before submitting an issue
+      label: Prerequisites
       options:
-        - label: I am using the latest plugin version
+        - label: I searched the docs
           required: true
-        - label: I read the plugin docs
-          required: true
-        - label: I read the [opencode docs](https://opencode.ai/docs)
-          required: true
-        - label: I searched the existing plugin issues
-          required: true
-        - label: I searched the existing [opencode issues](https://github.com/sst/opencode/issues)
+        - label: I searched existing issues
           required: true
   - type: textarea
     attributes:

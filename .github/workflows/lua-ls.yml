@@ -18,7 +18,7 @@ jobs:
 
       - name: Install Neovim
         run: |
-          curl -L https://github.com/neovim/neovim/releases/download/v0.11.5/nvim-linux-x86_64.tar.gz -o /opt/nvim.tar.gz
+          curl -L https://github.com/neovim/neovim/releases/download/v0.12.2/nvim-linux-x86_64.tar.gz -o /opt/nvim.tar.gz
           mkdir /opt/nvim
           tar xzf /opt/nvim.tar.gz -C /opt/nvim
           mv /opt/nvim/nvim-linux-x86_64/* /opt/nvim
@@ -30,9 +30,6 @@ jobs:
           mkdir /opt/lls
           tar -xzf /opt/lls.tar.gz -C /opt/lls
           echo "/opt/lls/bin" >> $GITHUB_PATH
-
-      - name: Clone luvit-meta
-        run: git clone --depth=1 https://github.com/Bilal2453/luvit-meta /opt/luvit-meta
 
       - name: Clone snacks.nvim
         run: git clone --depth=1 https://github.com/folke/snacks.nvim /opt/snacks.nvim

@@ -35,10 +35,11 @@ function M.request(event, server)
           return item
         end,
       }, function(choice)
-        -- cat
         is_permission_request_open = false
         if choice then
-          server:permit(event.properties.id, choice:lower())
+          server:permit(event.properties.id, choice:lower()):catch(function(msg)
+            vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+          end)
         end
       end)
     end)

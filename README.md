@@ -4,16 +4,16 @@
 
 ## ✨ Features
 
-- Connect to _any_ `opencode`, or provide an integrated instance
-- Share editor context (buffer, selection, diagnostics, etc.)
-- Input prompts with completions, highlights, and normal-mode support
-- Select prompts from a library and define your own
+- Connect to _any_ `opencode` server or an integrated instance
+- Inject editor context (cursor, selection, buffer, ...)
+- Input prompts with completions, highlights, and normal mode
+- Select and define re-usable prompts
 - Execute commands
 - Monitor and respond to events
-- View, accept or reject, and reload edits
-- Interact with `opencode` via an in-process LSP
-- _Vim-y_ — supports ranges and dot-repeat
-- Simple, sensible defaults to get you started quickly
+- Accept/reject and reload edits
+- Interact intuitively via in-process LSP
+- _Vim-y_ — operator and dot-repeat
+- Simple and sensible defaults to get you started quickly
 
 ## 📦 Setup
 
@@ -56,7 +56,7 @@
 
     -- Recommended/example keymaps
     vim.keymap.set({ "n", "x" }, "<C-a>", function() require("opencode").ask("@this: ", { submit = true }) end, { desc = "Ask opencode…" })
-    vim.keymap.set({ "n", "x" }, "<C-x>", function() require("opencode").select() end,                          { desc = "Execute opencode action…" })
+    vim.keymap.set({ "n", "x" }, "<C-x>", function() require("opencode").select() end,                          { desc = "Select opencode…" })
     vim.keymap.set({ "n", "t" }, "<C-.>", function() require("opencode").toggle() end,                          { desc = "Toggle opencode" })
 
     vim.keymap.set({ "n", "x" }, "go",  function() return require("opencode").operator("@this ") end,        { desc = "Add range to opencode", expr = true })
@@ -126,28 +126,16 @@ Select prompts to review, explain, and improve your code:
 
 ### Server
 
-You can manually run `opencode`s however you like and `opencode.nvim` will find them!
+Run local `opencode`s however you like and `opencode.nvim` will find them! Or point `vim.g.opencode_opts.server.url` to a specific server, including remotes.
 
 > [!IMPORTANT]
 > You _must_ run `opencode` with the `--port` flag to expose its server.
 
-If `opencode.nvim` can't find an existing `opencode`, it uses the configured server to start one for you, defaulting to an embedded terminal.
+If `opencode.nvim` can't find an existing `opencode`, it starts one for you via `vim.g.opencode_opts.server.start`, defaulting to an embedded terminal.
 
-#### Keymaps
+#### Custom
 
-`opencode.nvim` sets these normal-mode keymaps in the embedded terminal for Neovim-like message navigation:
-
-| Keymap  | Command                  | Description           |
-| ------- | ------------------------ | --------------------- |
-| `<C-u>` | `session.half.page.up`   | Scroll up half page   |
-| `<C-d>` | `session.half.page.down` | Scroll down half page |
-| `gg`    | `session.first`          | Go to first message   |
-| `G`     | `session.last`           | Go to last message    |
-| `<Esc>` | `session.interrupt`      | Interrupt             |
-
-#### Customization
-
-Example using [`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md) instead:
+[`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md) example:
 
 ```lua
 local opencode_cmd = 'opencode --port'
@@ -178,17 +166,29 @@ vim.g.opencode_opts = {
 }
 ```
 
+#### Keymaps
+
+`opencode.nvim` sets these normal-mode keymaps in the embedded terminal for Neovim-like message navigation:
+
+| Keymap  | Command                  | Description           |
+| ------- | ------------------------ | --------------------- |
+| `<C-u>` | `session.half.page.up`   | Scroll up half page   |
+| `<C-d>` | `session.half.page.down` | Scroll down half page |
+| `gg`    | `session.first`          | Go to first message   |
+| `G`     | `session.last`           | Go to last message    |
+| `<Esc>` | `session.interrupt`      | Interrupt             |
+
 ## 🚀 Usage
 
 ### Ask — `require("opencode").ask()`
 
 Input a prompt for `opencode`.
 
+- End the prompt with a space to append instead of submit.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and `opencode` subagents.
   - Press `<Tab>` to trigger built-in completion.
-- End the prompt with a space to append instead of submit.
-- When using `snacks.input`, offers completions via in-process LSP.
+  - Provided by in-process LSP when using `snacks.input`.
 
 ### Select — `require("opencode").select()`
 
@@ -204,6 +204,7 @@ Highlights and previews items when using `snacks.picker`.
 
 Prompt `opencode`.
 
+- End the prompt with a space to append instead of submit.
 - Injects configured contexts.
 - `opencode` will interpret references to files or subagents.
 
@@ -258,8 +259,8 @@ vim.api.nvim_create_autocmd("User", {
   callback = function(args)
     ---@type opencode.server.Event
     local event = args.data.event
-    ---@type number
-    local port = args.data.port
+    ---@type string
+    local url = args.data.url
 
     -- See the available event types and their properties
     vim.notify(vim.inspect(event))

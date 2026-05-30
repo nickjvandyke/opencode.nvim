@@ -1,5 +1,68 @@
 # Changelog
 
+## [0.10.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.0...v0.10.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **context:** don't shorten to home directory for more reliable READs ([985764e](https://github.com/nickjvandyke/opencode.nvim/commit/985764ebd36387a193550afd05d03d23a394a946))
+* **select:** only include server fns when they're configured ([47ce749](https://github.com/nickjvandyke/opencode.nvim/commit/47ce74944142d2f2e8e52a8f93801ed9eee68497))
+* **status:** improve reliability and simplicity ([677dddb](https://github.com/nickjvandyke/opencode.nvim/commit/677dddb6be04d5d8a7b380278613219b0384c6b7))
+
+## [0.10.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.9.0...v0.10.0) (2026-05-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **server:** support arbitrary and remote URLs
+
+### Features
+
+* **server:** support arbitrary and remote URLs ([6151568](https://github.com/nickjvandyke/opencode.nvim/commit/6151568e08b507edc2f471b50ad9eeb31d387bf4))
+
+
+### Bug Fixes
+
+* **operator:** remove duplicate line number when operating on a single line ([6b5acdc](https://github.com/nickjvandyke/opencode.nvim/commit/6b5acdcb4b2268c3a2b4b791457bf5b12e38e1bb))
+* **server:** inverted initial SSE connection error propagation ([0a21de6](https://github.com/nickjvandyke/opencode.nvim/commit/0a21de6f00a6b84c3e9903b0aee967492e233c00))
+* **server:** propagate `start` error rather than original error ([ae67311](https://github.com/nickjvandyke/opencode.nvim/commit/ae67311268cc3a8aa57e23d6ad6cda5976be6bbe))
+* **server:** propagate initial SSE connection success and error ([140c895](https://github.com/nickjvandyke/opencode.nvim/commit/140c8959719b0510f5ab32afc6ea3fa27f27138a))
+
+## [0.9.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.3...v0.9.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **config:** move `opts.prompts` to `opts.select.prompts`, unnest `opts.select.sections`
+* **prompts:** simplify `opts.prompts` to string, use postfixes for ask and append
+* **api:** only expose select server and session in `select` menu, not API
+
+### Features
+
+* **api:** only expose select server and session in `select` menu, not API ([fcfd017](https://github.com/nickjvandyke/opencode.nvim/commit/fcfd017a908a820085c04e8aba06153d76e55c92))
+* **config:** move `opts.prompts` to `opts.select.prompts`, unnest `opts.select.sections` ([e2288db](https://github.com/nickjvandyke/opencode.nvim/commit/e2288db06c3865b0703d93c1d434a870ca119e43))
+* **prompt:** replace `opts.submit` with ending space ([f6e1efd](https://github.com/nickjvandyke/opencode.nvim/commit/f6e1efd3455f0c56d8e45c517d148406f7cb19e3))
+* **prompts:** simplify `opts.prompts` to string, use postfixes for ask and append ([48d0965](https://github.com/nickjvandyke/opencode.nvim/commit/48d09650dad64677c1318eab8de5458211b98835))
+* **select:** clarify server item descriptions ([f7cd638](https://github.com/nickjvandyke/opencode.nvim/commit/f7cd63801da202b345cf030ee4acec3cec260d90))
+
+
+### Bug Fixes
+
+* **context:** highlighting visual block mode ([82ba668](https://github.com/nickjvandyke/opencode.nvim/commit/82ba6686ff7acdc39cb2ed019908d20f7a52b66d))
+* **select:** override prompts and commands with passed opts ([bbed2b7](https://github.com/nickjvandyke/opencode.nvim/commit/bbed2b758c652e2b6262fede6ea5b298e852143e))
+
+## [0.8.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.2...v0.8.3) (2026-05-15)
+
+
+### Features
+
+* **server:** support auth ([0dd8824](https://github.com/nickjvandyke/opencode.nvim/commit/0dd88243b151b25e291e714d572d303a694b5f7c))
+
+
+### Bug Fixes
+
+* **config:** ensure all config type defs can be found by Lua LSP ([03da482](https://github.com/nickjvandyke/opencode.nvim/commit/03da4820f30e8a6dce6d4f366e59eaa8f1f6d130))
+
 ## [0.8.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.8.1...v0.8.2) (2026-05-06)
 
 

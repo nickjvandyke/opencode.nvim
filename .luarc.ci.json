@@ -10,10 +10,8 @@
   "workspace": {
     "library": [
       "/opt/nvim/share/nvim/runtime/lua",
-      "/opt/luvit-meta/library",
       "/opt/snacks.nvim/lua",
-      "/opt/blink.cmp/lua",
-      "./lua"
+      "/opt/blink.cmp/lua"
     ]
   }
 }

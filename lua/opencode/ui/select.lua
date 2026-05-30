@@ -4,19 +4,16 @@ local M = {}
 
 ---@class opencode.select.Opts : snacks.picker.ui_select.Opts
 ---
----Configure the displayed sections.
----@field sections? opencode.select.sections.Opts
-
----@class opencode.select.sections.Opts
----
----Whether to show the prompts section.
----@field prompts? boolean
+---Prompts to display.
+---End the prompt with a space to append instead of submit.
+---End the prompt with "..." to open it in `ask()` before sending.
+---@field prompts? table<string, string>|false
 ---
 ---Commands to display, and their descriptions.
----Or `false` to hide the commands section.
 ---@field commands? table<opencode.Command|string, string>|false
 ---
----@field server? boolean Whether to show server controls.
+---Whether to show server controls.
+---@field server? boolean
 
 ---Select from all `opencode.nvim` functionality.
 ---
@@ -25,53 +22,36 @@ local M = {}
 function M.select(opts)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
 
-  -- TODO: Should merge with prompts' optional contexts
   local context = require("opencode.context").new()
   local Promise = require("opencode.promise")
 
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
-      local prompts = require("opencode.config").opts.prompts or {}
-      local commands = require("opencode.config").opts.select.sections.commands or {}
-
-      ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server", ask?: boolean, submit?: boolean }
+      ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server" }
       local items = {}
 
       -- Prompts section
-      if opts.sections.prompts then
+      if opts.prompts then
         table.insert(items, { __group = true, name = "PROMPT", preview = { text = "" } })
         local prompt_items = {}
-        for name, prompt in pairs(prompts) do
-          local rendered = context:render(prompt.prompt, server.subagents)
+        for name, prompt in pairs(opts.prompts) do
+          local rendered = context:render(prompt, server.subagents)
           ---@type snacks.picker.finder.Item
           local item = {
             __type = "prompt",
             name = name,
-            text = prompt.prompt .. (prompt.ask and "…" or ""),
+            text = prompt,
             highlights = rendered.input, -- `snacks.picker`'s `select` seems to ignore this, so we incorporate it ourselves in `format_item`
             preview = {
               text = context.plaintext(rendered.output),
               extmarks = context.extmarks(rendered.output),
             },
-            ask = prompt.ask,
-            submit = prompt.submit,
           }
           table.insert(prompt_items, item)
         end
-        -- Sort: ask=true, submit=false, name
         table.sort(prompt_items, function(a, b)
-          if a.ask and not b.ask then
-            return true
-          elseif not a.ask and b.ask then
-            return false
-          elseif not a.submit and b.submit then
-            return true
-          elseif a.submit and not b.submit then
-            return false
-          else
-            return a.name < b.name
-          end
+          return a.name < b.name
         end)
         for _, item in ipairs(prompt_items) do
           table.insert(items, item)
@@ -79,13 +59,13 @@ function M.select(opts)
       end
 
       -- Commands section
-      if type(opts.sections.commands) == "table" then
+      if opts.commands then
         table.insert(items, { __group = true, name = "COMMAND", preview = { text = "" } })
         local command_items = {}
-        for name, description in pairs(commands) do
+        for name, description in pairs(opts.commands) do
           table.insert(command_items, {
             __type = "command",
-            name = name, -- TODO: Truncate if it'd run into `text`
+            name = name,
             text = description,
             highlights = { { description, "Comment" } },
             preview = {
@@ -102,36 +82,43 @@ function M.select(opts)
       end
 
       -- Server section
-      if opts.sections.server then
+      if opts.server then
+        local config = require("opencode.config")
         table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
         table.insert(items, {
           __type = "server",
           name = "server.select",
           text = "Select server",
-          highlights = { { "Select server", "Comment" } },
+          highlights = { { "Select local server", "Comment" } },
           preview = { text = "" },
         })
-        table.insert(items, {
-          __type = "server",
-          name = "server.start",
-          text = "Start server",
-          highlights = { { "Start server", "Comment" } },
-          preview = { text = "" },
-        })
-        table.insert(items, {
-          __type = "server",
-          name = "server.stop",
-          text = "Stop server",
-          highlights = { { "Stop server", "Comment" } },
-          preview = { text = "" },
-        })
-        table.insert(items, {
-          __type = "server",
-          name = "server.toggle",
-          text = "Toggle server",
-          highlights = { { "Toggle server", "Comment" } },
-          preview = { text = "" },
-        })
+        if config.opts.server.start then
+          table.insert(items, {
+            __type = "server",
+            name = "server.start",
+            text = "Start server",
+            highlights = { { "Start configured server", "Comment" } },
+            preview = { text = "" },
+          })
+        end
+        if config.opts.server.stop then
+          table.insert(items, {
+            __type = "server",
+            name = "server.stop",
+            text = "Stop server",
+            highlights = { { "Stop configured server", "Comment" } },
+            preview = { text = "" },
+          })
+        end
+        if config.opts.server.toggle then
+          table.insert(items, {
+            __type = "server",
+            name = "server.toggle",
+            text = "Toggle server",
+            highlights = { { "Toggle configured server", "Comment" } },
+            preview = { text = "" },
+          })
+        end
       end
 
       for i, item in ipairs(items) do
@@ -148,9 +135,6 @@ function M.select(opts)
               return { { item.name, "Title" } }
             end
             local formatted = vim.deepcopy(item.highlights or {})
-            if item.ask then
-              table.insert(formatted, { "…", "Keyword" })
-            end
             table.insert(formatted, 1, { item.name, "Keyword" })
             table.insert(formatted, 2, { string.rep(" ", 18 - #item.name) })
             return formatted
@@ -175,23 +159,33 @@ function M.select(opts)
     end)
     :next(function(choice) ---@param choice opencode.select.Item
       if choice.__type == "prompt" then
-        ---@type opencode.Prompt
-        local prompt = require("opencode.config").opts.prompts[choice.name]
-        prompt.context = context
-        if prompt.ask then
-          return require("opencode").ask(prompt.prompt, prompt)
+        ---@type string
+        local prompt = require("opencode.config").opts.select.prompts[choice.name]
+        local ask = prompt:match("%.%.%.$")
+        if ask then
+          return require("opencode").ask(prompt:gsub("%.%.%.$", ""), { context = context })
         else
-          return require("opencode").prompt(prompt.prompt, prompt)
+          return require("opencode").prompt(prompt, { context = context })
         end
       elseif choice.__type == "command" then
         if choice.name == "session.select" then
-          return require("opencode").select_session()
+          return require("opencode.ui.select_session").select_session():next(function(result)
+            return result.server:select_session(result.session.id)
+          end)
         else
           return require("opencode").command(choice.name)
         end
       elseif choice.__type == "server" then
+        -- TODO: Include configured server
         if choice.name == "server.select" then
-          return require("opencode").select_server()
+          return require("opencode.server.discovery")
+            .get_all()
+            :next(function(servers) ---@param servers opencode.server.Server[]
+              return require("opencode.ui.select_server").select_server(servers)
+            end)
+            :next(function(server) ---@param server opencode.server.Server
+              return server:connect()
+            end)
         elseif choice.name == "server.start" then
           return require("opencode").start()
         elseif choice.name == "server.stop" then

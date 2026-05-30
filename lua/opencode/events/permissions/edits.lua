@@ -93,7 +93,9 @@ function M.diff(event, server)
 
       ---@param reply opencode.server.permission.Reply
       local function permit(reply)
-        server:permit(event.properties.id, reply)
+        server:permit(event.properties.id, reply):catch(function(msg)
+          vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+        end)
       end
 
       -- Override native accept/reject keymaps to reject the edit as a whole first, if it hasn't been already

@@ -3,13 +3,14 @@
 <!--
   I am happy to provide feedback and iterate together!
   Please complete these tasks to make it easier for both of us.
+
   Note that the automated checks and review run _after_ you open the PR.
 -->
 
 - [ ] I read [CONTRIBUTING.md](https://github.com/nickjvandyke/opencode.nvim/blob/main/CONTRIBUTING.md)
-- [ ] I reviewed AI-generated code myself
-- [ ] I addressed any automated check failures
-- [ ] I addressed AI review feedback (if any)
+- [ ] I ensured my changes pass automated checks
+- [ ] I reviewed and understand the AI-generated code in my changes (if any)
+- [ ] I addressed actionable AI review feedback (if any)
 
 ## Description
 

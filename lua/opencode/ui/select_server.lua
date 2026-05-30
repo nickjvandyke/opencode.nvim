@@ -46,7 +46,7 @@ function M.select_server(servers)
   local picker_opts = {
     prompt = "Select an `opencode` server:",
     format_item = function(server) ---@param server opencode.server.Server
-      return string.format("%s | %s | %d", server.title or "<No sessions>", server.cwd, server.port)
+      return string.format("%s | %s | %s", server.title or "<No sessions>", server.cwd, server:display_name())
     end,
     snacks = {
       layout = {

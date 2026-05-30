@@ -24,8 +24,8 @@ local M = {}
 ---@param command opencode.Command|string The command to send.
 ---@return Promise
 function M.command(command)
-  return require("opencode.server").get():next(function(server) ---@param server opencode.server.Server
-    server:tui_execute_command(command)
+  return require("opencode.server.discovery").get():next(function(server) ---@param server opencode.server.Server
+    return server:tui_execute_command(command)
   end)
 end
 

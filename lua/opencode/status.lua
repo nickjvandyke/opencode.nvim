@@ -2,28 +2,32 @@ local M = {}
 
 ---@alias opencode.status.Status
 ---| "idle"
+---| "busy"
 ---| "error"
----| "responding"
----| "requesting_permission"
 
 ---@alias opencode.status.Icon
 ---| "󰚩"
 ---| "󱜙"
----| "󱚟"
 ---| "󱚡"
 ---| "󱚧"
 
 ---@type opencode.status.Status|nil
 M.status = nil
+---@type string|nil
+M.url = nil
+
+---@return string
+function M.statusline()
+  local url = (M.url and (" " .. M.url:gsub("^%w+://", "")) or "")
+  return M.icon() .. url
+end
 
 ---@return opencode.status.Icon
-function M.statusline_icon()
+function M.icon()
   if M.status == "idle" then
     return "󰚩"
-  elseif M.status == "responding" then
+  elseif M.status == "busy" then
     return "󱜙"
-  elseif M.status == "requesting_permission" then
-    return "󱚟"
   elseif M.status == "error" then
     return "󱚡"
   else
@@ -31,40 +35,22 @@ function M.statusline_icon()
   end
 end
 
----@return string
-function M.statusline()
-  local connected_server = require("opencode.events").connected_server
-  local port = connected_server and connected_server.port
-  return M.statusline_icon() .. (port and (" :" .. tostring(port)) or "")
-end
-
 ---@param event opencode.server.Event
-function M.update(event)
+---@param url string
+function M.update(event, url)
+  M.url = url
+
   if
-    event.type == "server.connected"
-    or event.type == "session.idle"
-    -- `session.idle` seems frequently followed by a few `message.updated`s...
-    -- but `session.diff` seems to be a more definitive idle signal.
-    -- It's sometimes also emitted in the middle of a response, but NBD.
-    or event.type == "session.diff"
-    -- Pretty good fallback
-    or event.type == "session.heartbeat"
-    or (event.type == "session.status" and event.properties.status.type == "idle")
+    event.type == "server.connected" or (event.type == "session.status" and event.properties.status.type == "idle")
   then
     M.status = "idle"
-  elseif
-    event.type == "message.updated"
-    or event.type == "message.part.updated"
-    or event.type == "permission.replied"
-    or (event.type == "session.status" and event.properties.status.type == "busy")
-  then
-    M.status = "responding"
-  elseif event.type == "permission.asked" then
-    M.status = "requesting_permission"
-  elseif event.type == "session.error" then
+  elseif event.type == "session.status" and event.properties.status.type == "busy" then
+    M.status = "busy"
+  elseif event.type == "session.status" and event.properties.status.type == "error" then
     M.status = "error"
   elseif event.type == "server.instance.disposed" then
     M.status = nil
+    M.url = nil
   end
 end
 

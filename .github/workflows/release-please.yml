@@ -9,14 +9,29 @@ permissions:
   contents: write
   issues: write
   pull-requests: write
+  discussions: write
 
 jobs:
   release-please:
     if: github.event.repository.fork == false
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v5
+      - id: release
+        uses: googleapis/release-please-action@v5
         with:
           token: ${{ secrets.RELEASE_PLEASE_PAT }}
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
+
+      - name: Attach discussion
+        if: steps.release.outputs.release_created
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_ID=$(gh api \
+            repos/${{ github.repository }}/releases/tags/${{ steps.release.outputs.tag_name }} \
+            --jq '.id')
+
+          gh api --method PATCH \
+            repos/${{ github.repository }}/releases/$RELEASE_ID \
+            -f discussion_category_name='Announcements'

@@ -18,7 +18,7 @@ local M = {}
 function M.ask(default, context)
   local Promise = require("opencode.promise")
 
-  return require("opencode.server")
+  return require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
       ---@type snacks.input.Opts
@@ -29,10 +29,7 @@ function M.ask(default, context)
           return context.input_highlight(rendered.input)
         end,
       }
-      -- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config,
-      -- and to keep its fields optional. Double-merge is kinda ugly but seems like the lesser evil.
       input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
-      input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask.snacks)
 
       return Promise.input(input_opts)
     end)
@@ -61,7 +58,7 @@ _G.opencode_completion = function(ArgLead, CmdLine, CursorPos)
   for placeholder, _ in pairs(require("opencode.config").opts.contexts) do
     table.insert(completions, placeholder)
   end
-  local server = require("opencode.events").connected_server
+  local server = require("opencode.server").connected
   local agents = server and server.subagents or {}
   for _, agent in ipairs(agents) do
     table.insert(completions, "@" .. agent.name)

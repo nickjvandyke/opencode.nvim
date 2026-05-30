@@ -5,14 +5,11 @@ labels: [enhancement]
 body:
   - type: checkboxes
     attributes:
-      label: Did you check the docs?
-      description: Make sure you read all the docs before submitting a feature request
+      label: Prerequisites
       options:
-        - label: I am using the latest plugin version
+        - label: I searched the docs
           required: true
-        - label: I read the plugin docs
-          required: true
-        - label: I read the [opencode docs](https://opencode.ai/docs)
+        - label: I searched existing issues
           required: true
   - type: textarea
     validations:
