@@ -11,48 +11,36 @@ local current_edit_request_id = nil
 local diff_tabpage = nil
 ---@type nil|integer
 local diff_new_buf = nil
----@type nil|integer
-local diff_tab_closed_autocmd = nil
-
-local diff_cleanup_group = vim.api.nvim_create_augroup("OpencodeEditDiffCleanup", { clear = false })
-
-local function clear_tab_closed_autocmd()
-  if diff_tab_closed_autocmd then
-    pcall(vim.api.nvim_del_autocmd, diff_tab_closed_autocmd)
-    diff_tab_closed_autocmd = nil
-  end
-end
-
-local function cleanup_diff()
-  clear_tab_closed_autocmd()
-  current_edit_request_id = nil
-  diff_tabpage = nil
-
-  if diff_new_buf and vim.api.nvim_buf_is_valid(diff_new_buf) then
-    vim.api.nvim_buf_delete(diff_new_buf, { force = true })
-  end
-  diff_new_buf = nil
-end
 
 local function close_diff_tab()
   if diff_tabpage and vim.api.nvim_tabpage_is_valid(diff_tabpage) then
     vim.api.nvim_set_current_tabpage(diff_tabpage)
     vim.cmd("tabclose")
   end
-
-  cleanup_diff()
 end
 
 local function register_diff_tab_cleanup()
-  clear_tab_closed_autocmd()
-
   local tabpage = diff_tabpage
+  local diff_tab_closed_autocmd
   diff_tab_closed_autocmd = vim.api.nvim_create_autocmd("TabClosed", {
-    group = diff_cleanup_group,
+    group = vim.api.nvim_create_augroup("OpencodeEditDiffCleanup", { clear = true }),
     callback = function()
-      if tabpage and not vim.api.nvim_tabpage_is_valid(tabpage) then
-        cleanup_diff()
+      if not tabpage or vim.api.nvim_tabpage_is_valid(tabpage) then
+        return
       end
+
+      if diff_tab_closed_autocmd then
+        pcall(vim.api.nvim_del_autocmd, diff_tab_closed_autocmd)
+        diff_tab_closed_autocmd = nil
+      end
+
+      current_edit_request_id = nil
+      diff_tabpage = nil
+
+      if diff_new_buf and vim.api.nvim_buf_is_valid(diff_new_buf) then
+        vim.api.nvim_buf_delete(diff_new_buf, { force = true })
+      end
+      diff_new_buf = nil
     end,
     desc = "Clean up opencode edit diff buffer",
   })
