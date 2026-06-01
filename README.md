@@ -1,10 +1,12 @@
 # opencode.nvim
 
-<https://github.com/user-attachments/assets/077daa78-d401-4b8b-98d1-9ba9f94c2330>
+Bridge Neovim and [OpenCode AI](https://opencode.ai/) to stay in your flow.
+
+https://github.com/user-attachments/assets/e85e021c-fa8f-466e-830c-c667b28f611e
 
 ## ✨ Features
 
-- Connect to _any_ `opencode` server or an integrated instance
+- Connect to _any_ OpenCode server, or start an integrated instance
 - Inject editor context (cursor, selection, buffer, ...)
 - Input prompts with completions, highlights, and normal mode
 - Select and define re-usable prompts

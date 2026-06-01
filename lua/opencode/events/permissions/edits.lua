@@ -52,28 +52,21 @@ function M.diff(event, server)
   local opts = require("opencode.config").opts.events.permissions or {}
 
   if event.type == "permission.asked" and event.properties.permission == "edit" then
-    local idle_delay_ms = opts.idle_delay_ms or 1000
-    vim.notify(
-      "`opencode` requested permission — awaiting idle…",
-      vim.log.levels.INFO,
-      { title = "opencode", timeout = idle_delay_ms }
-    )
-    require("opencode.util").on_user_idle(idle_delay_ms, function()
-      -- TODO: Handle multi-file edits?
-      -- When would opencode even do that?
-      -- for _, file in ipairs(event.properties.metadata.diff) do
+    -- TODO: Handle multi-file edits?
+    -- When would opencode even do that?
+    -- for _, file in ipairs(event.properties.metadata.diff) do
 
-      local diff = event.properties.metadata.diff
+    local diff = event.properties.metadata.diff
 
-      local patch_filepath = vim.fn.tempname() .. ".patch"
-      if vim.fn.writefile(vim.split(diff, "\n"), patch_filepath) ~= 0 then
-        vim.notify(
-          "Failed to write patch file to diff opencode edit request",
-          vim.log.levels.ERROR,
-          { title = "opencode" }
-        )
-        return
-      end
+    local patch_filepath = vim.fn.tempname() .. ".patch"
+    if vim.fn.writefile(vim.split(diff, "\n"), patch_filepath) ~= 0 then
+      vim.notify(
+        "Failed to write patch file to diff opencode edit request",
+        vim.log.levels.ERROR,
+        { title = "opencode" }
+      )
+      return
+    end
 
       local filepath = event.properties.metadata.filepath
 
@@ -91,12 +84,12 @@ function M.diff(event, server)
 
       current_edit_request_id = event.properties.id
 
-      ---@param reply opencode.server.permission.Reply
-      local function permit(reply)
-        server:permit(event.properties.id, reply):catch(function(msg)
-          vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
-        end)
-      end
+    ---@param reply opencode.server.permission.Reply
+    local function permit(reply)
+      server:permit(event.properties.id, reply):catch(function(msg)
+        vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+      end)
+    end
 
       -- Override native accept/reject keymaps to reject the edit as a whole first, if it hasn't been already
       vim.keymap.set("n", "dp", function()
