@@ -342,31 +342,70 @@ local OPENCODE_HEARTBEAT_INTERVAL_MS = 10000
 ---@type opencode.server.Server?
 Server.connected = nil
 
+---@type table<integer, opencode.server.Server>
+local connected_by_tab = {}
+
+---@param tab? integer
+---@return integer
+local function normalize_tab(tab)
+  return tab or vim.api.nvim_get_current_tabpage()
+end
+
+local function refresh_compat_connected()
+  Server.connected = connected_by_tab[vim.api.nvim_get_current_tabpage()]
+end
+
+local function prune_invalid_tab_connections()
+  for tab, _ in pairs(connected_by_tab) do
+    if not vim.api.nvim_tabpage_is_valid(tab) then
+      connected_by_tab[tab] = nil
+    end
+  end
+  refresh_compat_connected()
+end
+
+---@param tab? integer
+---@return opencode.server.Server?
+function Server.get_connected(tab)
+  prune_invalid_tab_connections()
+  return connected_by_tab[normalize_tab(tab)]
+end
+
 ---Subscribe to this server's SSE stream and dispatch autocmds for received events.
 ---Disconnects currently connected server first.
 ---Idempotent.
+---@param tab? integer
 ---@return Promise<opencode.server.Server> server Promise that resolves or rejects according to initial connection success.
-function Server:connect()
+function Server:connect(tab)
   local Promise = require("opencode.promise")
+  tab = normalize_tab(tab)
+  local connected_server = connected_by_tab[tab]
 
-  if Server.connected == self then
+  if connected_server == self then
     return Promise.resolve(self)
-  elseif Server.connected then
-    Server.connected:disconnect()
+  elseif connected_server then
+    connected_server:disconnect(tab)
   end
 
   return Promise.new(function(resolve, reject)
     self.subscription_job_id = self:sse_subscribe(
       function(response)
         if self.heartbeat_timer then
-          self.heartbeat_timer:start(OPENCODE_HEARTBEAT_INTERVAL_MS + 1000, 0, vim.schedule_wrap(self.disconnect))
+          self.heartbeat_timer:start(
+            OPENCODE_HEARTBEAT_INTERVAL_MS + 1000,
+            0,
+            vim.schedule_wrap(function()
+              self:disconnect(tab)
+            end)
+          )
         end
 
         if response.type == "server.connected" then
-          Server.connected = self
+          connected_by_tab[tab] = self
+          refresh_compat_connected()
           resolve(self)
         elseif response.type == "server.instance.disposed" then
-          self:disconnect()
+          self:disconnect(tab)
         end
 
         if require("opencode.config").opts.events.enabled then
@@ -376,6 +415,7 @@ function Server:connect()
               event = response,
               -- Can't pass metatable through here, so listeners need to reconstruct the server object if they want to use its methods
               url = self.url,
+              tab = tab,
             },
           })
         end
@@ -383,8 +423,8 @@ function Server:connect()
       -- Server disappeared ungracefully, e.g. process killed, network error, etc.
       -- Also called on manual disconnects, like our `vim.fn.jobstop`.
       function(msg)
-        local was_connected = Server.connected == self
-        self:disconnect()
+        local was_connected = connected_by_tab[tab] == self
+        self:disconnect(tab)
         if not was_connected then
           reject(msg)
         end
@@ -395,7 +435,8 @@ end
 
 ---Unsubscribe from this server's SSE stream and stop the heartbeat timer.
 ---Idempotent.
-function Server:disconnect()
+---@param tab? integer
+function Server:disconnect(tab)
   if self.subscription_job_id then
     vim.fn.jobstop(self.subscription_job_id)
     self.subscription_job_id = nil
@@ -404,9 +445,24 @@ function Server:disconnect()
     self.heartbeat_timer:stop()
   end
 
-  if Server.connected == self then
-    Server.connected = nil
+  if tab then
+    if connected_by_tab[tab] == self then
+      connected_by_tab[tab] = nil
+    end
+  else
+    for connected_tab, connected_server in pairs(connected_by_tab) do
+      if connected_server == self then
+        connected_by_tab[connected_tab] = nil
+      end
+    end
   end
+  refresh_compat_connected()
 end
+
+vim.api.nvim_create_autocmd("TabEnter", {
+  callback = function()
+    prune_invalid_tab_connections()
+  end,
+})
 
 return Server

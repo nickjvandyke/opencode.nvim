@@ -11,4 +11,10 @@ local M = {}
 ---
 ---@field permissions? opencode.events.permissions.Opts
 
+---@param tab? integer
+---@return opencode.server.Server?
+function M.get_connected_server(tab)
+  return require("opencode.server").get_connected(tab)
+end
+
 return M
