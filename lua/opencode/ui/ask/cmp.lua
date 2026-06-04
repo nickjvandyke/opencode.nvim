@@ -75,8 +75,8 @@ handlers[ms.completionItem_resolve] = function(params, callback)
     -- and then things like `~` in consecutive filepaths become strikethroughs.
     -- Or matching `[]` disappears because it's interpreted as a markdown link with an empty URL.
     item.documentation = {
-      kind = "markdown",
-      value = "```" .. context.plaintext(rendered.output) .. "```",
+      kind = "plaintext",
+      value = context.plaintext(rendered.output),
     }
   end
 
