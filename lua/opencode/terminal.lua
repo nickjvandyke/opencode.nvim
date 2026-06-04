@@ -18,9 +18,7 @@ function M.toggle(cmd, opts)
     vim.api.nvim_win_hide(winid)
     winid = nil
   elseif bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
-    local previous_win = vim.api.nvim_get_current_win()
-    winid = vim.api.nvim_open_win(bufnr, true, opts)
-    vim.api.nvim_set_current_win(previous_win)
+    winid = vim.api.nvim_open_win(bufnr, false, opts)
   else
     M.open(cmd, opts)
   end
@@ -38,9 +36,8 @@ function M.open(cmd, opts)
     width = math.floor(vim.o.columns * 0.35),
   }
 
-  local previous_win = vim.api.nvim_get_current_win()
   bufnr = vim.api.nvim_create_buf(false, false)
-  winid = vim.api.nvim_open_win(bufnr, true, opts)
+  winid = vim.api.nvim_open_win(bufnr, false, opts)
 
   vim.api.nvim_create_autocmd("ExitPre", {
     once = true,
@@ -54,30 +51,14 @@ function M.open(cmd, opts)
 
   M.setup(winid)
 
-  -- Redraw terminal buffer on initial render.
-  -- Fixes empty columns on the right side.
-  -- Only affects our implementation for some reason; I don't see this issue in `snacks.terminal`.
-  local auid
-  auid = vim.api.nvim_create_autocmd("TermRequest", {
-    buffer = bufnr,
-    callback = function(ev)
-      if ev.data.cursor[1] > 1 then
-        vim.api.nvim_del_autocmd(auid)
-        vim.api.nvim_set_current_win(winid)
-        -- Enter insert mode to trigger redraw, then exit and return to previous window.
-        vim.cmd([[startinsert | call feedkeys("\<C-\>\<C-n>\<C-w>p", "n")]])
-      end
-    end,
-  })
-
-  vim.fn.jobstart(cmd, {
-    term = true,
-    on_exit = function()
-      M.close()
-    end,
-  })
-
-  vim.api.nvim_set_current_win(previous_win)
+  vim.api.nvim_buf_call(bufnr, function()
+    vim.fn.jobstart(cmd, {
+      term = true,
+      on_exit = function()
+        M.close()
+      end,
+    })
+  end)
 end
 
 function M.close()
