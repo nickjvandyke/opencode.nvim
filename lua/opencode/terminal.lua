@@ -39,16 +39,6 @@ function M.open(cmd, opts)
   bufnr = vim.api.nvim_create_buf(false, false)
   winid = vim.api.nvim_open_win(bufnr, false, opts)
 
-  vim.api.nvim_create_autocmd("ExitPre", {
-    once = true,
-    callback = function()
-      -- Delete the buffer so session doesn't save + restore it.
-      -- Not worth the complexity to handle a restored terminal,
-      -- and this is consistent with most other Neovim terminal plugins.
-      M.close()
-    end,
-  })
-
   M.setup(winid)
 
   vim.api.nvim_buf_call(bufnr, function()
@@ -72,6 +62,9 @@ function M.close()
     winid = nil
   end
   if bufnr ~= nil and vim.api.nvim_buf_is_valid(bufnr) then
+    -- Delete the buffer so session doesn't save + restore it.
+    -- Not worth the complexity to handle a restored terminal,
+    -- and this is consistent with most other Neovim terminal plugins.
     vim.api.nvim_buf_delete(bufnr, { force = true })
     bufnr = nil
   end
@@ -153,8 +146,8 @@ function M.setup(win)
     end,
   })
 
-  -- Neovim doesn't execute TermClose when exiting, so listen for ExitPre too
-  vim.api.nvim_create_autocmd("ExitPre", {
+  -- Neovim doesn't execute TermClose when exiting, so listen for VimLeavePre too
+  vim.api.nvim_create_autocmd("VimLeavePre", {
     once = true,
     callback = function()
       if pid then
