@@ -33,7 +33,7 @@ function M.select(opts)
 
       -- Prompts section
       if opts.prompts then
-        table.insert(items, { __group = true, name = "PROMPT", preview = { text = "" } })
+        table.insert(items, { __group = true, name = "PROMPTS", preview = { text = "" } })
         local prompt_items = {}
         for name, prompt in pairs(opts.prompts) do
           local rendered = context:render(prompt, server.subagents)
@@ -60,7 +60,7 @@ function M.select(opts)
 
       -- Commands section
       if opts.commands then
-        table.insert(items, { __group = true, name = "COMMAND", preview = { text = "" } })
+        table.insert(items, { __group = true, name = "COMMANDS", preview = { text = "" } })
         local command_items = {}
         for name, description in pairs(opts.commands) do
           table.insert(command_items, {
