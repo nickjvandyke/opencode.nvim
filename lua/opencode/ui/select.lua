@@ -23,7 +23,7 @@ local M = {}
 function M.select(opts, server)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
 
-  local context = require("opencode.context").new()
+  local context = require("opencode.context").new(nil, server)
   local Promise = require("opencode.promise")
 
   ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server" }
@@ -34,7 +34,7 @@ function M.select(opts, server)
     table.insert(items, { __group = true, name = "PROMPTS", preview = { text = "" } })
     local prompt_items = {}
     for name, prompt in pairs(opts.prompts) do
-      local rendered = context:render(prompt, server.subagents)
+      local rendered = context:render(prompt, server)
       ---@type snacks.picker.finder.Item
       local item = {
         __type = "prompt",

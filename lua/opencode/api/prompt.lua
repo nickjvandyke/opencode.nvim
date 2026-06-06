@@ -5,9 +5,10 @@ local M = {}
 ---@param context? opencode.Context
 ---@return Promise
 function M.prompt(prompt, server, context)
-  context = context or require("opencode.context").new()
+  context = context or require("opencode.context").new(nil, server)
+  context.server = server
 
-  local rendered = context:render(prompt, server.subagents)
+  local rendered = context:render(prompt, server)
   local plaintext = context.plaintext(rendered.output)
   return server
     :tui_append_prompt(plaintext)

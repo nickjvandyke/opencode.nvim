@@ -88,9 +88,9 @@ Handlers[vim.lsp.protocol.Methods.workspace_executeCommand] = function(params, c
     local diagnostic = params.arguments[1]
     ---@cast diagnostic vim.Diagnostic
     local prompt_prefix = params.command == "opencode.fix" and "Fix diagnostic: " or "Explain diagnostic: "
-    local prompt = prompt_prefix .. require("opencode.context").format_diagnostic(diagnostic)
 
     require("opencode.server.discovery").get():next(function(server) ---@param server opencode.server.Server
+      local prompt = prompt_prefix .. require("opencode.context").format_diagnostic(diagnostic, server)
       require("opencode.api.prompt")
         .prompt(prompt, server)
         :next(function()
@@ -118,10 +118,11 @@ Handlers[vim.lsp.protocol.Methods.textDocument_hover] = function(params, callbac
   -- local lines = vim.fn.readfile(params.textDocument.uri:gsub("^file://", ""))
   -- local text = table.concat(lines, "\n")
 
+  local connected_server = require("opencode.server").connected
   local location = require("opencode.context").format(params.textDocument.uri:gsub("^file://", ""), {
     start_line = params.position.line + 1,
     start_col = params.position.character + 1,
-  })
+  }, connected_server)
   if not location then
     callback({ code = -32000, message = "Failed to get location for hover" }, {
       kind = "markdown",
@@ -136,11 +137,12 @@ Handlers[vim.lsp.protocol.Methods.textDocument_hover] = function(params, callbac
   -- TODO: Would be nice to get cache hits for the same symbol.
   -- But hard without semantic information.
   -- e.g. could be the same name, in a different scope.
-  if memoized_hover_results[location] then
+  local cache_key = connected_server and (connected_server.cwd .. ":" .. location) or location
+  if memoized_hover_results[cache_key] then
     callback(nil, {
       contents = {
         kind = "markdown",
-        value = memoized_hover_results[location],
+        value = memoized_hover_results[cache_key],
       },
     })
     return
@@ -179,7 +181,6 @@ Handlers[vim.lsp.protocol.Methods.textDocument_hover] = function(params, callbac
   -- Check connected server directly rather than `server.get()`.
   -- The latter is disruptive when it doesn't find an obvious match and prompts for selection.
   -- We could use it if it allowed configuring its methods.
-  local connected_server = require("opencode.server").connected
   if connected_server then
     -- Attach to bypass cold-start.
     -- But we still use `opencode run` instead of `prompt()` because this is a one-off,
@@ -213,7 +214,7 @@ Handlers[vim.lsp.protocol.Methods.textDocument_hover] = function(params, callbac
         })
       end)
     else
-      memoized_hover_results[location] = output
+      memoized_hover_results[cache_key] = output
       -- HACK: Re-trigger hover to show the result; LSP doesn't support progressive hover updates
       vim.schedule(function()
         -- Move the cursor to close the original hover; otherwise it just focuses it

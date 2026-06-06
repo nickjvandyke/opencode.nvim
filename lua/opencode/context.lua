@@ -11,6 +11,7 @@ local NS_ID = vim.api.nvim_create_namespace("OpencodeContext")
 ---@field buf integer
 ---@field cursor integer[] The cursor positon. { row, col } (1,0-based).
 ---@field range? opencode.context.Range The operator range or visual selection range.
+---@field server? opencode.server.Server The server the rendered context will be sent to.
 local Context = {}
 Context.__index = Context
 
@@ -90,13 +91,21 @@ end
 ---@type opencode.Context?
 Context.current = nil
 
+---@param value any
+---@return boolean
+local function is_server(value)
+  return type(value) == "table" and (value.cwd ~= nil or value.subagents ~= nil)
+end
+
 ---@param range? opencode.context.Range The range of the operator or visual selection. Defaults to current visual selection, if any.
-function Context.new(range)
+---@param server? opencode.server.Server The server the rendered context will be sent to.
+function Context.new(range, server)
   local self = setmetatable({}, Context)
   self.win = vim.api.nvim_get_current_win()
   self.buf = vim.api.nvim_get_current_buf()
   self.cursor = vim.api.nvim_win_get_cursor(self.win)
   self.range = range or selection(self.buf)
+  self.server = server
 
   Context.current = self
 
@@ -120,10 +129,20 @@ end
 
 ---Render `opts.contexts` in `prompt`.
 ---@param prompt string
----@param agents opencode.server.Agent[]
+---@param agents_or_server opencode.server.Agent[]|opencode.server.Server
 ---@return { input: snacks.picker.Text[], output: snacks.picker.Text[] }
-function Context:render(prompt, agents)
+function Context:render(prompt, agents_or_server)
   local contexts = require("opencode.config").opts.contexts or {}
+  ---@type opencode.server.Agent[]
+  local agents = {}
+  if is_server(agents_or_server) then
+    ---@cast agents_or_server opencode.server.Server
+    self.server = agents_or_server
+    agents = agents_or_server.subagents or {}
+  elseif agents_or_server then
+    ---@cast agents_or_server opencode.server.Agent[]
+    agents = agents_or_server
+  end
 
   local context_placeholders = vim.tbl_keys(contexts)
   local agent_placeholders = vim.tbl_map(function(agent)
@@ -279,13 +298,47 @@ local function get_buffer_range_text(bufnr, start_line, start_col, end_line, end
   return table.concat(lines, "\n")
 end
 
+---@param path string
+---@return string
+local function trim_trailing_separators(path)
+  while #path > 1 and path:match("[/\\]$") do
+    path = path:sub(1, -2)
+  end
+  return path
+end
+
+---@param filepath string
+---@param server? opencode.server.Server
+---@return string
+local function path_relative_to_server(filepath, server)
+  if not (server and server.cwd and server.cwd ~= "") then
+    return filepath
+  end
+
+  local cwd = trim_trailing_separators(vim.fn.fnamemodify(server.cwd, ":p"))
+  local trimmed_filepath = trim_trailing_separators(filepath)
+  if trimmed_filepath == cwd then
+    return "."
+  end
+
+  for _, separator in ipairs({ "/", "\\" }) do
+    local cwd_prefix = cwd .. separator
+    if trimmed_filepath:sub(1, #cwd_prefix) == cwd_prefix then
+      return trimmed_filepath:sub(#cwd_prefix + 1)
+    end
+  end
+
+  return filepath
+end
+
 ---Format a location for `opencode`.
 ---e.g. `opencode.lua:L21:C10-L65:C11` when backed by a file.
 ---When not backed by a file it returns the literal text of the range (if present) or the entire buffer.
 ---@param loc string|integer A buffer number or filepath.
 ---@param args? { start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } 1-based
+---@param server? opencode.server.Server Used to format file paths relative to the server cwd.
 ---@return string?
-function Context.format(loc, args)
+function Context.format(loc, args, server)
   local filepath = (type(loc) == "string" and loc) or (type(loc) == "number" and vim.api.nvim_buf_get_name(loc)) or nil
   if not filepath or filepath == "" then
     return nil
@@ -318,7 +371,7 @@ function Context.format(loc, args)
     end
   end
 
-  local result = vim.fn.fnamemodify(filepath, ":p")
+  local result = path_relative_to_server(vim.fn.fnamemodify(filepath, ":p"), server)
   if start_line then
     result = result .. ":" .. string.format("L%d", start_line)
     if start_col then
@@ -345,25 +398,25 @@ function Context:this()
       start_col = (self.range.kind ~= "line") and self.range.from[2] or nil,
       end_line = (self.range.kind ~= "line" or self.range.from[1] ~= self.range.to[1]) and self.range.to[1] or nil,
       end_col = (self.range.kind ~= "line") and self.range.to[2] or nil,
-    })
+    }, self.server)
   else
     return Context.format(self.buf, {
       start_line = self.cursor[1],
       start_col = self.cursor[2] + 1,
-    })
+    }, self.server)
   end
 end
 
 ---The current buffer.
 function Context:buffer()
-  return Context.format(self.buf)
+  return Context.format(self.buf, nil, self.server)
 end
 
 ---All open buffers.
 function Context:buffers()
   local file_list = {}
   for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
-    local path = Context.format(buf.bufnr)
+    local path = Context.format(buf.bufnr, nil, self.server)
     if path then
       table.insert(file_list, path)
     end
@@ -382,7 +435,7 @@ function Context:visible_text()
     local location = Context.format(buf, {
       start_line = vim.fn.line("w0", win),
       end_line = vim.fn.line("w$", win),
-    })
+    }, self.server)
     if location then
       table.insert(visible, location)
     end
@@ -394,14 +447,15 @@ function Context:visible_text()
 end
 
 ---@param diagnostic vim.Diagnostic
+---@param server? opencode.server.Server
 ---@return string
-function Context.format_diagnostic(diagnostic)
+function Context.format_diagnostic(diagnostic, server)
   local location = Context.format(diagnostic.bufnr, {
     start_line = diagnostic.lnum + 1,
     start_col = diagnostic.col + 1,
     end_line = diagnostic.end_lnum + 1,
     end_col = diagnostic.end_col + 1,
-  })
+  }, server)
 
   return string.format(
     "%s (%s): %s",
@@ -419,7 +473,7 @@ function Context:diagnostics()
   end
 
   local diagnostic_strings = vim.tbl_map(function(diagnostic)
-    return "- " .. Context.format_diagnostic(diagnostic)
+    return "- " .. Context.format_diagnostic(diagnostic, self.server)
   end, diagnostics)
 
   return #diagnostics .. " diagnostics:" .. "\n" .. table.concat(diagnostic_strings, "\n")
@@ -440,7 +494,7 @@ function Context:quickfix()
         Context.format(entry.bufnr, {
           start_line = entry.lnum,
           start_col = entry.col,
-        })
+        }, self.server)
       )
     end
   end
@@ -471,7 +525,7 @@ function Context:marks()
         Context.format(mark.pos[1], {
           start_line = mark.pos[2],
           start_col = mark.pos[3],
-        })
+        }, self.server)
       )
     end
   end
@@ -493,7 +547,7 @@ function Context:grapple_tags()
   end
   local paths = {}
   for _, tag in ipairs(tags) do
-    table.insert(paths, Context.format(tag.path))
+    table.insert(paths, Context.format(tag.path, nil, self.server))
   end
   return table.concat(paths, ", ")
 end

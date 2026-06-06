@@ -18,12 +18,13 @@ local M = {}
 ---@return Promise<string> input
 function M.ask(default, server, context)
   local Promise = require("opencode.promise")
+  context.server = server
 
   ---@type snacks.input.Opts
   local input_opts = {
     default = default,
     highlight = function(text)
-      local rendered = context:render(text, server.subagents)
+      local rendered = context:render(text, server)
       return context.input_highlight(rendered.input)
     end,
   }
