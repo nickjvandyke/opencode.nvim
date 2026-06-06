@@ -25,6 +25,13 @@ local M = {}
 ---@param server opencode.server.Server
 ---@return Promise
 function M.command(command, server)
+  if command == "session.interrupt" then
+    -- opencode v1 requires a second interrupt, mirroring the TUI's Esc confirmation.
+    return server:tui_execute_command(command):next(function()
+      return server:tui_execute_command(command)
+    end)
+  end
+
   return server:tui_execute_command(command)
 end
 
