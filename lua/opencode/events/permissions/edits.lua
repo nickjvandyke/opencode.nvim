@@ -9,6 +9,25 @@ local M = {}
 local current_edit_request_id = nil
 ---@type nil|integer
 local diff_tabpage = nil
+---@type string?
+local diff_new_filepath = nil
+
+---@param filepath? string
+local function wipe_new_buffer(filepath)
+  local target = filepath or diff_new_filepath
+  if not target then
+    return
+  end
+
+  local bufnr = vim.fn.bufnr(target)
+  if bufnr ~= -1 then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
+
+  if not filepath then
+    diff_new_filepath = nil
+  end
+end
 
 ---@param event opencode.server.Event
 ---@param server opencode.server.Server
@@ -33,14 +52,16 @@ function M.diff(event, server)
     end
 
     local filepath = event.properties.metadata.filepath
+    local new_filepath = filepath .. ".new"
     -- Close any buffer with the same name, to avoid "Buffer with this name already exists" error when successive edit requests come in for the same file.
-    vim.cmd("silent! bwipeout " .. filepath .. ".new")
+    wipe_new_buffer(new_filepath)
 
     -- Diffing changes some of the buffer's display options (namely folding) to make it easier to compare side-by-side,
     -- so open the target file in a new tab first.
     vim.cmd("tabnew " .. filepath)
     -- FIX: Sometimes rejects? Or displays no changes? Particularly with a single inline change. Malformed patch?
     vim.cmd("silent vert diffpatch " .. patch_filepath)
+    diff_new_filepath = new_filepath
 
     diff_tabpage = vim.api.nvim_get_current_tabpage()
     current_edit_request_id = event.properties.id
@@ -81,6 +102,7 @@ function M.diff(event, server)
       vim.cmd("tabclose")
       current_edit_request_id = nil
       diff_tabpage = nil
+      wipe_new_buffer()
     end, { buffer = true, desc = "Close opencode edit diff" })
   elseif event.type == "permission.replied" and current_edit_request_id == event.properties.requestID then
     -- Entire edit was accepted or rejected, either in the plugin or TUI; close the diff
@@ -90,6 +112,7 @@ function M.diff(event, server)
       vim.cmd("tabclose")
       diff_tabpage = nil
     end
+    wipe_new_buffer()
   end
 end
 
