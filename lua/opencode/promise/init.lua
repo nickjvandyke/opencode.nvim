@@ -394,7 +394,4 @@ function Promise.with_resolvers()
   return promise, resolve, reject
 end
 
-Promise.select = require("opencode.promise.ui").select
-Promise.input = require("opencode.promise.ui").input
-
 return Promise

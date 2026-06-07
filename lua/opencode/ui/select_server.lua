@@ -56,7 +56,7 @@ function M.select_server(servers)
   }
   picker_opts = vim.tbl_deep_extend("keep", picker_opts, require("opencode.config").opts.select or {})
 
-  return require("opencode.promise").select(servers, picker_opts)
+  return require("opencode.promise.ui").select(servers, picker_opts)
 end
 
 return M

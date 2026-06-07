@@ -87,19 +87,20 @@ Handlers[vim.lsp.protocol.Methods.workspace_executeCommand] = function(params, c
   if params.command == "opencode.fix" or params.command == "opencode.explain" then
     local diagnostic = params.arguments[1]
     ---@cast diagnostic vim.Diagnostic
-    local filepath = require("opencode.context").format(diagnostic.bufnr)
     local prompt_prefix = params.command == "opencode.fix" and "Fix diagnostic: " or "Explain diagnostic: "
-    local prompt = prompt_prefix .. filepath .. require("opencode.context").format_diagnostic(diagnostic)
+    local prompt = prompt_prefix .. require("opencode.context").format_diagnostic(diagnostic)
 
-    require("opencode")
-      .prompt(prompt)
-      :next(function()
-        callback(nil, nil) -- Indicate success
-      end)
-      :catch(function(err)
-        local err_msg = params.command == "opencode.fix" and "Failed to fix: " or "Failed to explain: "
-        callback({ code = -32000, message = err_msg .. err })
-      end)
+    require("opencode.server.discovery").get():next(function(server) ---@param server opencode.server.Server
+      require("opencode.api.prompt")
+        .prompt(prompt, server)
+        :next(function()
+          callback(nil, nil) -- Indicate success
+        end)
+        :catch(function(err)
+          local err_msg = params.command == "opencode.fix" and "Failed to fix: " or "Failed to explain: "
+          callback({ code = -32000, message = err_msg .. err })
+        end)
+    end)
   else
     callback({ code = -32601, message = "Unknown command: " .. params.command })
   end

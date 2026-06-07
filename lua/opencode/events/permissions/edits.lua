@@ -13,7 +13,6 @@ local diff_tabpage = nil
 ---@param event opencode.server.Event
 ---@param server opencode.server.Server
 function M.diff(event, server)
-  local opts = require("opencode.config").opts.events.permissions or {}
   if event.type == "permission.asked" and event.properties.permission == "edit" then
     -- TODO: Handle multi-file edits?
     -- When would opencode even do that?
@@ -43,18 +42,18 @@ function M.diff(event, server)
       return
     end
 
-    local escaped_filepath = vim.fn.fnameescape(filepath)
-    local escaped_new_filepath = vim.fn.fnameescape(filepath .. ".new")
-    local escaped_patch_filepath = vim.fn.fnameescape(patch_filepath)
-    -- Close any buffer with the same name, to avoid "Buffer with this name already exists" error when successive edit requests come in for the same file.
-    pcall(vim.cmd, "silent! bwipeout " .. escaped_new_filepath)
+    filepath = vim.fn.fnameescape(filepath)
 
     -- Diffing changes some of the buffer's display options (namely folding) to make it easier to compare side-by-side,
     -- so open the target file in a new tab first.
-    vim.cmd("tabnew " .. escaped_filepath)
+    vim.cmd("tabnew " .. filepath)
     -- FIX: Sometimes rejects? Or displays no changes? Particularly with a single inline change. Malformed patch?
     vim.cmd("silent vert diffpatch " .. patch_filepath)
 
+    local diff_buff = vim.api.nvim_get_current_buf()
+    -- When done, wipe out the buffer to avoid "Buffer with this name already exists" error when successive edit requests come in for the same file.
+    -- Also prevents it from lingering in e.g. pickers and `:ls`.
+    vim.bo[diff_buff].bufhidden = "wipe"
     diff_tabpage = vim.api.nvim_get_current_tabpage()
     current_edit_request_id = event.properties.id
 

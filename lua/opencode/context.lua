@@ -1,5 +1,7 @@
 ---@module 'snacks.picker'
 
+local NS_ID = vim.api.nvim_create_namespace("OpencodeContext")
+
 ---The context a prompt is being made in.
 ---Particularly useful when inputting or selecting a prompt
 ---because that changes the active mode, window, etc.
@@ -11,8 +13,6 @@
 ---@field range? opencode.context.Range The operator range or visual selection range.
 local Context = {}
 Context.__index = Context
-
-local ns_id = vim.api.nvim_create_namespace("OpencodeContext")
 
 ---@class opencode.context.Range
 ---@field from integer[] { line, col } (1,0-based)
@@ -64,7 +64,7 @@ local function highlight(buf, range)
       local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
       local clamp_col = math.min(end_col + 1, #line)
       if clamp_col > start_col then
-        vim.api.nvim_buf_set_extmark(buf, ns_id, row, start_col, {
+        vim.api.nvim_buf_set_extmark(buf, NS_ID, row, start_col, {
           end_col = clamp_col,
           hl_group = "Visual",
         })
@@ -77,7 +77,7 @@ local function highlight(buf, range)
       local line = vim.api.nvim_buf_get_lines(buf, end_row, end_row + 1, false)[1] or ""
       end_col = math.min(range.to[2] + 1, #line)
     end
-    vim.api.nvim_buf_set_extmark(buf, ns_id, from_row, from_col, {
+    vim.api.nvim_buf_set_extmark(buf, NS_ID, from_row, from_col, {
       end_row = end_row,
       end_col = end_col,
       hl_group = "Visual",
@@ -108,7 +108,7 @@ function Context.new(range)
 end
 
 function Context:clear()
-  vim.api.nvim_buf_clear_namespace(self.buf, ns_id, 0, -1)
+  vim.api.nvim_buf_clear_namespace(self.buf, NS_ID, 0, -1)
 end
 
 function Context:resume()
@@ -257,45 +257,77 @@ function Context.input_highlight(rendered)
   end, Context.extmarks(rendered))
 end
 
----Format a location for `opencode`.
----@param loc string|integer A buffer number or filepath.
----@param args? { start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } Location is a buffer number or filepath. Lines and cols are 1-based
----@return string? location e.g. `opencode.lua:L21:C10-L65:C11`
-function Context.format(loc, args)
-  assert(type(loc) ~= "string" or #loc > 0, "Filepath cannot be an empty string")
+---Get the literal text of a buffer range, trimmed to columns.
+---@param bufnr integer
+---@param start_line integer 1-indexed
+---@param start_col? integer 1-indexed
+---@param end_line integer 1-indexed
+---@param end_col? integer 1-indexed
+---@return string
+local function get_buffer_range_text(bufnr, start_line, start_col, end_line, end_col)
+  end_line = end_line or start_line
+  local lines = vim.api.nvim_buf_get_lines(bufnr, start_line - 1, end_line, false)
+  if #lines == 0 then
+    return ""
+  end
+  if start_col then
+    lines[1] = lines[1]:sub(start_col)
+  end
+  if end_col then
+    lines[#lines] = lines[#lines]:sub(1, end_col)
+  end
+  return table.concat(lines, "\n")
+end
 
+---Format a location for `opencode`.
+---e.g. `opencode.lua:L21:C10-L65:C11` when backed by a file.
+---When not backed by a file it returns the literal text of the range (if present) or the entire buffer.
+---@param loc string|integer A buffer number or filepath.
+---@param args? { start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } 1-based
+---@return string?
+function Context.format(loc, args)
   local filepath = (type(loc) == "string" and loc) or (type(loc) == "number" and vim.api.nvim_buf_get_name(loc)) or nil
   if not filepath or filepath == "" then
     return nil
   end
 
-  local result = ""
+  local start_line = args and args.start_line
+  local start_col = args and args.start_col
+  local end_line = args and args.end_line
+  local end_col = args and args.end_col
 
-  local absolute_path = vim.fn.fnamemodify(filepath, ":p")
-  result = result .. absolute_path
-
-  if args and args.start_line then
-    if args.end_line and args.start_line > args.end_line then
-      -- Ensure start is before end (for reversed visual selections)
-      args.start_line, args.end_line = args.end_line, args.start_line
-      if args.start_col and args.end_col then
-        -- Can happen in visual block mode
-        args.start_col, args.end_col = args.end_col, args.start_col
-      end
+  -- Normalize start/end (for reversed visual selections)
+  if start_line and end_line and start_line > end_line then
+    start_line, end_line = end_line, start_line
+    if start_col and end_col then
+      start_col, end_col = end_col, start_col
     end
+  end
 
-    -- Previously we'd need a space here so `opencode` would recognize the file reference and insert the context,
-    -- but that has regressed with the v1.0.0 `opentui` update :/
-    -- There's a GH issue somewhere.
-    result = result .. ":"
-    result = result .. string.format("L%d", args.start_line)
-    if args.start_col then
-      result = result .. string.format(":C%d", args.start_col)
+  -- For buffers not backed by a real file, return inline text
+  if type(loc) == "number" then
+    local filestat = vim.uv.fs_stat(filepath)
+    if not filestat or filestat.type ~= "file" then
+      return get_buffer_range_text(
+        loc,
+        start_line or 1,
+        start_col,
+        end_line or vim.api.nvim_buf_line_count(loc),
+        end_col
+      )
     end
-    if args.end_line then
-      result = result .. string.format("-L%d", args.end_line)
-      if args.end_col then
-        result = result .. string.format(":C%d", args.end_col)
+  end
+
+  local result = vim.fn.fnamemodify(filepath, ":p")
+  if start_line then
+    result = result .. ":" .. string.format("L%d", start_line)
+    if start_col then
+      result = result .. string.format(":C%d", start_col)
+    end
+    if end_line then
+      result = result .. string.format("-L%d", end_line)
+      if end_col then
+        result = result .. string.format(":C%d", end_col)
       end
     end
   end

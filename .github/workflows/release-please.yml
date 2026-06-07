@@ -26,7 +26,7 @@ jobs:
       - name: Attach discussion
         if: steps.release.outputs.release_created
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_PAT }}
         run: |
           RELEASE_ID=$(gh api \
             repos/${{ github.repository }}/releases/tags/${{ steps.release.outputs.tag_name }} \

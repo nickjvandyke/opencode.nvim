@@ -15,10 +15,6 @@
 ---Start an `opencode` server.
 ---Called when when none are found; will retry after.
 ---@field start? fun()|false
----
----@field stop? fun()|false
----
----@field toggle? fun()|false
 
 ---An `opencode` server.
 ---@class opencode.server.Server

@@ -10,37 +10,24 @@ local function ellipsize(s, max_len)
   return truncated .. "..."
 end
 
----@return Promise<{ session: opencode.server.Session, server: opencode.server.Server }>
-function M.select_session()
-  return require("opencode.server.discovery")
-    .get()
-    :next(function(server) ---@param server opencode.server.Server
-      return server:get_sessions():next(function(sessions)
-        return { sessions = sessions, server = server }
-      end)
+---@param server opencode.server.Server
+---@return Promise<opencode.server.Session>
+function M.select_session(server)
+  return server:get_sessions():next(function(sessions) ---@param sessions opencode.server.Session[]
+    table.sort(sessions, function(a, b)
+      return a.time.updated > b.time.updated
     end)
-    :next(
-      function(session_data) ---@param session_data {sessions: opencode.server.Session[], server: opencode.server.Server }
-        local sessions = session_data.sessions
-        table.sort(sessions, function(a, b)
-          return a.time.updated > b.time.updated
-        end)
 
-        return require("opencode.promise")
-          .select(sessions, {
-            prompt = "Select session (recently updated first):",
-            format_item = function(item)
-              local title_length = 60
-              local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
-              local title = ellipsize(item.title, title_length)
-              return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
-            end,
-          })
-          :next(function(choice)
-            return { session = choice, server = session_data.server }
-          end)
-      end
-    )
+    return require("opencode.promise.ui").select(sessions, {
+      prompt = "Select session (recently updated first):",
+      format_item = function(item)
+        local title_length = 60
+        local updated = os.date("%b %d, %Y %H:%M:%S", item.time.updated / 1000)
+        local title = ellipsize(item.title, title_length)
+        return ("%s%s%s"):format(title, string.rep(" ", title_length - #title), updated)
+      end,
+    })
+  end)
 end
 
 return M

@@ -13,30 +13,24 @@ local M = {}
 ---Prompt for input with `vim.ui.input`, with context- and server-aware completion.
 ---
 ---@param default? string Text to pre-fill the input with.
+---@param server opencode.server.Server
 ---@param context opencode.Context
 ---@return Promise<string> input
-function M.ask(default, context)
-  local Promise = require("opencode.promise")
+function M.ask(default, server, context)
+  ---@type snacks.input.Opts
+  local input_opts = {
+    default = default,
+    highlight = function(text)
+      local rendered = context:render(text, server.subagents)
+      return context.input_highlight(rendered.input)
+    end,
+  }
+  input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
 
-  return require("opencode.server.discovery")
-    .get()
-    :next(function(server) ---@param server opencode.server.Server
-      ---@type snacks.input.Opts
-      local input_opts = {
-        default = default,
-        highlight = function(text)
-          local rendered = context:render(text, server.subagents)
-          return context.input_highlight(rendered.input)
-        end,
-      }
-      input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
-
-      return Promise.input(input_opts)
-    end)
-    :catch(function(err)
-      context:resume()
-      return Promise.reject(err)
-    end)
+  return require("opencode.promise.ui").input(input_opts):catch(function(err)
+    context:resume()
+    return require("opencode.promise").reject(err)
+  end)
 end
 
 -- FIX: Overridden by blink.cmp cmdline completion if enabled, and that won't have the below items.

@@ -14,17 +14,18 @@ local M = {}
 ---   - Provided by in-process LSP when using `snacks.input`.
 ---
 ---@param default? string Text to pre-fill the input with.
----@param opts? opencode.api.prompt.Opts
-M.ask = function(default, opts)
-  opts = opts or {}
-  opts.context = opts.context or require("opencode.context").new()
+function M.ask(default)
+  local context = require("opencode.context").new()
 
-  return require("opencode.ui.ask")
-    .ask(default, opts.context)
-    :next(function(input) ---@param input string
-      return require("opencode.api.prompt").prompt(input, opts)
+  require("opencode.server.discovery")
+    .get()
+    :next(function(server) ---@param server opencode.server.Server
+      return require("opencode.ui.ask").ask(default, server, context):next(function(input) ---@param input string
+        return require("opencode.api.prompt").prompt(input, server, context)
+      end)
     end)
     :catch(function(err)
+      context:resume()
       if err then
         vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
       end
@@ -35,17 +36,22 @@ end
 ---
 --- - Prompts
 --- - Commands
---- - Server controls
+--- - Servers
 ---
 --- Highlights and previews items when using `snacks.picker`.
 ---
 ---@param opts? opencode.select.Opts Override configured options for this call.
-M.select = function(opts)
-  return require("opencode.ui.select").select(opts):catch(function(err)
-    if err then
-      vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-    end
-  end)
+function M.select(opts)
+  require("opencode.server.discovery")
+    .get()
+    :next(function(server) ---@param server opencode.server.Server
+      return require("opencode.ui.select").select(opts, server)
+    end)
+    :catch(function(err)
+      if err then
+        vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+      end
+    end)
 end
 
 M.statusline = require("opencode.status").statusline
@@ -57,61 +63,83 @@ M.statusline = require("opencode.status").statusline
 ---Prompt `opencode`.
 ---
 --- - End the prompt with a space to append instead of submit.
---- - Injects `opts.contexts` into `prompt`.
 --- - `opencode` will interpret references to files or subagents
 ---
 ---@param prompt string
----@param opts? opencode.api.prompt.Opts
-M.prompt = function(prompt, opts)
-  return require("opencode.api.prompt").prompt(prompt, opts):catch(function(err)
-    if err then
-      vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-    end
-  end)
+function M.prompt(prompt)
+  require("opencode.server.discovery")
+    .get()
+    :next(function(server) ---@param server opencode.server.Server
+      return require("opencode.api.prompt").prompt(prompt, server)
+    end)
+    :catch(function(err)
+      if err then
+        vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+      end
+    end)
 end
 
 ---Command `opencode`.
 ---
----@param command opencode.Command|string The command to send. Can be built-in or reference your custom commands.
-M.command = function(command)
-  require("opencode.api.command").command(command):catch(function(err)
-    if err then
-      vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
-    end
-  end)
+---@param command opencode.Command|string
+function M.command(command)
+  require("opencode.server.discovery")
+    .get()
+    :next(function(server) ---@param server opencode.server.Server
+      return require("opencode.api.command").command(command, server)
+    end)
+    :catch(function(err)
+      if err then
+        vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+      end
+    end)
 end
 
-M.operator = require("opencode.api.operator").operator
+---Wraps `prompt` as an operator, supporting ranges and dot-repeat.
+---
+---@param prompt string
+function M.operator(prompt)
+  ---@param kind "char"|"line"|"block"
+  _G.opencode_prompt_operator = function(kind)
+    local start_pos = vim.api.nvim_buf_get_mark(0, "[")
+    local end_pos = vim.api.nvim_buf_get_mark(0, "]")
+    if start_pos[1] > end_pos[1] or (start_pos[1] == end_pos[1] and start_pos[2] > end_pos[2]) then
+      start_pos, end_pos = end_pos, start_pos
+    end
+
+    local context = require("opencode.context").new({
+      from = { start_pos[1], start_pos[2] },
+      to = { end_pos[1], end_pos[2] },
+      kind = kind,
+    })
+
+    require("opencode.server.discovery")
+      .get()
+      :next(function(server) ---@param server opencode.server.Server
+        return require("opencode.api.prompt").prompt(prompt, server, context)
+      end)
+      :catch(function(err)
+        if err then
+          vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
+        end
+      end)
+  end
+
+  vim.o.operatorfunc = "v:lua.opencode_prompt_operator"
+  return "g@"
+end
 
 ----------------
 --- Server ---
 ----------------
 
----Toggle the configured `opencode` server.
-M.toggle = function()
-  local opts = require("opencode.config").opts
-  if opts.server and opts.server.toggle then
-    opts.server.toggle()
-  else
-    vim.notify("No `opts.server.toggle` function configured", vim.log.levels.ERROR, { title = "opencode" })
-  end
-end
 ---Start the configured `opencode` server.
-M.start = function()
+function M.start()
   local opts = require("opencode.config").opts
   if opts.server and opts.server.start then
     opts.server.start()
   else
     vim.notify("No `opts.server.start` function configured", vim.log.levels.ERROR, { title = "opencode" })
-  end
-end
----Stop the configured `opencode` server.
-M.stop = function()
-  local opts = require("opencode.config").opts
-  if opts.server and opts.server.stop then
-    opts.server.stop()
-  else
-    vim.notify("No `opts.server.stop` function configured", vim.log.levels.ERROR, { title = "opencode" })
   end
 end
 

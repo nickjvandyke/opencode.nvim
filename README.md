@@ -54,12 +54,11 @@ https://github.com/user-attachments/assets/e85e021c-fa8f-466e-830c-c667b28f611e
       -- Your configuration, if any; goto definition on the type or field for details
     }
 
-    vim.o.autoread = true -- Required for `opts.events.reload`
+    vim.o.autoread = true -- Required for `vim.g.opencode_opts.events.reload`
 
     -- Recommended/example keymaps
-    vim.keymap.set({ "n", "x" }, "<C-a>", function() require("opencode").ask("@this: ", { submit = true }) end, { desc = "Ask opencode…" })
-    vim.keymap.set({ "n", "x" }, "<C-x>", function() require("opencode").select() end,                          { desc = "Select opencode…" })
-    vim.keymap.set({ "n", "t" }, "<C-.>", function() require("opencode").toggle() end,                          { desc = "Toggle opencode" })
+    vim.keymap.set({ "n", "x" }, "<C-a>", function() require("opencode").ask("@this: ") end, { desc = "Ask opencode…" })
+    vim.keymap.set({ "n", "x" }, "<C-x>", function() require("opencode").select() end,       { desc = "Select opencode…" })
 
     vim.keymap.set({ "n", "x" }, "go",  function() return require("opencode").operator("@this ") end,        { desc = "Add range to opencode", expr = true })
     vim.keymap.set("n",          "goo", function() return require("opencode").operator("@this ") .. "_" end, { desc = "Add line to opencode", expr = true })
@@ -67,7 +66,7 @@ https://github.com/user-attachments/assets/e85e021c-fa8f-466e-830c-c667b28f611e
     vim.keymap.set("n", "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll opencode up" })
     vim.keymap.set("n", "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll opencode down" })
 
-    -- You may want these if you use the opinionated `<C-a>` and `<C-x>` keymaps above — otherwise consider `<leader>o…` (and remove terminal mode from the `toggle` keymap)
+    -- You may want these if you use the opinionated `<C-a>` and `<C-x>` keymaps above
     vim.keymap.set("n", "+", "<C-a>", { desc = "Increment under cursor", noremap = true })
     vim.keymap.set("n", "-", "<C-x>", { desc = "Decrement under cursor", noremap = true })
   end,
@@ -133,11 +132,9 @@ Run local `opencode`s however you like and `opencode.nvim` will find them! Or po
 > [!IMPORTANT]
 > You _must_ run `opencode` with the `--port` flag to expose its server.
 
-If `opencode.nvim` can't find an existing `opencode`, it starts one for you via `vim.g.opencode_opts.server.start`, defaulting to an embedded terminal.
+If `opencode.nvim` can't find an existing `opencode`, it starts one for you via `vim.g.opencode_opts.server.start`, defaulting to `term://opencode --port`.
 
-#### Custom
-
-[`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md) example:
+Example using [`snacks.terminal`](https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md):
 
 ```lua
 local opencode_cmd = 'opencode --port'
@@ -146,39 +143,38 @@ local snacks_terminal_opts = {
   win = {
     position = 'right',
     enter = false,
-    on_win = function(win)
-      -- Set up keymaps and cleanup for an arbitrary terminal
-      require('opencode.terminal').setup(win.win)
-    end,
   },
 }
+
 ---@type opencode.Opts
 vim.g.opencode_opts = {
   server = {
     start = function()
       require('snacks.terminal').open(opencode_cmd, snacks_terminal_opts)
     end,
-    stop = function()
-      require('snacks.terminal').get(opencode_cmd, snacks_terminal_opts):close()
-    end,
-    toggle = function()
-      require('snacks.terminal').toggle(opencode_cmd, snacks_terminal_opts)
-    end,
   },
 }
+
+-- Can also leverage toggle functionality
+vim.keymap.set({ 'n', 't' }, '<C-.>', function()
+  require('snacks.terminal').toggle(opencode_cmd, snacks_terminal_opts)
+end, { desc = 'Toggle opencode' })
+
+-- Optionally show upon submitting prompt
+vim.api.nvim_create_autocmd('User', {
+  pattern = { 'OpencodeEvent:tui.command.execute' },
+  callback = function(args)
+    ---@type opencode.server.Event
+    local event = args.data.event
+    if event.properties.command == 'prompt.submit' then
+      local win = require('snacks.terminal').get(opencode_cmd, { create = false })
+      if win then
+        win:show()
+      end
+    end
+  end,
+})
 ```
-
-#### Keymaps
-
-`opencode.nvim` sets these normal-mode keymaps in the embedded terminal for Neovim-like message navigation:
-
-| Keymap  | Command                  | Description           |
-| ------- | ------------------------ | --------------------- |
-| `<C-u>` | `session.half.page.up`   | Scroll up half page   |
-| `<C-d>` | `session.half.page.down` | Scroll down half page |
-| `gg`    | `session.first`          | Go to first message   |
-| `G`     | `session.last`           | Go to last message    |
-| `<Esc>` | `session.interrupt`      | Interrupt             |
 
 ## 🚀 Usage
 
@@ -198,7 +194,7 @@ Select from all `opencode.nvim` functionality.
 
 - Prompts
 - Commands
-- Server controls
+- Servers
 
 Highlights and previews items when using `snacks.picker`.
 

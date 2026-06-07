@@ -40,19 +40,7 @@ local defaults = {
     username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as `opencode`
     password = vim.env.OPENCODE_SERVER_PASSWORD,
     start = function()
-      require("opencode.terminal").open("opencode --port", {
-        split = "right",
-        width = math.floor(vim.o.columns * 0.35),
-      })
-    end,
-    stop = function()
-      require("opencode.terminal").close()
-    end,
-    toggle = function()
-      require("opencode.terminal").toggle("opencode --port", {
-        split = "right",
-        width = math.floor(vim.o.columns * 0.35),
-      })
+      vim.cmd("vsplit term://opencode --port | wincmd p")
     end,
   },
   -- stylua: ignore
@@ -113,16 +101,15 @@ local defaults = {
       test = "Add tests for @this",
     },
     commands = {
-      ["session.new"] = "Start a new session",
-      ["session.select"] = "Select a session",
-      ["session.share"] = "Share the current session",
-      ["session.interrupt"] = "Interrupt the current session",
-      ["session.compact"] = "Compact the current session (reduce context size)",
-      ["session.undo"] = "Undo the last action in the current session",
-      ["session.redo"] = "Redo the last undone action in the current session",
-      ["agent.cycle"] = "Cycle the selected agent",
-      ["prompt.submit"] = "Submit the current prompt",
-      ["prompt.clear"] = "Clear the current prompt",
+      ["agent.cycle"] = "Cycle selected agent",
+      ["prompt.clear"] = "Clear current prompt",
+      ["prompt.submit"] = "Submit current prompt",
+      ["session.compact"] = "Compact current session",
+      ["session.interrupt"] = "Interrupt current session",
+      ["session.new"] = "Start new session",
+      ["session.redo"] = "Redo last undone action in current session",
+      ["session.select"] = "Select session",
+      ["session.undo"] = "Undo last action in current session",
     },
     server = true,
     snacks = {
