@@ -82,10 +82,10 @@ function M.diff(event, server)
       return "do"
     end, { buffer = true, desc = "Reject opencode edit hunk", expr = true })
     -- Accept/reject edit as a whole
-    vim.keymap.set("n", "<leader><leader>ca", function()
+    vim.keymap.set("n", "da", function()
       permit("once")
     end, { buffer = true, desc = "Accept opencode edit" })
-    vim.keymap.set("n", "<leader><leader>cr", function()
+    vim.keymap.set("n", "dr", function()
       permit("reject")
     end, { buffer = true, desc = "Reject opencode edit" })
     -- Close diff
