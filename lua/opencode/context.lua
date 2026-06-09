@@ -506,21 +506,4 @@ function Context:marks()
   return table.concat(marks, ", ")
 end
 
----[`grapple.nvim`](https://github.com/cbochs/grapple.nvim) tags.
-function Context:grapple_tags()
-  local is_available, grapple = pcall(require, "grapple")
-  if not is_available then
-    return nil
-  end
-  local tags = grapple.tags()
-  if not tags or #tags == 0 then
-    return nil
-  end
-  local paths = {}
-  for _, tag in ipairs(tags) do
-    table.insert(paths, Context.format(tag.path))
-  end
-  return table.concat(paths, ", ")
-end
-
 return Context

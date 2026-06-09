@@ -53,7 +53,6 @@ local defaults = {
     ["@quickfix"] = function(context) return context:quickfix() end,
     ["@diff"] = function(context) return context:git_diff() end,
     ["@marks"] = function(context) return context:marks() end,
-    ["@grapple"] = function(context) return context:grapple_tags() end,
   },
   ask = {
     prompt = "Ask opencode: ",
