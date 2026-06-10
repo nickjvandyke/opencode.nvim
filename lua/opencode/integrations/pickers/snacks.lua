@@ -19,7 +19,7 @@ function M.send(picker)
   end, picker:selected({ fallback = true }))
 
   if #items > 0 then
-    require("opencode").prompt(table.concat(items, "\n"))
+    require("opencode").prompt(table.concat(items, ", ") .. " ")
   end
 end
 

@@ -108,9 +108,6 @@ function Server:curl(path, method, body, on_success, on_error, opts)
   local password = require("opencode.config").opts.server.password
   if username and password then
     -- We can always send credentials; servers with no auth set just ignore them
-    -- TODO: Track auth per-server?
-    -- Seems like an uncommon need.
-    -- Would require more robust discovery configuration.
     table.insert(cmd, "--user")
     table.insert(cmd, username .. ":" .. password)
   end

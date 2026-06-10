@@ -14,7 +14,7 @@ local M = {}
 ---
 ---@param default? string Text to pre-fill the input with.
 ---@param server opencode.server.Server
----@param context opencode.Context
+---@param context opencode.context.Context
 ---@return Promise<string> input
 function M.ask(default, server, context)
   ---@type snacks.input.Opts

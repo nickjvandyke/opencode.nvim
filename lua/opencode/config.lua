@@ -17,7 +17,7 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---@field server? opencode.server.Opts
 ---
 ---Contexts to inject into prompts, keyed by their placeholder.
----@field contexts? table<string, fun(context: opencode.Context): string|nil>
+---@field contexts? table<string, fun(context: opencode.context.Context): string|nil>
 ---
 ---Options for `ask()`.
 ---Supports [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
@@ -29,10 +29,6 @@ vim.g.opencode_opts = vim.g.opencode_opts
 ---
 ---Options for handling `opencode` events.
 ---@field events? opencode.events.Opts
----
----Options for the in-process LSP that interacts with `opencode`.
----@field lsp? opencode.lsp.Opts
-
 ---@type opencode.Opts
 local defaults = {
   server = {
@@ -45,15 +41,14 @@ local defaults = {
   },
   -- stylua: ignore
   contexts = {
-    ["@this"] = function(context) return context:this() end,
-    ["@buffer"] = function(context) return context:buffer() end,
-    ["@buffers"] = function(context) return context:buffers() end,
-    ["@visible"] = function(context) return context:visible_text() end,
-    ["@diagnostics"] = function(context) return context:diagnostics() end,
-    ["@quickfix"] = function(context) return context:quickfix() end,
-    ["@diff"] = function(context) return context:git_diff() end,
-    ["@marks"] = function(context) return context:marks() end,
-    ["@grapple"] = function(context) return context:grapple_tags() end,
+    ["@this"] = require("opencode.context.builtins").this,
+    ["@buffer"] = require("opencode.context.builtins").buffer,
+    ["@buffers"] = require("opencode.context.builtins").buffers,
+    ["@visible"] = require("opencode.context.builtins").visible_text,
+    ["@diagnostics"] = require("opencode.context.builtins").diagnostics,
+    ["@quickfix"] = require("opencode.context.builtins").quickfix,
+    ["@diff"] = require("opencode.context.builtins").git_diff,
+    ["@marks"] = require("opencode.context.builtins").marks,
   },
   ask = {
     prompt = "Ask opencode: ",
@@ -128,17 +123,6 @@ local defaults = {
       edits = {
         enabled = true,
       },
-    },
-  },
-  lsp = {
-    enabled = false,
-    filetypes = nil,
-    handlers = {
-      hover = {
-        enabled = true,
-        model = nil,
-      },
-      code_action = { enabled = true },
     },
   },
 }
