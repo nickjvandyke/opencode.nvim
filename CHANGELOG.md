@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.12.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.11.0...v0.12.0) (2026-06-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **snacks.picker:** the `snacks.picker` send action has moved from plugin code to a README snippet. please copy the snippet into your config to continue using it.
+
+### Features
+
+* **snacks.picker:** move from plugin code to README snippet, export + improve `format()` ([82958e2](https://github.com/nickjvandyke/opencode.nvim/commit/82958e22981eaf92cb317beac36469c1b1c3e14d))
+
+
+### Bug Fixes
+
+* **context:** `[@this](https://github.com/this)` context wrongly used 0-based cols ([ab91312](https://github.com/nickjvandyke/opencode.nvim/commit/ab9131238e5b35274421e2041d770d31b46fabc2))
+
 ## [0.11.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.2...v0.11.0) (2026-06-09)
 
 
