@@ -3,12 +3,11 @@
 local NS_ID = vim.api.nvim_create_namespace("OpencodeContext")
 
 ---The context a prompt is being made in.
----Particularly useful when inputting or selecting a prompt
----because that changes the active mode, window, etc.
+---Particularly useful when inputting or selecting a prompt, which changes the active mode, window, etc.
 ---So this stores state prior to that.
----@class opencode.Context
----@field win integer
+---@class opencode.context.Context
 ---@field buf integer
+---@field win integer
 ---@field cursor integer[] The cursor positon. { row, col } (1,0-based).
 ---@field range? opencode.context.Range The operator range or visual selection range.
 local Context = {}
@@ -87,14 +86,14 @@ end
 
 ---The currently active context.
 ---Stored globally so the LSP can access it to render contexts in completions.
----@type opencode.Context?
+---@type opencode.context.Context?
 Context.current = nil
 
 ---@param range? opencode.context.Range The range of the operator or visual selection. Defaults to current visual selection, if any.
 function Context.new(range)
   local self = setmetatable({}, Context)
   self.win = vim.api.nvim_get_current_win()
-  self.buf = vim.api.nvim_get_current_buf()
+  self.buf = vim.api.nvim_win_get_buf(self.win)
   self.cursor = vim.api.nvim_win_get_cursor(self.win)
   self.range = range or selection(self.buf)
 
@@ -333,169 +332,6 @@ function Context.format(loc, args)
   end
 
   return result
-end
-
--- TODO: May be a better organization for these built-in `context.Fn`'s
-
----Range if present, else cursor position.
-function Context:this()
-  if self.range then
-    return Context.format(self.buf, {
-      start_line = self.range.from[1],
-      start_col = (self.range.kind ~= "line") and self.range.from[2] or nil,
-      end_line = (self.range.kind ~= "line" or self.range.from[1] ~= self.range.to[1]) and self.range.to[1] or nil,
-      end_col = (self.range.kind ~= "line") and self.range.to[2] or nil,
-    })
-  else
-    return Context.format(self.buf, {
-      start_line = self.cursor[1],
-      start_col = self.cursor[2] + 1,
-    })
-  end
-end
-
----The current buffer.
-function Context:buffer()
-  return Context.format(self.buf)
-end
-
----All open buffers.
-function Context:buffers()
-  local file_list = {}
-  for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
-    local path = Context.format(buf.bufnr)
-    if path then
-      table.insert(file_list, path)
-    end
-  end
-  if #file_list == 0 then
-    return nil
-  end
-  return table.concat(file_list, ", ")
-end
-
----The visible lines in all open windows.
-function Context:visible_text()
-  local visible = {}
-  for _, win in ipairs(vim.api.nvim_list_wins()) do
-    local buf = vim.api.nvim_win_get_buf(win)
-    local location = Context.format(buf, {
-      start_line = vim.fn.line("w0", win),
-      end_line = vim.fn.line("w$", win),
-    })
-    if location then
-      table.insert(visible, location)
-    end
-  end
-  if #visible == 0 then
-    return nil
-  end
-  return table.concat(visible, ", ")
-end
-
----@param diagnostic vim.Diagnostic
----@return string
-function Context.format_diagnostic(diagnostic)
-  local location = Context.format(diagnostic.bufnr, {
-    start_line = diagnostic.lnum + 1,
-    start_col = diagnostic.col + 1,
-    end_line = diagnostic.end_lnum + 1,
-    end_col = diagnostic.end_col + 1,
-  })
-
-  return string.format(
-    "%s (%s): %s",
-    location,
-    diagnostic.source or "unknown source",
-    diagnostic.message:gsub("%s+", " "):gsub("^%s", ""):gsub("%s$", "")
-  )
-end
-
----Diagnostics for the current buffer.
-function Context:diagnostics()
-  local diagnostics = vim.diagnostic.get(self.buf)
-  if #diagnostics == 0 then
-    return nil
-  end
-
-  local diagnostic_strings = vim.tbl_map(function(diagnostic)
-    return "- " .. Context.format_diagnostic(diagnostic)
-  end, diagnostics)
-
-  return #diagnostics .. " diagnostics:" .. "\n" .. table.concat(diagnostic_strings, "\n")
-end
-
----Formatted quickfix list entries.
-function Context:quickfix()
-  local qflist = vim.fn.getqflist()
-  if #qflist == 0 then
-    return nil
-  end
-  local lines = {}
-  for _, entry in ipairs(qflist) do
-    local has_buf = entry.bufnr ~= 0 and vim.api.nvim_buf_get_name(entry.bufnr) ~= ""
-    if has_buf then
-      table.insert(
-        lines,
-        Context.format(entry.bufnr, {
-          start_line = entry.lnum,
-          start_col = entry.col,
-        })
-      )
-    end
-  end
-  return table.concat(lines, ", ")
-end
-
----The git diff (unified diff format).
-function Context:git_diff()
-  local result = vim.system({ "git", "--no-pager", "diff" }, { text = true }):wait()
-  if result.code == 129 then
-    -- Not a git repository
-    return nil
-  end
-  require("opencode.util").check_system_call(result, "git diff")
-  if result.stdout == "" then
-    return nil
-  end
-  return result.stdout
-end
-
----Global marks.
-function Context:marks()
-  local marks = {}
-  for _, mark in ipairs(vim.fn.getmarklist()) do
-    if mark.mark:match("^'[A-Z]$") then
-      table.insert(
-        marks,
-        Context.format(mark.pos[1], {
-          start_line = mark.pos[2],
-          start_col = mark.pos[3],
-        })
-      )
-    end
-  end
-  if #marks == 0 then
-    return nil
-  end
-  return table.concat(marks, ", ")
-end
-
----[`grapple.nvim`](https://github.com/cbochs/grapple.nvim) tags.
-function Context:grapple_tags()
-  local is_available, grapple = pcall(require, "grapple")
-  if not is_available then
-    return nil
-  end
-  local tags = grapple.tags()
-  if not tags or #tags == 0 then
-    return nil
-  end
-  local paths = {}
-  for _, tag in ipairs(tags) do
-    table.insert(paths, Context.format(tag.path))
-  end
-  return table.concat(paths, ", ")
 end
 
 return Context

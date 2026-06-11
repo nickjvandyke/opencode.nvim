@@ -22,6 +22,7 @@ local M = {}
 ---@return Promise
 function M.select(opts, server)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
+  local config = require("opencode.config")
 
   local context = require("opencode.context").new()
   local Promise = require("opencode.promise")
@@ -81,13 +82,12 @@ function M.select(opts, server)
 
   -- Server section
   if opts.server then
-    local config = require("opencode.config")
     table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
     table.insert(items, {
       __type = "server",
       name = "server.select",
       text = "Select server",
-      highlights = { { "Select local server", "Comment" } },
+      highlights = { { "Select server", "Comment" } },
       preview = { text = "" },
     })
     if config.opts.server.start then
@@ -160,10 +160,26 @@ function M.select(opts, server)
           return require("opencode.api.command").command(choice.name, server)
         end
       elseif choice.__type == "server" then
-        -- TODO: Include configured server
         if choice.name == "server.select" then
           return require("opencode.server.discovery")
-            .get_all()
+            .locally()
+            :next(function(servers) ---@param servers opencode.server.Server[]
+              local configured = require("opencode.server.discovery").configured()
+              if configured then
+                return configured:next(function(configured_server) ---@param configured_server opencode.server.Server
+                  if
+                    not vim.tbl_contains(servers, function(local_server)
+                      return local_server.url == configured_server.url
+                    end, { predicate = true })
+                  then
+                    table.insert(servers, 1, configured_server)
+                  end
+                  return servers
+                end)
+              else
+                return servers
+              end
+            end)
             :next(function(servers) ---@param servers opencode.server.Server[]
               return require("opencode.ui.select_server").select_server(servers)
             end)
@@ -171,7 +187,7 @@ function M.select(opts, server)
               return new_server:connect()
             end)
         elseif choice.name == "server.start" then
-          return require("opencode").start()
+          return config.opts.server.start()
         end
       else
         return Promise.reject("Unknown item: " .. choice.name)
