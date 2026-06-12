@@ -36,7 +36,7 @@ end
 -- FIX: Overridden by blink.cmp cmdline completion if enabled, and that won't have the below items.
 -- Can we wire up the below as a blink.cmp cmdline source?
 
----Completion function for context placeholders and `opencode` subagents.
+---Completion function for context placeholders and OpenCode subagents.
 ---Must be a global variable for use with `vim.ui.select`.
 ---
 ---@param ArgLead string The text being completed.

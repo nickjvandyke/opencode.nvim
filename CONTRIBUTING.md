@@ -12,7 +12,7 @@ I maintain this in my free time — please allow for variable response times and
 
 If unsure, propose changes in an issue or discussion first!
 
-- Bridge Neovim and `opencode` to maintain flow.
+- Bridge Neovim and OpenCode to maintain flow.
 - Provide novel functionality first, and convenience second.
 - Simple and intuitive UX.
 
@@ -20,7 +20,7 @@ If unsure, propose changes in an issue or discussion first!
 
 - Prefer simple, robust, and general solutions.
 - Consider existing project patterns and edge cases.
-- Prefer functionality unique from `opencode`'s TUI.
+- Prefer functionality unique from OpenCode's TUI.
 
 ## Code of Conduct
 

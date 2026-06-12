@@ -26,7 +26,7 @@ local function common_prefix_score(path1, path2)
   return score
 end
 
----Select an `opencode` server from a given list.
+---Select an OpenCode server from the given list.
 ---
 ---@param servers opencode.server.Server[]
 ---@return Promise<opencode.server.Server>
@@ -44,7 +44,7 @@ function M.select_server(servers)
   end)
 
   local picker_opts = {
-    prompt = "Select an `opencode` server:",
+    prompt = "Select an OpenCode server:",
     format_item = function(server) ---@param server opencode.server.Server
       return string.format("%s | %s | %s", server:display_name(), server.cwd, server.title or "<No sessions>")
     end,

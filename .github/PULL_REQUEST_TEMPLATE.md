@@ -10,7 +10,6 @@
 - [ ] I read [CONTRIBUTING.md](https://github.com/nickjvandyke/opencode.nvim/blob/main/CONTRIBUTING.md)
 - [ ] I ensured my changes pass automated checks
 - [ ] I reviewed and understand the AI-generated code in my changes (if any)
-- [ ] I addressed actionable AI review feedback (if any)
 
 ## Description
 

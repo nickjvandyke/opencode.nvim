@@ -20,12 +20,12 @@ vim.api.nvim_create_autocmd("User", {
       :catch(function(err)
         if err then
           vim.notify(
-            "Failed to display `opencode` permission request: " .. err,
+            "Failed to display OpenCode permission request: " .. err,
             vim.log.levels.ERROR,
             { title = "opencode" }
           )
         end
       end)
   end,
-  desc = "Display permission requests from opencode",
+  desc = "Display permission requests from OpenCode",
 })

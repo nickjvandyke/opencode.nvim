@@ -20,5 +20,5 @@ vim.api.nvim_create_autocmd("User", {
       end
     end
   end,
-  desc = "Reload buffers edited by opencode",
+  desc = "Reload buffers edited by OpenCode",
 })

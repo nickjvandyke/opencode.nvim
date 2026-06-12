@@ -1,6 +1,6 @@
 ---@class opencode.events.permissions.edits.Opts
 ---
----Whether to diff proposed edits from `opencode` for acceptance or rejection.
+---Whether to diff proposed edits from OpenCode for acceptance or rejection.
 ---@field enabled? boolean
 
 local M = {}
@@ -80,27 +80,27 @@ function M.diff(event, server)
         permit("reject")
       end
       return "dp"
-    end, { buffer = true, desc = "Accept opencode edit hunk", expr = true })
+    end, { buffer = true, desc = "Accept OpenCode edit hunk", expr = true })
     vim.keymap.set("n", "do", function()
       if current_edit_request_id then
         current_edit_request_id = nil
         permit("reject")
       end
       return "do"
-    end, { buffer = true, desc = "Reject opencode edit hunk", expr = true })
+    end, { buffer = true, desc = "Reject OpenCode edit hunk", expr = true })
     -- Accept/reject edit as a whole
     vim.keymap.set("n", "da", function()
       permit("once")
-    end, { buffer = true, desc = "Accept opencode edit" })
+    end, { buffer = true, desc = "Accept OpenCode edit" })
     vim.keymap.set("n", "dr", function()
       permit("reject")
-    end, { buffer = true, desc = "Reject opencode edit" })
+    end, { buffer = true, desc = "Reject OpenCode edit" })
     -- Close diff
     vim.keymap.set("n", "q", function()
       vim.cmd("tabclose")
       current_edit_request_id = nil
       diff_tabpage = nil
-    end, { buffer = true, desc = "Close opencode edit diff" })
+    end, { buffer = true, desc = "Close OpenCode edit diff" })
   elseif event.type == "permission.replied" and current_edit_request_id == event.properties.requestID then
     -- Entire edit was accepted or rejected, either in the plugin or TUI; close the diff
     current_edit_request_id = nil

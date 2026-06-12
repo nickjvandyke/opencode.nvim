@@ -4,32 +4,29 @@ local M = {}
 ---@param context opencode.context.Context
 function M.this(context)
   if context.range then
-    return require("opencode.context").format(context.buf, {
-      start_line = context.range.from[1],
-      start_col = (context.range.kind ~= "line") and context.range.from[2] or nil,
-      end_line = (context.range.kind ~= "line" or context.range.from[1] ~= context.range.to[1]) and context.range.to[1]
-        or nil,
-      end_col = (context.range.kind ~= "line") and context.range.to[2] or nil,
-    })
+    local from = { context.range.from[1] }
+    local to = { context.range.to[1] }
+    if context.range.kind ~= "line" then
+      from[2] = context.range.from[2] + 1
+      to[2] = context.range.to[2] + 1
+    end
+    return require("opencode.context").format({ buf = context.buf, from = from, to = to })
   else
-    return require("opencode.context").format(context.buf, {
-      start_line = context.cursor[1],
-      start_col = context.cursor[2] + 1,
-    })
+    return require("opencode.context").format({ buf = context.buf, from = { context.cursor[1], context.cursor[2] + 1 } })
   end
 end
 
 ---The buffer.
 ---@param context opencode.context.Context
 function M.buffer(context)
-  return require("opencode.context").format(context.buf)
+  return require("opencode.context").format({ buf = context.buf })
 end
 
 ---All open buffers.
 function M.buffers()
   local file_list = {}
   for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
-    local path = require("opencode.context").format(buf.bufnr)
+    local path = require("opencode.context").format({ buf = buf.bufnr })
     if path then
       table.insert(file_list, path)
     end
@@ -45,9 +42,10 @@ function M.visible_text()
   local visible = {}
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local buf = vim.api.nvim_win_get_buf(win)
-    local location = require("opencode.context").format(buf, {
-      start_line = vim.fn.line("w0", win),
-      end_line = vim.fn.line("w$", win),
+    local location = require("opencode.context").format({
+      buf = buf,
+      from = { vim.fn.line("w0", win) },
+      to = { vim.fn.line("w$", win) },
     })
     if location then
       table.insert(visible, location)
@@ -62,11 +60,10 @@ end
 ---@param diagnostic vim.Diagnostic
 ---@return string
 function M.format_diagnostic(diagnostic)
-  local location = require("opencode.context").format(diagnostic.bufnr, {
-    start_line = diagnostic.lnum + 1,
-    start_col = diagnostic.col + 1,
-    end_line = diagnostic.end_lnum + 1,
-    end_col = diagnostic.end_col + 1,
+  local location = require("opencode.context").format({
+    buf = diagnostic.bufnr,
+    from = { diagnostic.lnum + 1, diagnostic.col + 1 },
+    to = { diagnostic.end_lnum + 1, diagnostic.end_col + 1 },
   })
 
   return string.format(
@@ -128,29 +125,10 @@ function M.quickfix()
   for _, entry in ipairs(qflist) do
     local has_buf = entry.bufnr ~= 0 and vim.api.nvim_buf_get_name(entry.bufnr) ~= ""
     if has_buf then
-      table.insert(
-        lines,
-        require("opencode.context").format(entry.bufnr, {
-          start_line = entry.lnum,
-          start_col = entry.col,
-        })
-      )
+      table.insert(lines, require("opencode.context").format({ buf = entry.bufnr, from = { entry.lnum, entry.col } }))
     end
   end
   return table.concat(lines, ", ")
-end
-
----The git diff (unified diff format).
-function M.git_diff()
-  local result = vim.system({ "git", "--no-pager", "diff" }, { text = true }):wait()
-  if result.code == 129 then
-    return nil
-  end
-  require("opencode.util").check_system_call(result, "git diff")
-  if result.stdout == "" then
-    return nil
-  end
-  return result.stdout
 end
 
 ---Global marks.
@@ -160,10 +138,7 @@ function M.marks()
     if mark.mark:match("^'[A-Z]$") then
       table.insert(
         marks,
-        require("opencode.context").format(mark.pos[1], {
-          start_line = mark.pos[2],
-          start_col = mark.pos[3],
-        })
+        require("opencode.context").format({ buf = mark.pos[1], from = { mark.pos[2], mark.pos[3] } })
       )
     end
   end

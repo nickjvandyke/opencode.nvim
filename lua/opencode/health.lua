@@ -40,7 +40,7 @@ function M.check()
     vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local latest_tested_version = "1.2.11"
+    local latest_tested_version = "1.17.4"
     local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
     if found_version_parsed and latest_tested_version_parsed then
       local found_major = found_version_parsed[1] or 0
@@ -115,19 +115,19 @@ function M.check()
   local snacks_ok, snacks = pcall(require, "snacks")
   if snacks_ok then
     if snacks.config.get("input", {}).enabled then
-      vim.health.ok("`snacks.input` is enabled: `ask()` will be enhanced.")
+      vim.health.ok("`snacks.input` enabled: `ask()` enhanced.")
       -- TODO: Maybe healthcheck verifying that their completion plugin has the LSP source enabled by default?
       -- Otherwise they need to explicitly enable it for `opencode_ask` filetype.
     else
-      vim.health.warn("`snacks.input` is disabled: `ask()` will not be enhanced.")
+      vim.health.warn("`snacks.input` disabled: `ask()` not enhanced.")
     end
     if snacks.config.get("picker", {}).enabled then
-      vim.health.ok("`snacks.picker` is enabled: `select()` will be enhanced.")
+      vim.health.ok("`snacks.picker` enabled: `select()` enhanced.")
     else
-      vim.health.warn("`snacks.picker` is disabled: `select()` will not be enhanced.")
+      vim.health.warn("`snacks.picker` disabled: `select()` enhanced.")
     end
   else
-    vim.health.warn("`snacks.nvim` is not available: `ask()` and `select()` will not be enhanced.")
+    vim.health.warn("`snacks.nvim` not available: `ask()` and `select()` not enhanced.")
   end
 end
 

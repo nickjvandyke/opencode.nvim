@@ -278,22 +278,23 @@ local function get_buffer_range_text(bufnr, start_line, start_col, end_line, end
   return table.concat(lines, "\n")
 end
 
----Format a location for `opencode`.
----e.g. `opencode.lua:L21:C10-L65:C11` when backed by a file.
----When not backed by a file it returns the literal text of the range (if present) or the entire buffer.
----@param loc string|integer A buffer number or filepath.
----@param args? { start_line?: integer, start_col?: integer, end_line?: integer, end_col?: integer } 1-based
----@return string?
-function Context.format(loc, args)
-  local filepath = (type(loc) == "string" and loc) or (type(loc) == "number" and vim.api.nvim_buf_get_name(loc)) or nil
+---Format a location for OpenCode.
+---
+---@param opts { path?: string, buf?: integer, from?: integer[], to?: integer[] } One of `path` or `buf` is required. `from` and `to` are 1-based `{ line, col? }` tuples.
+---@return string? formatted Location if backed by a file (e.g. `opencode.lua:L21:C10-L65:C11`) so OpenCode can gather context, else literal text of the range or buffer. `nil` if invalid file or buffer.
+function Context.format(opts)
+  assert(opts.path or opts.buf, "One of `opts.path` or `opts.buf` is required.")
+  local filepath = opts.path or (opts.buf and vim.api.nvim_buf_get_name(opts.buf)) or nil
   if not filepath or filepath == "" then
     return nil
   end
 
-  local start_line = args and args.start_line
-  local start_col = args and args.start_col
-  local end_line = args and args.end_line
-  local end_col = args and args.end_col
+  local from = opts.from
+  local to = opts.to
+  local start_line = from and from[1]
+  local start_col = from and from[2]
+  local end_line = to and to[1]
+  local end_col = to and to[2]
 
   -- Normalize start/end (for reversed visual selections)
   if start_line and end_line and start_line > end_line then
@@ -304,14 +305,14 @@ function Context.format(loc, args)
   end
 
   -- For buffers not backed by a real file, return inline text
-  if type(loc) == "number" then
+  if opts.buf then
     local filestat = vim.uv.fs_stat(filepath)
     if not filestat or filestat.type ~= "file" then
       return get_buffer_range_text(
-        loc,
+        opts.buf,
         start_line or 1,
         start_col,
-        end_line or vim.api.nvim_buf_line_count(loc),
+        end_line or vim.api.nvim_buf_line_count(opts.buf),
         end_col
       )
     end

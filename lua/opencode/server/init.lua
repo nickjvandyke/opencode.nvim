@@ -1,6 +1,6 @@
 ---@class opencode.server.Opts
 ---
----Full URL of an `opencode` server, e.g. `"http://localhost:4096"`.
+---Full URL of an OpenCode server, e.g. `"http://localhost:4096"`.
 ---If set, bypasses local process discovery and connects directly.
 ---You _must_ run `opencode` with the `--port` flag to expose its server.
 ---If pointing to a headless server, you _must_ attach a TUI via `opencode attach <URL>`.
@@ -12,11 +12,11 @@
 ---Basic auth password.
 ---@field password? string
 ---
----Start an `opencode` server.
+---Start an OpenCode server.
 ---Called when when none are found; will retry after.
 ---@field start? fun()|false
 
----An `opencode` server.
+---An OpenCode server.
 ---@class opencode.server.Server
 ---@field url string
 ---@field cwd string
@@ -27,9 +27,9 @@
 local Server = {}
 Server.__index = Server
 
----Attempt to connect to an `opencode` server and fetch its health and details.
+---Attempt to connect to an OpenCode server and fetch its health and details.
 ---Rejects if the health fails — the last line of defense against false-positive server discovery.
----Rejection message is non-empty if from a valid `opencode` server.
+---Rejection message is non-empty if from a valid OpenCode server.
 ---@param url string
 ---@return Promise<opencode.server.Server>
 function Server.new(url)
@@ -37,16 +37,14 @@ function Server.new(url)
   self.url = url:gsub("/$", "")
   self.heartbeat_timer = vim.uv.new_timer()
 
-  local Promise = require("opencode.promise")
-
-  -- Serially check health first to confirm that this is a valid and authenticated `opencode` server.
+  -- Serially check health first to confirm that this is a valid and authenticated OpenCode server.
   -- Would like to differentiate headless servers, but not possible afaict unfortunately.
   -- No endpoint exposes such information, and TUI commands sent to a headless server with none attached just no-op, with no tell in the respone.
   -- So user must manually `opencode attach` in that case.
   return self
     :get_health()
     :next(function()
-      return Promise.all({
+      return require("opencode.promise").all({
         self:get_path():next(function(path)
           return path.directory or path.worktree
         end),
@@ -203,7 +201,7 @@ function Server:get_health()
   return require("opencode.promise").new(function(resolve, reject)
     self:curl("/global/health", "GET", nil, resolve, function(msg, _, status)
       if status == 401 then
-        reject("Unauthorized response from `opencode` at " .. self:display_name())
+        reject("Unauthorized response from OpenCode at " .. self:display_name())
       else
         reject(msg)
       end
@@ -274,8 +272,6 @@ end
 ---@field title string
 ---@field time opencode.server.SessionTime
 
----Get sessions from `opencode`.
----
 ---@return Promise<opencode.server.Session[]>
 function Server:get_sessions()
   return require("opencode.promise").new(function(resolve, reject)
@@ -283,8 +279,6 @@ function Server:get_sessions()
   end)
 end
 
----Select session in `opencode`.
----
 ---@param session_id string
 ---@return Promise
 function Server:select_session(session_id)
@@ -327,7 +321,7 @@ function Server:sse_subscribe(on_success, on_error)
   return self:curl("/event", "GET", nil, on_success, on_error, { persistent = true })
 end
 
----How often `opencode` sends heartbeat events.
+---How often OpenCode sends heartbeat events.
 local OPENCODE_HEARTBEAT_INTERVAL_MS = 10000
 
 ---The currently connected server.

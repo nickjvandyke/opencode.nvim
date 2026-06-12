@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.13.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.12.0...v0.13.0) (2026-06-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **context:** remove `@diff` context and prompt
+
+### Features
+
+* **context:** remove `[@diff](https://github.com/diff)` context and prompt ([7106214](https://github.com/nickjvandyke/opencode.nvim/commit/7106214840d5a9d26f0e37f372fdcba8920f7c50))
+* **discovery:** make process-finding async, catch + surface executor errors ([9aa4f03](https://github.com/nickjvandyke/opencode.nvim/commit/9aa4f03f1dff0521ca9f79d9e1fd4df121f5a0ee))
+
+## [0.12.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.11.0...v0.12.0) (2026-06-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **snacks.picker:** the `snacks.picker` send action has moved from plugin code to a README snippet. please copy the snippet into your config to continue using it.
+
+### Features
+
+* **snacks.picker:** move from plugin code to README snippet, export + improve `format()` ([82958e2](https://github.com/nickjvandyke/opencode.nvim/commit/82958e22981eaf92cb317beac36469c1b1c3e14d))
+
+
+### Bug Fixes
+
+* **context:** `[@this](https://github.com/this)` context wrongly used 0-based cols ([ab91312](https://github.com/nickjvandyke/opencode.nvim/commit/ab9131238e5b35274421e2041d770d31b46fabc2))
+
 ## [0.11.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.2...v0.11.0) (2026-06-09)
 
 
