@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.12.0...v0.13.0) (2026-06-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **context:** remove `@diff` context and prompt
+
+### Features
+
+* **context:** remove `[@diff](https://github.com/diff)` context and prompt ([7106214](https://github.com/nickjvandyke/opencode.nvim/commit/7106214840d5a9d26f0e37f372fdcba8920f7c50))
+* **discovery:** make process-finding async, catch + surface executor errors ([9aa4f03](https://github.com/nickjvandyke/opencode.nvim/commit/9aa4f03f1dff0521ca9f79d9e1fd4df121f5a0ee))
+
 ## [0.12.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.11.0...v0.12.0) (2026-06-11)
 
 
