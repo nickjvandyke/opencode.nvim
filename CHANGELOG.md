@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.0...v0.13.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* **edits:** E816 malformed diffpatch ([#287](https://github.com/nickjvandyke/opencode.nvim/issues/287)) ([d0ad9f3](https://github.com/nickjvandyke/opencode.nvim/commit/d0ad9f3f603d10b767253d0391d1c6d90dddac24))
+
 ## [0.13.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.12.0...v0.13.0) (2026-06-12)
 
 
