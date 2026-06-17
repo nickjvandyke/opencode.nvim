@@ -11,17 +11,15 @@ local M = {}
 ---
 ---@param default? string Text to pre-fill the input with.
 function M.ask(default)
-  local context = require("opencode.context").new()
-
   require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
+      local context = require("opencode.context").new()
       return require("opencode.ui.ask").ask(default, server, context):next(function(input) ---@param input string
         return require("opencode.api.prompt").prompt(input, server, context)
       end)
     end)
     :catch(function(err)
-      context:resume()
       if err then
         vim.notify(err, vim.log.levels.ERROR, { title = "opencode" })
       end
@@ -62,7 +60,8 @@ function M.prompt(prompt)
   require("opencode.server.discovery")
     .get()
     :next(function(server) ---@param server opencode.server.Server
-      return require("opencode.api.prompt").prompt(prompt, server)
+      local context = require("opencode.context").new()
+      return require("opencode.api.prompt").prompt(prompt, server, context)
     end)
     :catch(function(err)
       if err then
