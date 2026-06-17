@@ -13,7 +13,7 @@ Context.__index = Context
 ---@field [1] string Text.
 ---@field [2]? string Highlight group.
 
----@class opencode.context.Extmark vim.api.keyset.set_extmark : {col:number, row?:number, field?:string}
+---@class opencode.context.Extmark vim.api.keyset.set_extmark : { col?: number, row?: number, field?: string }
 
 ---@class opencode.context.Range
 ---@field from integer[] { line, col } (1,0-based)

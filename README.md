@@ -278,24 +278,24 @@ Wraps `prompt` as an operator, supporting ranges and dot-repeat.
 
 Command OpenCode:
 
-| Command                  | Description                                        |
-| ------------------------ | -------------------------------------------------- |
-| `session.new`            | Start a new session                                |
-| `session.select`         | Select a session                                   |
-| `session.share`          | Share the current session                          |
-| `session.interrupt`      | Interrupt the current session                      |
-| `session.compact`        | Compact the current session (reduce context size)  |
-| `session.page.up`        | Scroll messages up by one page                     |
-| `session.page.down`      | Scroll messages down by one page                   |
-| `session.half.page.up`   | Scroll messages up by half a page                  |
-| `session.half.page.down` | Scroll messages down by half a page                |
-| `session.first`          | Jump to the first message in the session           |
-| `session.last`           | Jump to the last message in the session            |
-| `session.undo`           | Undo the last action in the current session        |
-| `session.redo`           | Redo the last undone action in the current session |
-| `prompt.submit`          | Submit the TUI input                               |
-| `prompt.clear`           | Clear the TUI input                                |
-| `agent.cycle`            | Cycle the selected agent                           |
+| Command                  | Description                                |
+| ------------------------ | ------------------------------------------ |
+| `agent.cycle`            | Cycle selected agent                       |
+| `prompt.clear`           | Clear current prompt                       |
+| `prompt.submit`          | Submit current prompt                      |
+| `session.compact`        | Compact current session                    |
+| `session.first`          | Jump to first message in session           |
+| `session.half.page.up`   | Scroll messages up half a page             |
+| `session.half.page.down` | Scroll messages down half a page           |
+| `session.interrupt`      | Interrupt current session                  |
+| `session.last`           | Jump to last message in current session    |
+| `session.new`            | Start new session                          |
+| `session.page.up`        | Scroll messages up one page                |
+| `session.page.down`      | Scroll messages down one page              |
+| `session.select`         | Select session                             |
+| `session.share`          | Share current session                      |
+| `session.redo`           | Redo last undone action in current session |
+| `session.undo`           | Undo last action in current session        |
 
 ## 👀 Events
 

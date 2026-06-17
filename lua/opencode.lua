@@ -72,7 +72,7 @@ end
 
 ---Command OpenCode.
 ---
----@param command opencode.Command|string
+---@param command opencode.server.Command|string
 function M.command(command)
   require("opencode.server.discovery")
     .get()

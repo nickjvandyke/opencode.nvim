@@ -62,7 +62,7 @@ function M.diff(event, server)
     diff_tabpage = vim.api.nvim_get_current_tabpage()
     current_edit_request_id = event.properties.id
 
-    ---@param reply opencode.server.permission.Reply
+    ---@param reply opencode.server.PermissionReply
     local function permit(reply)
       server:permit(event.properties.id, reply):catch(function(msg)
         vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })

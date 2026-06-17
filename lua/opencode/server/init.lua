@@ -19,6 +19,63 @@
 local Server = {}
 Server.__index = Server
 
+---[OpenCode Commands](https://github.com/sst/opencode/blob/dev/packages/opencode/src/cli/cmd/tui/event.ts).
+---@alias opencode.server.Command
+---| 'agent.cycle'
+---| 'prompt.clear'
+---| 'prompt.submit'
+---| 'session.compact'
+---| 'session.first'
+---| 'session.half.page.up'
+---| 'session.half.page.down'
+---| 'session.interrupt'
+---| 'session.last'
+---| 'session.new'
+---| 'session.page.up'
+---| 'session.page.down'
+---| 'session.share'
+---| 'session.redo'
+---| 'session.undo'
+
+---@class opencode.server.Session
+---@field id string
+---@field title string
+---@field time opencode.server.SessionTime
+
+---@class opencode.server.SessionTime
+---@field created integer time in milliseconds
+---@field updated integer time in milliseconds
+
+---@class opencode.server.Agent
+---@field name string
+---@field description string
+---@field mode "primary"|"subagent"
+
+---@class opencode.server.PathResponse
+---@field directory string
+---@field worktree string
+
+---@alias opencode.server.PermissionReply
+---| "once"
+---| "always"
+---| "reject"
+
+---@class opencode.server.Event
+---@field type opencode.server.event.type|string
+---@field properties table
+
+---@alias opencode.server.event.type
+---| "server.connected"
+---| "server.instance.disposed"
+---| "session.idle"
+---| "session.diff"
+---| "session.heartbeat"
+---| "message.updated"
+---| "message.part.updated"
+---| "permission.updated"
+---| "permission.replied"
+---| "session.error"
+
 ---Attempt to connect to an OpenCode server and fetch its health and details.
 ---Rejects if the health fails — the last line of defense against false-positive server discovery.
 ---Rejection message is non-empty if from a valid OpenCode server.
@@ -211,7 +268,7 @@ function Server:tui_append_prompt(text)
   end)
 end
 
----@param command opencode.Command|string
+---@param command opencode.server.Command|string
 ---@return Promise
 function Server:tui_execute_command(command)
   return require("opencode.promise").new(function(resolve, reject)
@@ -225,13 +282,8 @@ function Server:tui_execute_command(command)
   end)
 end
 
----@alias opencode.server.permission.Reply
----| "once"
----| "always"
----| "reject"
-
 ---@param permission number
----@param reply opencode.server.permission.Reply
+---@param reply opencode.server.PermissionReply
 ---@return Promise
 function Server:permit(permission, reply)
   return require("opencode.promise").new(function(resolve, reject)
@@ -239,32 +291,12 @@ function Server:permit(permission, reply)
   end)
 end
 
----@class opencode.server.Agent
----@field name string
----@field description string
----@field mode "primary"|"subagent"
-
 ---@return Promise<opencode.server.Agent[]>
 function Server:get_agents()
   return require("opencode.promise").new(function(resolve, reject)
     self:curl("/agent", "GET", nil, resolve, reject)
   end)
 end
-
----@class opencode.server.Command
----@field name string
----@field description string
----@field template string
----@field agent string
-
----@class opencode.server.SessionTime
----@field created integer time in milliseconds
----@field updated integer time in milliseconds
-
----@class opencode.server.Session
----@field id string
----@field title string
----@field time opencode.server.SessionTime
 
 ---@return Promise<opencode.server.Session[]>
 function Server:get_sessions()
@@ -281,32 +313,12 @@ function Server:select_session(session_id)
   end)
 end
 
----@class opencode.server.PathResponse
----@field directory string
----@field worktree string
-
 ---@return Promise<opencode.server.PathResponse>
 function Server:get_path()
   return require("opencode.promise").new(function(resolve, reject)
     self:curl("/path", "GET", nil, resolve, reject)
   end)
 end
-
----@alias opencode.server.event.type
----| "server.connected"
----| "server.instance.disposed"
----| "session.idle"
----| "session.diff"
----| "session.heartbeat"
----| "message.updated"
----| "message.part.updated"
----| "permission.updated"
----| "permission.replied"
----| "session.error"
-
----@class opencode.server.Event
----@field type opencode.server.event.type|string
----@field properties table
 
 ---@param on_success fun(response: opencode.server.Event) Invoked with each received event.
 ---@param on_error fun(msg: string?, code: number)
@@ -351,16 +363,7 @@ function Server:connect()
           self:disconnect()
         end
 
-        if require("opencode.config").opts.events.enabled then
-          vim.api.nvim_exec_autocmds("User", {
-            pattern = "OpencodeEvent:" .. response.type,
-            data = {
-              event = response,
-              -- Can't pass metatable through here, so listeners need to reconstruct the server object if they want to use its methods
-              url = self.url,
-            },
-          })
-        end
+        require("opencode.events").emit(response, self)
       end,
       -- Server disappeared ungracefully, e.g. process killed, network error, etc.
       -- Also called on manual disconnects, like our `vim.fn.jobstop`.
