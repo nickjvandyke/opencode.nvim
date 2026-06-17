@@ -1,5 +1,3 @@
----@module 'snacks.picker'
-
 ---The context a prompt is being made in.
 ---Particularly useful when inputting or selecting a prompt, which changes the active mode, window, etc.
 ---So this stores state prior to that.
@@ -10,6 +8,12 @@
 ---@field range? opencode.context.Range The operator range or visual selection range.
 local Context = {}
 Context.__index = Context
+
+---@class opencode.context.Text
+---@field [1] string Text.
+---@field [2]? string Highlight group.
+
+---@class opencode.context.Extmark vim.api.keyset.set_extmark : {col:number, row?:number, field?:string}
 
 ---@class opencode.context.Range
 ---@field from integer[] { line, col } (1,0-based)
@@ -120,7 +124,7 @@ end
 ---Render `opts.contexts` in `prompt`.
 ---@param prompt string
 ---@param agents opencode.server.Agent[]
----@return { input: snacks.picker.Text[], output: snacks.picker.Text[] }
+---@return { input: opencode.context.Text[], output: opencode.context.Text[] }
 function Context:render(prompt, agents)
   local contexts = require("opencode.config").opts.contexts or {}
 
@@ -129,7 +133,7 @@ function Context:render(prompt, agents)
     return "@" .. agent.name
   end, agents)
 
-  ---@type table<string, { input: (fun(): snacks.picker.Text), output: (fun(): snacks.picker.Text) }>
+  ---@type table<string, { input: (fun(): opencode.context.Text), output: (fun(): opencode.context.Text) }>
   local placeholders = {}
   for _, context_placeholder in ipairs(context_placeholders) do
     placeholders[context_placeholder] = {
@@ -202,11 +206,11 @@ function Context:render(prompt, agents)
 end
 
 ---Convert rendered context to plaintext.
----@param rendered snacks.picker.Text[]
+---@param rendered opencode.context.Text[]
 ---@return string
 function Context.plaintext(rendered)
   return table.concat(vim.tbl_map(
-    ---@param part snacks.picker.Text
+    ---@param part opencode.context.Text
     function(part)
       return part[1]
     end,
@@ -217,8 +221,8 @@ end
 ---Convert rendered context to extmarks.
 ---Handles multiline parts.
 ---
----@param rendered snacks.picker.Text[]
----@return snacks.picker.Extmark[]
+---@param rendered opencode.context.Text[]
+---@return opencode.context.Extmark[]
 function Context.extmarks(rendered)
   local row = 1
   local col = 1
@@ -232,8 +236,8 @@ function Context.extmarks(rendered)
         row = row + 1
         col = 1
       end
-      ---@type snacks.picker.Extmark
       if part_hl then
+        ---@type opencode.context.Extmark
         local extmark = {
           row = row,
           col = col - 1,
@@ -249,7 +253,7 @@ function Context.extmarks(rendered)
 end
 
 ---Transforms to `:help input()-highlight` format.
----@param rendered snacks.picker.Text[]
+---@param rendered opencode.context.Text[]
 ---return { [1]: integer, [2]: integer, [3]: string }[]
 function Context.input_highlight(rendered)
   return vim.tbl_map(function(extmark)
