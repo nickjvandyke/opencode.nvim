@@ -1,20 +1,12 @@
 ---@class opencode.server.Opts
----
 ---Full URL of an OpenCode server, e.g. `"http://localhost:4096"`.
----If set, bypasses local process discovery and connects directly.
+---Bypasses local process discovery and connects directly.
 ---You _must_ run `opencode` with the `--port` flag to expose its server.
 ---If pointing to a headless server, you _must_ attach a TUI via `opencode attach <URL>`.
 ---@field url? string|fun(callback: fun(url?: string))
----
----Basic auth username.
----@field username? string
----
----Basic auth password.
----@field password? string
----
----Start an OpenCode server.
----Called when when none are found; will retry after.
----@field start? fun()|false
+---@field username? string Basic auth username.
+---@field password? string Basic auth password.
+---@field start? fun()|false Start an OpenCode server. Called when none are found; will retry after.
 
 ---An OpenCode server.
 ---@class opencode.server.Server
@@ -30,6 +22,7 @@ Server.__index = Server
 ---Attempt to connect to an OpenCode server and fetch its health and details.
 ---Rejects if the health fails — the last line of defense against false-positive server discovery.
 ---Rejection message is non-empty if from a valid OpenCode server.
+---
 ---@param url string
 ---@return Promise<opencode.server.Server>
 function Server.new(url)
@@ -67,6 +60,7 @@ function Server.new(url)
 end
 
 ---Human-readable name, stripping the protocol prefix.
+---
 ---@return string
 function Server:display_name()
   local name = self.url:gsub("^%w+://", "")
@@ -332,6 +326,7 @@ Server.connected = nil
 ---Subscribe to this server's SSE stream and dispatch autocmds for received events.
 ---Disconnects currently connected server first.
 ---Idempotent.
+---
 ---@return Promise<opencode.server.Server> server Promise that resolves or rejects according to initial connection success.
 function Server:connect()
   local Promise = require("opencode.promise")

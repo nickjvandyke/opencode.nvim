@@ -1,23 +1,15 @@
 ---@module 'snacks.picker'
 
-local M = {}
-
 ---@class opencode.select.Opts : snacks.picker.ui_select.Opts
----
----Prompts to display.
----End the prompt with a space to append instead of submit.
----End the prompt with "..." to open it in `ask()` before sending.
----@field prompts? table<string, string>|false
----
----Commands to display, and their descriptions.
----@field commands? table<opencode.Command|string, string>|false
----
----Server controls to display, and their descriptions.
----@field server? table<opencode.select.server.Items, string>|false
+---@field prompts? table<string, string>|false Prompts to display. Trailing space appends; trailing "..." opens in `ask()`.
+---@field commands? table<opencode.Command|string, string>|false Commands to display and their descriptions.
+---@field server? table<opencode.select.server.Items, string>|false Server controls to display and their descriptions.
 
 ---@alias opencode.select.server.Items
 ---| 'server.select'
 ---| 'server.start'
+
+local M = {}
 
 ---Select from all opencode.nvim functionality.
 ---

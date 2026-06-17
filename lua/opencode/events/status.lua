@@ -1,5 +1,3 @@
-local M = {}
-
 ---@alias opencode.status.Status
 ---| "idle"
 ---| "busy"
@@ -11,9 +9,11 @@ local M = {}
 ---| "󱚡"
 ---| "󱚧"
 
----@type opencode.status.Status|nil
+local M = {}
+
+---@type opencode.status.Status?
 M.status = nil
----@type string|nil
+---@type string?
 M.url = nil
 
 ---@return string

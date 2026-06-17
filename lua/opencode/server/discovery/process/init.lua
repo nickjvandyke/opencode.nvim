@@ -1,10 +1,10 @@
-local M = {}
-
 ---An `opencode` process.
 ---Retrieval is platform-dependent.
 ---@class opencode.server.discovery.process.Process
 ---@field pid number
 ---@field port number
+
+local M = {}
 
 ---@return Promise<opencode.server.discovery.process.Process[]>
 function M.get()

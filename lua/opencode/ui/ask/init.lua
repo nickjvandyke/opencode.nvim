@@ -1,14 +1,10 @@
 ---@module 'snacks.input'
 
-local M = {}
-
 ---@class opencode.ask.Opts
----
----Text of the prompt.
----@field prompt? string
----
----Options for [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
----@field snacks? snacks.input.Opts
+---@field prompt? string Text of the prompt.
+---@field snacks? snacks.input.Opts Options for [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
+
+local M = {}
 
 ---Prompt for input with `vim.ui.input`, with context- and server-aware completion.
 ---

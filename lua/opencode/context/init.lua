@@ -1,7 +1,5 @@
 ---@module 'snacks.picker'
 
-local NS_ID = vim.api.nvim_create_namespace("OpencodeContext")
-
 ---The context a prompt is being made in.
 ---Particularly useful when inputting or selecting a prompt, which changes the active mode, window, etc.
 ---So this stores state prior to that.
@@ -18,8 +16,10 @@ Context.__index = Context
 ---@field to integer[] { line, col } (1,0-based)
 ---@field kind "char"|"line"|"block"
 
+local NS_ID = vim.api.nvim_create_namespace("OpencodeContext")
+
 ---@param buf integer
----@return opencode.context.Range|nil
+---@return opencode.context.Range?
 local function selection(buf)
   local mode = vim.fn.mode()
   local kind = (mode == "V" and "line") or (mode == "v" and "char") or (mode == "\22" and "block")
@@ -216,6 +216,7 @@ end
 
 ---Convert rendered context to extmarks.
 ---Handles multiline parts.
+---
 ---@param rendered snacks.picker.Text[]
 ---@return snacks.picker.Extmark[]
 function Context.extmarks(rendered)

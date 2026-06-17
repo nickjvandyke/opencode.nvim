@@ -1,7 +1,5 @@
 ---@class opencode.events.permissions.edits.Opts
----
----Whether to diff proposed edits from OpenCode for acceptance or rejection.
----@field enabled? boolean
+---@field enabled? boolean Diff proposed edits for acceptance or rejection.
 
 local M = {}
 

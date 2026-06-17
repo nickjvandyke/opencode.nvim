@@ -1,5 +1,3 @@
-local M = {}
-
 ---See all available commands [here](https://github.com/sst/opencode/blob/dev/packages/opencode/src/cli/cmd/tui/event.ts).
 ---@alias opencode.Command
 ---| 'session.list'
@@ -19,8 +17,8 @@ local M = {}
 ---| 'prompt.clear'
 ---| 'agent.cycle'
 
----Send a command to OpenCode.
----
+local M = {}
+
 ---@param command opencode.Command|string
 ---@param server opencode.server.Server
 ---@return Promise

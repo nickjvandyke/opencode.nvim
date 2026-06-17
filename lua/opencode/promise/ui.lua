@@ -1,6 +1,7 @@
 local M = {}
 
 ---Wraps `vim.ui.select` in a `Promise`.
+---Rejects on cancellation.
 ---
 ---@generic T
 ---@param items T[]
@@ -19,6 +20,7 @@ function M.select(items, opts)
 end
 
 ---Wraps `vim.ui.input` in a `Promise`.
+---Rejects on cancellation or empty input.
 ---
 ---@param opts table
 ---@return Promise<string>

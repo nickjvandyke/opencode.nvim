@@ -1,6 +1,9 @@
----@module 'snacks'
-
-local M = {}
+---@class opencode.Opts
+---@field server? opencode.server.Opts OpenCode server connection options.
+---@field contexts? table<string, fun(context: opencode.context.Context): string?> Context placeholders and their builders.
+---@field ask? opencode.ask.Opts Options for `ask()`. Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
+---@field select? opencode.select.Opts Options and items for `select()`. Supports [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
+---@field events? opencode.events.Opts Options for handling OpenCode events.
 
 ---Your opencode.nvim configuration.
 ---Passed via global variable for [simpler UX and faster startup](https://mrcjkb.dev/posts/2023-08-22-setup.html).
@@ -8,27 +11,10 @@ local M = {}
 ---snacks.nvim note: Neovim does not yet support metatables or mixed integer and string keys in `vim.g` variables, affecting some options.
 ---In that case you may modify `require("opencode.config").opts` directly.
 ---See [opencode.nvim #36](https://github.com/nickjvandyke/opencode.nvim/issues/36) and [neovim #12544](https://github.com/neovim/neovim/issues/12544#issuecomment-1116794687).
----@type opencode.Opts|nil
+---@type opencode.Opts?
 vim.g.opencode_opts = vim.g.opencode_opts
 
----@class opencode.Opts
----
----Connect to a specific OpenCode server, and optionally manage one.
----@field server? opencode.server.Opts
----
----Contexts to inject into prompts, keyed by their placeholder.
----@field contexts? table<string, fun(context: opencode.context.Context): string|nil>
----
----Options for `ask()`.
----Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
----@field ask? opencode.ask.Opts
----
----Options and items for `select()`.
----Supports [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
----@field select? opencode.select.Opts
----
----Options for handling OpenCode events.
----@field events? opencode.events.Opts
+local M = {}
 
 ---@type opencode.Opts
 local defaults = {
@@ -133,7 +119,6 @@ local defaults = {
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
 
 local snacks_ok, snacks = pcall(require, "snacks")
----@cast snacks Snacks
 if not snacks_ok or not snacks.config.get("input", {}).enabled then
   -- Even though it has no effect, passing these opts to the native `vim.ui.input` will error because
   -- they mix string and integer keys which Neovim doesn't support in `vim.g` (see comment on `vim.g.opencode_opts`),

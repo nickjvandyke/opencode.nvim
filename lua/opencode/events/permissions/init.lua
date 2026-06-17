@@ -1,8 +1,5 @@
 ---@class opencode.events.permissions.Opts
----
----Whether to show permission requests.
----@field enabled? boolean
----
+---@field enabled? boolean Whether to show permission requests.
 ---@field edits? opencode.events.permissions.edits.Opts
 
 local M = {}

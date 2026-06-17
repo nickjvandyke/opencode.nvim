@@ -1,6 +1,3 @@
----@module 'blink.cmp'
----@module 'snacks'
-
 ---@type table<vim.lsp.protocol.Method, fun(params: table, callback:fun(err: lsp.ResponseError?, result: any))>
 local handlers = {}
 local ms = vim.lsp.protocol.Methods

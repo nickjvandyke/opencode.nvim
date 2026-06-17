@@ -158,7 +158,7 @@ function M.configured()
     or type(url) == "function"
       and require("opencode.promise")
         .new(function(resolve, reject)
-          url(function(resolved_url) ---@param resolved_url string|nil
+          url(function(resolved_url) ---@param resolved_url string?
             if resolved_url then
               resolve(resolved_url)
             else
