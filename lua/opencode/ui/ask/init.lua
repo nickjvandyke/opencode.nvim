@@ -13,6 +13,7 @@ local M = {}
 ---@param context opencode.context.Context
 ---@return Promise<string> input
 function M.ask(default, server, context)
+  local config = require("opencode.config")
   ---@type snacks.input.Opts
   local input_opts = {
     default = default,
@@ -21,7 +22,20 @@ function M.ask(default, server, context)
       return context.input_highlight(rendered.input)
     end,
   }
-  input_opts = vim.tbl_deep_extend("force", input_opts, require("opencode.config").opts.ask)
+  input_opts = vim.tbl_deep_extend("keep", config.opts.ask, input_opts)
+
+  local snacks_ok, snacks = pcall(require, "snacks")
+  if snacks_ok and snacks.config.get("input", {}).enabled then
+    -- snacks.input expects its specific options at the root level.
+    -- Unlike snacks.picker, which expects them under a `snacks` field.
+    -- We nest our own `ask.snacks` for consistency, and then merge it to the root here.
+    --
+    -- Note that we only merge when passing to `snacks.input`.
+    -- Even though it has no effect, passing these opts to the native `vim.ui.input` will error because
+    -- they mix string and integer keys which Neovim doesn't support in `vim.g` (see comment on `vim.g.opencode_opts`),
+    -- and Neovim's native `vim.ui.select` implementation apparently uses those.
+    input_opts = vim.tbl_deep_extend("keep", input_opts, config.opts.ask.snacks)
+  end
 
   return require("opencode.promise.ui").input(input_opts):catch(function(err)
     context:resume()

@@ -118,16 +118,4 @@ local defaults = {
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
 
-local snacks_ok, snacks = pcall(require, "snacks")
-if not snacks_ok or not snacks.config.get("input", {}).enabled then
-  -- Even though it has no effect, passing these opts to the native `vim.ui.input` will error because
-  -- they mix string and integer keys which Neovim doesn't support in `vim.g` (see comment on `vim.g.opencode_opts`),
-  -- and Neovim's native `vim.ui.select` implementation apparently uses those.
-  M.opts.ask.snacks = {}
-end
-
--- Nest snacks.input options under `opts.ask.snacks` for consistency with other snacks-exclusive config, and to keep its fields optional.
--- But then merge it here for what snacks.input expects.
-M.opts.ask = vim.tbl_deep_extend("force", M.opts.ask, M.opts.ask.snacks)
-
 return M
