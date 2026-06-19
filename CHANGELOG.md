@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.1...v0.13.2) (2026-06-19)
+
+
+### Features
+
+* **prompt:** consistently open in `ask()` when prompt ends with "..." ([a7380bf](https://github.com/nickjvandyke/opencode.nvim/commit/a7380bf08cf7a2d1d600a7fa2eedee288907524d))
+* **select:** granular control of included server items ([2322752](https://github.com/nickjvandyke/opencode.nvim/commit/2322752a4c76e9e0cf2286ed255db53c7f24e9ad))
+
 ## [0.13.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.0...v0.13.1) (2026-06-12)
 
 
