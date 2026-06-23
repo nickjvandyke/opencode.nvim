@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.2...v0.13.3) (2026-06-23)
+
+
+### Features
+
+* **api:** remove public `start` wrapper (config option remains) ([49b3418](https://github.com/nickjvandyke/opencode.nvim/commit/49b34182ad6ba870bf19173b64ea0662b2fddc00))
+* **ask:** submit even when input is empty ([20c28c8](https://github.com/nickjvandyke/opencode.nvim/commit/20c28c8860e3b9ab7bb79123680b2f314083c708))
+* **context:** format paths relative to server's CWD ([b9307e5](https://github.com/nickjvandyke/opencode.nvim/commit/b9307e5074ddec537e6587e86e2767df0290512f))
+
 ## [0.13.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.1...v0.13.2) (2026-06-19)
 
 
