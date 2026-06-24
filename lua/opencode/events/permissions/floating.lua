@@ -139,7 +139,13 @@ local function render(lines)
       local s, _ = line:find(vim.pesc(btn), col)
       if s then
         if opt_idx == selected then
-          vim.api.nvim_buf_set_extmark(state.buf, NS, line_idx - 1, s - 1, { hl_group = "OpencodePermSelected", end_col = s - 1 + #btn })
+          vim.api.nvim_buf_set_extmark(
+            state.buf,
+            NS,
+            line_idx - 1,
+            s - 1,
+            { hl_group = "OpencodePermSelected", end_col = s - 1 + #btn }
+          )
         end
         col = s + #btn
       end
@@ -151,9 +157,10 @@ end
 local function build_lines()
   local ev = state and state.queue[state.queue_index] and state.queue[state.queue_index].event
   local cmd = (ev and cmd_prefix(ev.properties.permission) or "? ")
-    .. (ev and ev.properties.patterns and #ev.properties.patterns > 0
-        and table.concat(ev.properties.patterns, ", ")
-        or "")
+    .. (
+      ev and ev.properties.patterns and #ev.properties.patterns > 0 and table.concat(ev.properties.patterns, ", ")
+      or ""
+    )
   local inner = state and state.width - 4 or 60
 
   local wrapped = split_and_wrap(cmd, inner)
@@ -302,9 +309,10 @@ function M.request(event, server)
   local inner = w - 4
 
   local cmd = cmd_prefix(event.properties.permission)
-    .. (event.properties.patterns and #event.properties.patterns > 0
-        and table.concat(event.properties.patterns, ", ")
-        or "")
+    .. (
+      event.properties.patterns and #event.properties.patterns > 0 and table.concat(event.properties.patterns, ", ")
+      or ""
+    )
   local _, n_wrap = split_and_wrap(cmd, inner)
   local h = calc_height(n_wrap)
 
@@ -425,9 +433,7 @@ function M.show()
   local w = state.width
   local ev = state.queue[state.queue_index].event
   local cmd = cmd_prefix(ev.properties.permission)
-    .. (ev.properties.patterns and #ev.properties.patterns > 0
-        and table.concat(ev.properties.patterns, ", ")
-        or "")
+    .. (ev.properties.patterns and #ev.properties.patterns > 0 and table.concat(ev.properties.patterns, ", ") or "")
   local inner = w - 4
   local _, n_wrap = split_and_wrap(cmd, inner)
   local h = calc_height(n_wrap)
@@ -530,12 +536,17 @@ function M.confirm()
       end
     end)
     local function approve(i)
-      if i > #q then return end
-      srv:permit(q[i].id, "once"):finally(function()
-        approve(i + 1)
-      end):catch(function(msg)
-        vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
-      end)
+      if i > #q then
+        return
+      end
+      srv
+        :permit(q[i].id, "once")
+        :finally(function()
+          approve(i + 1)
+        end)
+        :catch(function(msg)
+          vim.notify(msg, vim.log.levels.ERROR, { title = "opencode" })
+        end)
     end
     approve(1)
   elseif choice == "Reject All" then
