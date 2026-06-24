@@ -1,5 +1,6 @@
 ---@class opencode.events.permissions.Opts
 ---@field enabled? boolean Whether to show permission requests.
+---@field floating? boolean Use floating window instead of vim.ui.select.
 ---@field edits? opencode.events.permissions.edits.Opts
 
 local M = {}
@@ -10,6 +11,12 @@ local is_permission_request_open = false
 ---@param server opencode.server.Server
 function M.request(event, server)
   local opts = require("opencode.config").opts.events.permissions or {}
+
+  if opts.floating then
+    local floating = require("opencode.events.permissions.floating")
+    floating.request(event, server)
+    return
+  end
 
   if event.type == "permission.asked" and not (event.properties.permission == "edit" and opts.edits.enabled) then
     is_permission_request_open = true
