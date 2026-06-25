@@ -337,7 +337,13 @@ function Server:connect()
     self.subscription_job_id = self:sse_subscribe(
       function(response)
         if self.heartbeat_timer then
-          self.heartbeat_timer:start(OPENCODE_HEARTBEAT_INTERVAL_MS + 1000, 0, vim.schedule_wrap(self.disconnect))
+          self.heartbeat_timer:start(
+            OPENCODE_HEARTBEAT_INTERVAL_MS + 1000,
+            0,
+            vim.schedule_wrap(function()
+              self:disconnect()
+            end)
+          )
         end
 
         if response.type == "server.connected" then
