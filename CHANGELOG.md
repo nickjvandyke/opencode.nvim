@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.4](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.3...v0.13.4) (2026-06-26)
+
+
+### Bug Fixes
+
+* **server:** heartbeat timer disconnect ([#305](https://github.com/nickjvandyke/opencode.nvim/issues/305)) ([43adb10](https://github.com/nickjvandyke/opencode.nvim/commit/43adb10f21403adeec5980e73305fff29195e36b))
+
 ## [0.13.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.2...v0.13.3) (2026-06-23)
 
 
