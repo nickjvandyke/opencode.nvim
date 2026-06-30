@@ -106,10 +106,17 @@ The below examples are specific, but generalize to other plugins.
 ```lua
 require("snacks").setup({
   input = {
-    enabled = true, -- Enhances `ask()`
+    enabled = true, -- Enhances Ask
   },
   picker = {
-    enabled = true, -- Enhances `select()`
+    enabled = true, -- Enhances Select
+    win = {
+      input = {
+        keys = {
+          ["<a-a>"] = { "opencode_send", mode = { "n", "i" } },
+        },
+      },
+    },
     actions = {
       opencode_send = function(picker) ---@param picker snacks.Picker
         local items = vim.tbl_map(function(item) ---@param item snacks.picker.Item
@@ -121,13 +128,6 @@ require("snacks").setup({
         require("opencode").prompt(table.concat(items, ", ") .. " ")
       end,
     },
-    win = {
-      input = {
-        keys = {
-          ["<a-a>"] = { "opencode_send", mode = { "n", "i" } },
-        },
-      },
-    },
   },
 })
 ```
@@ -138,13 +138,13 @@ require("snacks").setup({
 <summary><a href="https://github.com/saghen/blink.cmp">blink.cmp</a></summary>
 
 ```lua
--- Configure blink.cmp to show completions from opencode.nvim's in-process LSP.
+-- Configure blink.cmp to show completions in Ask from opencode.nvim's in-process LSP.
 -- Only applicable when using snacks.input.
 require("blink.cmp").setup({
   sources = {
     -- Either enable LSP (and optionally buffer) source globally
     default = { 'lsp', 'buffer' },
-    -- Or only for `ask()`
+    -- Or only for Ask
     per_filetype = {
       opencode_ask = { 'lsp', 'buffer' },
     },
@@ -274,7 +274,7 @@ vim.api.nvim_create_autocmd('User', {
 
 Input a prompt for OpenCode.
 
-- Passes the text to `prompt()`.
+- Passes the text to Prompt.
 - Press `<Up>` to browse recent asks.
 - Highlights and completes contexts and OpenCode subagents.
   - Press `<Tab>` to trigger built-in completion.
@@ -295,12 +295,12 @@ Highlights and previews items when using [snacks.picker](https://github.com/folk
 Prompt OpenCode.
 
 - Injects configured contexts.
-- Trailing space appends; trailing "..." opens in `ask()`.
+- Trailing space appends; trailing "..." opens in Ask.
 - OpenCode will interpret references to files or subagents.
 
 ### Operator — `require("opencode").operator()`
 
-Wraps `prompt` as an operator, supporting ranges and dot-repeat.
+Wraps Prompt as an operator, supporting ranges and dot-repeat.
 
 ### Command — `require("opencode").command()`
 
