@@ -107,6 +107,7 @@ local defaults = {
     reload = true,
     permissions = {
       enabled = true,
+      floating = false,
       edits = {
         enabled = true,
       },
