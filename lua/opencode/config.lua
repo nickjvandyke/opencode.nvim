@@ -70,6 +70,31 @@ local defaults = {
     prompt = "OpenCode: ",
     prompts = {
       ask = "...",
+      commit = [[Write a conventional commit message for the staged changes. Follow these steps:
+
+                1. Run `git status` to review changed files.
+                2. Run `git diff --cached` to inspect the staged changes.
+                3. Construct a commit message following the Conventional Commits specification.
+
+                Commit message structure:
+                - type: feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
+                - scope: optional, recommended for clarity
+                - description: required, imperative mood (e.g. "add", not "added")
+                - body: optional, for additional context
+                - footer: optional, for breaking changes or issue references
+
+                Format: `<type>(<scope>): <description>` followed by optional body and footer.
+
+                Examples:
+                - feat(parser): add ability to parse arrays
+                - fix(ui): correct button alignment
+                - docs: update README with usage instructions
+                - refactor: improve performance of data processing
+                - chore: update dependencies
+                - feat!: send email on registration (BREAKING CHANGE: email service required)
+
+                Output only the commit message, do not commit.
+                Do not wrap the output in markdown code fences; respond with the raw commit message only.]],
       diagnostics = "Explain @diagnostics",
       document = "Add comments documenting @this",
       explain = "Explain @this and its context",
