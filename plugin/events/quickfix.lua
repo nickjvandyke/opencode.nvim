@@ -12,3 +12,67 @@ vim.api.nvim_create_autocmd("User", {
   end,
   desc = "Add files used by OpenCode to a quickfix list",
 })
+
+vim.api.nvim_create_user_command("OpencodeEdited1", function()
+  ---@type opencode.server.Event
+  local event = {
+    type = "file.edited",
+    properties = {
+      file = "lua/opencode.lua",
+    },
+  }
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "OpencodeEvent:" .. event.type,
+    data = {
+      event = event,
+    },
+  })
+end, {})
+
+vim.api.nvim_create_user_command("OpencodeEdited2", function()
+  ---@type opencode.server.Event
+  local event = {
+    type = "file.edited",
+    properties = {
+      file = "lua/opencode/config.lua",
+    },
+  }
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "OpencodeEvent:" .. event.type,
+    data = {
+      event = event,
+    },
+  })
+end, {})
+
+vim.api.nvim_create_user_command("OpencodeRead1", function()
+  ---@type opencode.server.Event
+  local event = {
+    type = "file.read",
+    properties = {
+      file = "lua/opencode.lua",
+    },
+  }
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "OpencodeEvent:" .. event.type,
+    data = {
+      event = event,
+    },
+  })
+end, {})
+
+vim.api.nvim_create_user_command("OpencodeRead2", function()
+  ---@type opencode.server.Event
+  local event = {
+    type = "file.read",
+    properties = {
+      file = "lua/opencode/config.lua",
+    },
+  }
+  vim.api.nvim_exec_autocmds("User", {
+    pattern = "OpencodeEvent:" .. event.type,
+    data = {
+      event = event,
+    },
+  })
+end, {})
