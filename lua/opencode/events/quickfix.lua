@@ -1,7 +1,12 @@
 local M = {}
 
 local QUICKFIX_LIST_TITLE = "OpenCode"
-local qf_list_id
+
+---Our quickfix list ID.
+---I don't think we have to verify it still exists before modifying it?
+---I don't see a way to possibly "delete" a quickfix list in Neovim.
+---@type number?
+local qf_list_id = nil
 
 ---Add `event.properties.file` (if it exists) and `event.type` to an "OpenCode" quickfix list.
 ---
@@ -13,18 +18,11 @@ function M.add(event)
     return
   end
 
-  -- TODO: Probably some way to simplify this
-  if qf_list_id then
-    local existing = vim.fn.getqflist({ id = qf_list_id })
-    if existing.id ~= qf_list_id then
-      qf_list_id = nil
-    end
-  end
   if not qf_list_id then
     vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
     qf_list_id = vim.fn.getqflist({ id = 0 }).id
 
-    -- Only open qflist upon creation; otherwise let the user do what they like
+    -- Only open qflist upon creation; otherwise let the user do their thing
     local prev_win = vim.api.nvim_get_current_win()
     vim.cmd.copen()
     vim.api.nvim_set_current_win(prev_win)
