@@ -24,22 +24,29 @@ function M.add(event)
     vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
     qf_list_id = vim.fn.getqflist({ id = 0 }).id
   end
-  local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
 
-  -- TODO: Would love to have line/col... but event only includes the file
+  local existing_items = vim.fn.getqflist({ id = qf_list_id, items = 0 })
 
   local buf = vim.fn.bufnr(file)
   ---@type vim.quickfix.entry
-  local new_item = { filename = file, bufnr = buf > 0 and buf or nil, text = event.type, type = "I" }
-  local item_already_exists = vim.iter(existing.items):any(function(i)
+  local new_item = {
+    filename = file,
+    bufnr = buf > 0 and buf or nil,
+    text = event.type,
+    type = "I",
+    -- Would love to have line/col... but event only includes the file
+  }
+
+  local item_already_exists = vim.iter(existing_items.items):any(function(i)
     return i.filename == new_item.filename or i.bufnr == new_item.bufnr
   end)
-
-  if not item_already_exists then
-    table.insert(existing.items, new_item)
-    -- TODO: Needs to use `nr` to modify specific list? Need to fetch from id first.
-    vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing.items })
+  if item_already_exists then
+    return
   end
+
+  table.insert(existing_items.items, new_item)
+  -- TODO: Test when I have another qf list
+  vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing_items.items })
 
   local prev_win = vim.api.nvim_get_current_win()
   vim.cmd.copen()
