@@ -15,7 +15,7 @@ function M.add(event)
 
   -- TODO: Probably some way to simplify this
   if qf_list_id then
-    local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
+    local existing = vim.fn.getqflist({ id = qf_list_id })
     if existing.id ~= qf_list_id then
       qf_list_id = nil
     end
@@ -23,6 +23,11 @@ function M.add(event)
   if not qf_list_id then
     vim.fn.setqflist({}, " ", { title = QUICKFIX_LIST_TITLE })
     qf_list_id = vim.fn.getqflist({ id = 0 }).id
+
+    -- Only open qflist upon creation; otherwise let the user do what they like
+    local prev_win = vim.api.nvim_get_current_win()
+    vim.cmd.copen()
+    vim.api.nvim_set_current_win(prev_win)
   end
 
   local existing_items = vim.fn.getqflist({ id = qf_list_id, items = 0 })
@@ -46,10 +51,6 @@ function M.add(event)
 
   table.insert(existing_items.items, new_item)
   vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing_items.items })
-
-  local prev_win = vim.api.nvim_get_current_win()
-  vim.cmd.copen()
-  vim.api.nvim_set_current_win(prev_win)
 end
 
 return M
