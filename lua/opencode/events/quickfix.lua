@@ -45,7 +45,6 @@ function M.add(event)
   end
 
   table.insert(existing_items.items, new_item)
-  -- TODO: Test when I have another qf list
   vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing_items.items })
 
   local prev_win = vim.api.nvim_get_current_win()
