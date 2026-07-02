@@ -1,6 +1,6 @@
-# opencode.nvim — Neovim 🤝 OpenCode
+# opencode.nvim
 
-Neovim plugin that integrates [OpenCode](https://opencode.ai/) to keep you in your familiar flow.
+Neovim plugin that integrates with [OpenCode](https://opencode.ai/) to keep you in your familiar flow.
 
 https://github.com/user-attachments/assets/e85e021c-fa8f-466e-830c-c667b28f611e
 
