@@ -3,9 +3,15 @@ local M = {}
 local QUICKFIX_LIST_TITLE = "OpenCode"
 local qf_list_id
 
+---Add `event.properties.file` (if it exists) and `event.type` to an "OpenCode" quickfix list.
+---
+---@param event opencode.server.Event
 function M.add(event)
-  ---@type string
+  ---@type string?
   local file = event.properties.file
+  if not file then
+    return
+  end
 
   -- TODO: Probably some way to simplify this
   if qf_list_id then
@@ -21,7 +27,9 @@ function M.add(event)
   local existing = vim.fn.getqflist({ id = qf_list_id, items = 0 })
 
   -- TODO: Would love to have line/col... but event only includes the file
-  local new_item = { filename = file, bufnr = vim.fn.bufnr(file), type = "I" }
+
+  ---@type vim.quickfix.entry
+  local new_item = { filename = file, bufnr = vim.fn.bufnr(file), text = event.type, type = "I" }
   local item_already_exists = vim.iter(existing.items):any(function(i)
     return i.filename == new_item.filename or i.bufnr == new_item.bufnr
   end)

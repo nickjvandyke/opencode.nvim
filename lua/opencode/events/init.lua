@@ -1,7 +1,7 @@
 ---@class opencode.events.Opts
 ---@field enabled? boolean Subscribe to OpenCode's SSEs to dispatch `OpencodeEvent:*` autocmds.
 ---@field reload? boolean Reload buffers edited by OpenCode in real-time. Requires `vim.o.autoread = true`.
----@field quickfix? boolean Add files read and edited by OpenCode to a quickfix list.
+---@field quickfix? boolean Add files used by OpenCode to a quickfix list.
 ---@field permissions? opencode.events.permissions.Opts
 
 local M = {}
