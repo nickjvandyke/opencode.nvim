@@ -28,8 +28,9 @@ function M.add(event)
 
   -- TODO: Would love to have line/col... but event only includes the file
 
+  local buf = vim.fn.bufnr(file)
   ---@type vim.quickfix.entry
-  local new_item = { filename = file, bufnr = vim.fn.bufnr(file), text = event.type, type = "I" }
+  local new_item = { filename = file, bufnr = buf > 0 and buf or nil, text = event.type, type = "I" }
   local item_already_exists = vim.iter(existing.items):any(function(i)
     return i.filename == new_item.filename or i.bufnr == new_item.bufnr
   end)
