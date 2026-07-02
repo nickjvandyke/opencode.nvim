@@ -34,7 +34,7 @@ function M.add(event)
     bufnr = buf > 0 and buf or nil,
     text = event.type,
     type = "I",
-    -- Would love to have line/col... but event only includes the file
+    -- Would love to have line/col... but OpenCode only includes the file
   }
 
   local item_already_exists = vim.iter(existing_items.items):any(function(i) ---@param i vim.quickfix.entry
