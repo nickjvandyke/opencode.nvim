@@ -1,33 +1,22 @@
 local M = {}
 
----@class opencode.api.prompt.Opts
----
----The context the prompt is being made in.
----On success, clears the context. On failure, resumes the context.
----@field context? opencode.Context
-
 ---@param prompt string
----@param opts? opencode.api.prompt.Opts
----@return Promise
-function M.prompt(prompt, opts)
-  local context = opts and opts.context or require("opencode.context").new()
-
+---@param context opencode.context.Context
+---@return Promise<any>
+function M.prompt(prompt, context)
   local Promise = require("opencode.promise")
-  return require("opencode.server.discovery")
-    .get()
-    :next(function(server) ---@param server opencode.server.Server
-      local rendered = context:render(prompt, server.subagents)
-      local plaintext = context.plaintext(rendered.output)
-      return Promise.new(function(resolve)
-        server:tui_append_prompt(plaintext, function()
-          resolve(server)
-        end)
+  return (
+    prompt:match("%.%.%.$") and require("opencode.ui.ask").ask(prompt:gsub("%.%.%.$", ""), context)
+    or Promise.resolve(prompt)
+  )
+    :next(function(_prompt)
+      local plaintext = context:render(_prompt).output:plaintext()
+
+      return context.server:tui_append_prompt(plaintext):next(function()
+        if not _prompt:match(" $") then
+          return context.server:tui_execute_command("prompt.submit")
+        end
       end)
-    end)
-    :next(function(server) ---@param server opencode.server.Server
-      if not prompt:match(" $") then
-        server:tui_execute_command("prompt.submit")
-      end
     end)
     :next(function()
       context:clear()

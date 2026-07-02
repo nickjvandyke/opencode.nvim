@@ -1,5 +1,3 @@
----@module 'snacks'
-
 local M = {}
 
 function M.check()
@@ -11,20 +9,20 @@ function M.check()
   vim.health.info("`nvim` version: `" .. tostring(vim.version()) .. "`.")
 
   local plugin_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
-  local git_hash = vim.fn.system("cd " .. vim.fn.shellescape(plugin_dir) .. " && git rev-parse HEAD")
+  local git_hash =
+    vim.trim(vim.fn.system("cd " .. vim.fn.shellescape(plugin_dir) .. " && git rev-parse HEAD")):gsub("\n", "\\n")
   if vim.v.shell_error == 0 then
-    git_hash = vim.trim(git_hash)
-    vim.health.info("`opencode.nvim` git commit hash: `" .. git_hash .. "`.")
+    vim.health.info("opencode.nvim git commit hash: `" .. git_hash .. "`.")
   else
-    vim.health.warn("Could not determine `opencode.nvim` git commit hash.")
+    vim.health.warn("opencode.nvim git commit hash: `" .. git_hash .. "`.")
   end
 
-  vim.health.info("`vim.g.opencode_opts`: " .. (vim.g.opencode_opts and vim.inspect(vim.g.opencode_opts) or "`nil`"))
+  vim.health.info("`vim.g.opencode_opts`: " .. vim.inspect(vim.g.opencode_opts))
 
   local opts = require("opencode.config").opts
   if opts.events.reload and not vim.o.autoread then
     vim.health.warn(
-      "`opts.events.reload = true` but `vim.o.autoread = false`: files edited by `opencode` won't be automatically reloaded in buffers.",
+      "`vim.g.opencode_opts.events.reload = true` but `vim.o.autoread = false`: files edited by `opencode` won't be automatically reloaded in buffers.",
       {
         "Set `vim.o.autoread = true`",
         "Or set `vim.g.opencode_opts.events.reload = false`",
@@ -40,7 +38,7 @@ function M.check()
     vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local latest_tested_version = "1.2.11"
+    local latest_tested_version = "1.17.4"
     local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
     if found_version_parsed and latest_tested_version_parsed then
       local found_major = found_version_parsed[1] or 0
@@ -113,22 +111,19 @@ function M.check()
   vim.health.start("opencode.nvim [snacks]")
 
   local snacks_ok, snacks = pcall(require, "snacks")
-  ---@cast snacks Snacks Cast because CI lint resolves to our `snacks.lua` instead...
   if snacks_ok then
     if snacks.config.get("input", {}).enabled then
-      vim.health.ok("`snacks.input` is enabled: `ask()` will be enhanced.")
-      -- TODO: Maybe healthcheck verifying that their completion plugin has the LSP source enabled by default?
-      -- Otherwise they need to explicitly enable it for `opencode_ask` filetype.
+      vim.health.ok("snacks.input enabled: `ask()` enhanced.")
     else
-      vim.health.warn("`snacks.input` is disabled: `ask()` will not be enhanced.")
+      vim.health.warn("snacks.input disabled: `ask()` not enhanced.")
     end
     if snacks.config.get("picker", {}).enabled then
-      vim.health.ok("`snacks.picker` is enabled: `select()` will be enhanced.")
+      vim.health.ok("snacks.picker enabled: `select()` enhanced.")
     else
-      vim.health.warn("`snacks.picker` is disabled: `select()` will not be enhanced.")
+      vim.health.warn("snacks.picker disabled: `select()` enhanced.")
     end
   else
-    vim.health.warn("`snacks.nvim` is not available: `ask()` and `select()` will not be enhanced.")
+    vim.health.warn("snacks.nvim not available: `ask()` and `select()` not enhanced.")
   end
 end
 

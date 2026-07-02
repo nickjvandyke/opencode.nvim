@@ -1,74 +1,42 @@
----@module 'snacks'
+---@class opencode.Opts
+---@field server? opencode.server.Opts OpenCode server connection options.
+---@field contexts? table<string, fun(context: opencode.context.Context): string?> Context placeholders and their builders.
+---@field ask? opencode.ask.Opts Options for `ask()`. Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
+---@field select? opencode.select.Opts Options and items for `select()`. Supports [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
+---@field events? opencode.events.Opts Options for handling OpenCode events.
 
-local M = {}
-
----Your `opencode.nvim` configuration.
+---Your opencode.nvim configuration.
 ---Passed via global variable for [simpler UX and faster startup](https://mrcjkb.dev/posts/2023-08-22-setup.html).
 ---
----`snacks.nvim` note: Neovim does not yet support metatables or mixed integer and string keys in `vim.g` variables, affecting some options.
+---snacks.nvim note: Neovim does not yet support metatables or mixed integer and string keys in `vim.g` variables, affecting some options.
 ---In that case you may modify `require("opencode.config").opts` directly.
 ---See [opencode.nvim #36](https://github.com/nickjvandyke/opencode.nvim/issues/36) and [neovim #12544](https://github.com/neovim/neovim/issues/12544#issuecomment-1116794687).
----@type opencode.Opts|nil
+---@type opencode.Opts?
 vim.g.opencode_opts = vim.g.opencode_opts
 
----@class opencode.Opts
----
----Connect to a specific `opencode` server, and optionally manage one.
----@field server? opencode.server.Opts
----
----Contexts to inject into prompts, keyed by their placeholder.
----@field contexts? table<string, fun(context: opencode.Context): string|nil>
----
----Options for `ask()`.
----Supports [`snacks.input`](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
----@field ask? opencode.ask.Opts
----
----Options and items for `select()`.
----Supports [`snacks.picker`](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
----@field select? opencode.select.Opts
----
----Options for handling `opencode` events.
----@field events? opencode.events.Opts
----
----Options for the in-process LSP that interacts with `opencode`.
----@field lsp? opencode.lsp.Opts
+local M = {}
 
 ---@type opencode.Opts
 local defaults = {
   server = {
     url = nil,
-    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as `opencode`
+    username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as OpenCode
     password = vim.env.OPENCODE_SERVER_PASSWORD,
     start = function()
-      require("opencode.terminal").open("opencode --port", {
-        split = "right",
-        width = math.floor(vim.o.columns * 0.35),
-      })
-    end,
-    stop = function()
-      require("opencode.terminal").close()
-    end,
-    toggle = function()
-      require("opencode.terminal").toggle("opencode --port", {
-        split = "right",
-        width = math.floor(vim.o.columns * 0.35),
-      })
+      vim.cmd("vsplit term://opencode --port | wincmd p")
     end,
   },
-  -- stylua: ignore
   contexts = {
-    ["@this"] = function(context) return context:this() end,
-    ["@buffer"] = function(context) return context:buffer() end,
-    ["@buffers"] = function(context) return context:buffers() end,
-    ["@visible"] = function(context) return context:visible_text() end,
-    ["@diagnostics"] = function(context) return context:diagnostics() end,
-    ["@quickfix"] = function(context) return context:quickfix() end,
-    ["@diff"] = function(context) return context:git_diff() end,
-    ["@marks"] = function(context) return context:marks() end,
-    ["@grapple"] = function(context) return context:grapple_tags() end,
+    ["@this"] = require("opencode.context.builtins").this,
+    ["@buffer"] = require("opencode.context.builtins").buffer,
+    ["@buffers"] = require("opencode.context.builtins").buffers,
+    ["@diagnostics"] = require("opencode.context.builtins").diagnostics,
+    ["@marks"] = require("opencode.context.builtins").marks,
+    ["@quickfix"] = require("opencode.context.builtins").quickfix,
+    ["@visible"] = require("opencode.context.builtins").visible_text,
   },
   ask = {
-    prompt = "Ask opencode: ",
+    prompt = "Ask OpenCode: ",
     completion = "customlist,v:lua.opencode_completion",
     snacks = {
       icon = "󰚩 ",
@@ -99,11 +67,10 @@ local defaults = {
     },
   },
   select = {
-    prompt = "opencode: ",
+    prompt = "OpenCode: ",
     prompts = {
       ask = "...",
       diagnostics = "Explain @diagnostics",
-      diff = "Review the following git diff for correctness and readability: @diff",
       document = "Add comments documenting @this",
       explain = "Explain @this and its context",
       fix = "Fix @diagnostics",
@@ -113,18 +80,20 @@ local defaults = {
       test = "Add tests for @this",
     },
     commands = {
-      ["session.new"] = "Start a new session",
-      ["session.select"] = "Select a session",
-      ["session.share"] = "Share the current session",
-      ["session.interrupt"] = "Interrupt the current session",
-      ["session.compact"] = "Compact the current session (reduce context size)",
-      ["session.undo"] = "Undo the last action in the current session",
-      ["session.redo"] = "Redo the last undone action in the current session",
-      ["agent.cycle"] = "Cycle the selected agent",
-      ["prompt.submit"] = "Submit the current prompt",
-      ["prompt.clear"] = "Clear the current prompt",
+      ["agent.cycle"] = "Cycle selected agent",
+      ["prompt.clear"] = "Clear current prompt",
+      ["prompt.submit"] = "Submit current prompt",
+      ["session.compact"] = "Compact current session",
+      ["session.interrupt"] = "Interrupt current session",
+      ["session.new"] = "Start new session",
+      ["session.redo"] = "Redo last undone action in current session",
+      ["session.select"] = "Select session",
+      ["session.undo"] = "Undo last action in current session",
     },
-    server = true,
+    server = {
+      ["server.select"] = "Select server",
+      ["server.start"] = "Start configured server",
+    },
     snacks = {
       preview = "preview",
       layout = {
@@ -139,21 +108,9 @@ local defaults = {
     quickfix = true,
     permissions = {
       enabled = true,
-      idle_delay_ms = 1000,
       edits = {
         enabled = true,
       },
-    },
-  },
-  lsp = {
-    enabled = false,
-    filetypes = nil,
-    handlers = {
-      hover = {
-        enabled = true,
-        model = nil,
-      },
-      code_action = { enabled = true },
     },
   },
 }
@@ -161,18 +118,5 @@ local defaults = {
 ---Plugin options, lazily merged from `defaults` and `vim.g.opencode_opts`.
 ---@type opencode.Opts
 M.opts = vim.tbl_deep_extend("force", vim.deepcopy(defaults), vim.g.opencode_opts or {})
-
-local snacks_ok, snacks = pcall(require, "snacks")
----@cast snacks Snacks
-if not snacks_ok or not snacks.config.get("input", {}).enabled then
-  -- Even though it has no effect, passing these opts to the native `vim.ui.input` will error because
-  -- they mix string and integer keys which Neovim doesn't support in `vim.g` (see comment on `vim.g.opencode_opts`),
-  -- and Neovim's native `vim.ui.select` implementation apparently uses those.
-  M.opts.ask.snacks = {}
-end
-
--- Nest `snacks.input` options under `opts.ask.snacks` for consistency with other `snacks`-exclusive config, and to keep its fields optional.
--- But then merge it here for what `snacks.input` expects.
-M.opts.ask = vim.tbl_deep_extend("force", M.opts.ask, M.opts.ask.snacks)
 
 return M

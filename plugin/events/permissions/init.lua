@@ -14,18 +14,16 @@ vim.api.nvim_create_autocmd("User", {
 
     require("opencode.server")
       .new(url)
-      :next(function(server) ---@param server opencode.server.Server
+      :next(function(server)
         require("opencode.events.permissions").request(event, server)
       end)
       :catch(function(err)
-        if err then
-          vim.notify(
-            "Failed to display `opencode` permission request: " .. err,
-            vim.log.levels.ERROR,
-            { title = "opencode" }
-          )
-        end
+        vim.notify(
+          "Failed to display OpenCode permission request: " .. err,
+          vim.log.levels.ERROR,
+          { title = "opencode" }
+        )
       end)
   end,
-  desc = "Display permission requests from opencode",
+  desc = "Display permission requests from OpenCode",
 })

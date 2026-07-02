@@ -1,43 +1,16 @@
 -- https://github.com/notomo/promise.nvim with modifications.
--- Considering migrating to [Lua coroutines](https://gregorias.github.io/posts/using-coroutines-in-neovim-lua/).
 
 ---@diagnostic disable: invisible
-local vim = vim
 
-local PackedValue = {}
-PackedValue.__index = PackedValue
-
-function PackedValue.new(...)
-  local values = vim.F.pack_len(...)
-  local tbl = { _values = values }
-  return setmetatable(tbl, PackedValue)
-end
-
-function PackedValue.pcall(self, f)
-  local ok_and_value = function(ok, ...)
-    return ok, PackedValue.new(...)
-  end
-  return ok_and_value(pcall(f, self:unpack()))
-end
-
-function PackedValue.unpack(self)
-  return vim.F.unpack_len(self._values)
-end
-
-function PackedValue.first(self)
-  local first = self:unpack()
-  return first
-end
-
----Equivalent to [JavaScript's `Promise`.](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise)
----
+---Equivalent to [JavaScript's `Promise`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise).
+---Typed specifically for LuaLS to correctly infer generics.
 ---@class Promise<T>
----@field private _status "pending"|"fulfilled"|"rejected"
+---@field private _status "pending" | "fulfilled" | "rejected"
 ---@field private _value any
 ---@field private _queued Promise[]
 ---@field private _unhandled_detector table
----@field private _on_fullfilled? fun(...:any):(...:any)
----@field private _on_rejected? fun(...:any):(...:any)
+---@field private _on_fulfilled? fun(value: T): any
+---@field private _on_rejected? fun(reason: any): any
 ---@field private _handled boolean
 local Promise = {
   _is_promise = true,
@@ -55,12 +28,12 @@ local new_empty_userdata = function()
   return newproxy(true)
 end
 
-local new_pending = function(on_fullfilled, on_rejected)
+local new_pending = function(on_fulfilled, on_rejected)
   local tbl = {
     _status = PromiseStatus.Pending,
     _queued = {},
     _value = nil,
-    _on_fullfilled = on_fullfilled,
+    _on_fulfilled = on_fulfilled,
     _on_rejected = on_rejected,
     _handled = false,
   }
@@ -74,81 +47,66 @@ local new_pending = function(on_fullfilled, on_rejected)
     end
     self._handled = true
     vim.schedule(function()
-      local values = vim.inspect({ self._value:unpack() }, { newline = "", indent = "" })
-      error("unhandled promise rejection: " .. values, 0)
+      error("unhandled promise rejection: " .. vim.inspect(self._value, { newline = "", indent = "" }), 0)
     end)
   end
 
   return self
 end
 
----Equivalent to JavaScript's `Promise.new`.
+-- Unfortunately LuaLS cannot infer `T` from how `resolve` is called.
+
 ---@generic T
----@param executor fun(resolve: fun(...:T), reject: fun(...:any))
+---@param executor fun(resolve: fun(value: T), reject: fun(reason: any))
 ---@return Promise<T>
 function Promise.new(executor)
   local self = new_pending()
 
-  local resolve = function(...)
-    local first = ...
-    if is_promise(first) then
-      first
-        :next(function(...)
-          self:_resolve(...)
+  local resolve = function(value)
+    if is_promise(value) then
+      value
+        :next(function(v)
+          self:_resolve(v)
         end)
-        :catch(function(...)
-          self:_reject(...)
+        :catch(function(e)
+          self:_reject(e)
         end)
       return
     end
-    self:_resolve(...)
+    self:_resolve(value)
   end
-  local reject = function(...)
-    self:_reject(...)
+  local reject = function(reason)
+    self:_reject(reason)
   end
   executor(resolve, reject)
 
   return self
 end
 
----Returns a fulfilled promise.
----But if the first argument is promise, returns the promise.
 ---@generic T
----@param ... T | Promise<T>
+---@param value T
 ---@return Promise<T>
-function Promise.resolve(...)
-  local first = ...
-  if is_promise(first) then
-    return first
-  end
-  local value = PackedValue.new(...)
+function Promise.resolve(value)
   return Promise.new(function(resolve, _)
-    resolve(value:unpack())
+    resolve(value)
   end)
 end
 
----Returns a rejected promise.
----But if the first argument is promise, returns the promise.
 ---@generic T
----@param ... T | Promise<T>
+---@param reason any
 ---@return Promise<T>
-function Promise.reject(...)
-  local first = ...
-  if is_promise(first) then
-    return first
-  end
-  local value = PackedValue.new(...)
+function Promise.reject(reason)
   return Promise.new(function(_, reject)
-    reject(value:unpack())
+    reject(reason)
   end)
 end
 
-function Promise._resolve(self, ...)
+function Promise._resolve(self, value)
   if self._status == PromiseStatus.Rejected then
     return
   end
   self._status = PromiseStatus.Fulfilled
-  self._value = PackedValue.new(...)
+  self._value = value
   for _ = 1, #self._queued do
     local promise = table.remove(self._queued, 1)
     promise:_start_resolve(self._value)
@@ -156,38 +114,37 @@ function Promise._resolve(self, ...)
 end
 
 function Promise._start_resolve(self, value)
-  if not self._on_fullfilled then
+  if not self._on_fulfilled then
     return vim.schedule(function()
-      self:_resolve(value:unpack())
+      self:_resolve(value)
     end)
   end
-  local ok, result = value:pcall(self._on_fullfilled)
+  local ok, result = pcall(self._on_fulfilled, value)
   if not ok then
     return vim.schedule(function()
-      self:_reject(result:unpack())
+      self:_reject(result)
     end)
   end
-  local first = result:first()
-  if not is_promise(first) then
+  if not is_promise(result) then
     return vim.schedule(function()
-      self:_resolve(result:unpack())
+      self:_resolve(result)
     end)
   end
-  first
-    :next(function(...)
-      self:_resolve(...)
+  result
+    :next(function(v)
+      self:_resolve(v)
     end)
-    :catch(function(...)
-      self:_reject(...)
+    :catch(function(e)
+      self:_reject(e)
     end)
 end
 
-function Promise._reject(self, ...)
+function Promise._reject(self, reason)
   if self._status == PromiseStatus.Fulfilled then
     return
   end
   self._status = PromiseStatus.Rejected
-  self._value = PackedValue.new(...)
+  self._value = reason
   self._handled = self._handled or #self._queued > 0
   for _ = 1, #self._queued do
     local promise = table.remove(self._queued, 1)
@@ -195,86 +152,81 @@ function Promise._reject(self, ...)
   end
 end
 
-function Promise._start_reject(self, value)
+function Promise._start_reject(self, reason)
   if not self._on_rejected then
     return vim.schedule(function()
-      self:_reject(value:unpack())
+      self:_reject(reason)
     end)
   end
-  local ok, result = value:pcall(self._on_rejected)
-  local first = result:first()
-  if ok and not is_promise(first) then
+  local ok, result = pcall(self._on_rejected, reason)
+  if not ok then
     return vim.schedule(function()
-      self:_resolve(result:unpack())
+      self:_reject(result)
     end)
   end
-  if not is_promise(first) then
+  if not is_promise(result) then
     return vim.schedule(function()
-      self:_reject(result:unpack())
+      self:_resolve(result)
     end)
   end
-  first
-    :next(function(...)
-      self:_resolve(...)
+  result
+    :next(function(v)
+      self:_resolve(v)
     end)
-    :catch(function(...)
-      self:_reject(...)
+    :catch(function(e)
+      self:_reject(e)
     end)
 end
 
----Equivalent to JavaScript's `Promise.then`.
+-- Callbacks are typed to _only_ return Promises - never bare values.
+-- Otherwise LuaLS infers their union type instead of narrowing to the most specific one.
+-- We also seem to need `---@overload`; LuaLS infers `unknown` when annotated via `---@param`.
+
 ---@generic T, U
+---@overload fun(self: Promise<T>, on_fulfilled: fun(value: T): (Promise<U> | nil), on_rejected?: fun(reason: any): (Promise<U> | nil)): Promise<U>
 ---@param self Promise<T>
----@param on_fullfilled? fun(...:T): U | Promise<U> | nil
----@param on_rejected? fun(...:any): U | Promise<U> | nil
 ---@return Promise<U>
-function Promise.next(self, on_fullfilled, on_rejected)
-  local promise = new_pending(on_fullfilled, on_rejected)
+function Promise.next(self, on_fulfilled, on_rejected)
+  local promise = new_pending(on_fulfilled, on_rejected)
   table.insert(self._queued, promise)
   vim.schedule(function()
     if self._status == PromiseStatus.Fulfilled then
-      return self:_resolve(self._value:unpack())
+      return self:_resolve(self._value)
     end
     if self._status == PromiseStatus.Rejected then
-      return self:_reject(self._value:unpack())
+      return self:_reject(self._value)
     end
   end)
   return promise
 end
 
----Equivalent to JavaScript's `Promise.catch`.
 ---@generic T, U
+---@overload fun(self: Promise<T>, on_rejected: fun(value: T): (Promise<U> | nil)): Promise<U>
 ---@param self Promise<T>
----@param on_rejected fun(...:any): U | Promise<U> | nil
 ---@return Promise<U>
 function Promise.catch(self, on_rejected)
-  ---Not sure why this flags.
-  ---`next` accepts `nil` for `on_fullfilled` but the LSP doesn't seem to think so.
   ---@diagnostic disable-next-line: param-type-mismatch
   return self:next(nil, on_rejected)
 end
 
----Equivalent to JavaScript's `Promise.finally`.
 ---@generic T
+---@overload fun(self: Promise<T>, on_finally: fun()): Promise<T>
 ---@param self Promise<T>
----@param on_finally fun()
 ---@return Promise<T>
 function Promise.finally(self, on_finally)
   return self
-    :next(function(...)
+    :next(function(value)
       on_finally()
-      return ...
+      return Promise.resolve(value)
     end)
-    :catch(function(...)
+    :catch(function(reason)
       on_finally()
-      return Promise.reject(...)
+      return Promise.reject(reason)
     end)
 end
 
----Equivalent to JavaScript's `Promise.all`.
----Even if multiple value are resolved, results include only the first value.
 ---@generic T
----@param list (T | Promise<T>)[]
+---@param list (Promise<T>)[]
 ---@return Promise<T[]>
 function Promise.all(list)
   return Promise.new(function(resolve, reject)
@@ -286,43 +238,39 @@ function Promise.all(list)
     local results = {}
     for i, e in ipairs(list) do
       Promise.resolve(e)
-        :next(function(...)
-          local first = ...
-          results[i] = first
+        :next(function(value)
+          results[i] = value
           if remain == 1 then
             return resolve(results)
           end
           remain = remain - 1
         end)
-        :catch(function(...)
-          reject(...)
+        :catch(function(reason)
+          reject(reason)
         end)
     end
   end)
 end
 
----Equivalent to JavaScript's `Promise.race`.
 ---@generic T
----@param list (T | Promise<T>)[]
+---@param list (Promise<T>)[]
 ---@return Promise<T>
 function Promise.race(list)
   return Promise.new(function(resolve, reject)
     for _, e in ipairs(list) do
       Promise.resolve(e)
-        :next(function(...)
-          resolve(...)
+        :next(function(value)
+          resolve(value)
         end)
-        :catch(function(...)
-          reject(...)
+        :catch(function(reason)
+          reject(reason)
         end)
     end
   end)
 end
 
----Equivalent to JavaScript's `Promise.any`.
----Even if multiple value are rejected, errors include only the first value.
 ---@generic T
----@param list (T | Promise<T>)[]
+---@param list (Promise<T>)[]
 ---@return Promise<T>
 function Promise.any(list)
   return Promise.new(function(resolve, reject)
@@ -334,12 +282,11 @@ function Promise.any(list)
     local errs = {}
     for i, e in ipairs(list) do
       Promise.resolve(e)
-        :next(function(...)
-          resolve(...)
+        :next(function(value)
+          resolve(value)
         end)
-        :catch(function(...)
-          local first = ...
-          errs[i] = first
+        :catch(function(reason)
+          errs[i] = reason
           if remain == 1 then
             return reject(errs)
           end
@@ -349,10 +296,8 @@ function Promise.any(list)
   end)
 end
 
----Equivalent to JavaScript's `Promise.allSettled`.
----Even if multiple value are resolved/rejected, value/reason is only the first value.
 ---@generic T
----@param list (T | Promise<T>)[]
+---@param list (Promise<T>)[]
 ---@return Promise<{status: string, value?: T, reason?: any}[]>
 function Promise.all_settled(list)
   return Promise.new(function(resolve)
@@ -364,13 +309,11 @@ function Promise.all_settled(list)
     local results = {}
     for i, e in ipairs(list) do
       Promise.resolve(e)
-        :next(function(...)
-          local first = ...
-          results[i] = { status = PromiseStatus.Fulfilled, value = first }
+        :next(function(value)
+          results[i] = { status = PromiseStatus.Fulfilled, value = value }
         end)
-        :catch(function(...)
-          local first = ...
-          results[i] = { status = PromiseStatus.Rejected, reason = first }
+        :catch(function(reason)
+          results[i] = { status = PromiseStatus.Rejected, reason = reason }
         end)
         :finally(function()
           if remain == 1 then
@@ -382,9 +325,8 @@ function Promise.all_settled(list)
   end)
 end
 
----Equivalent to JavaScript's `Promise.withResolvers`.
 ---@generic T
----@return Promise<T>, fun(...:T), fun(...:any)
+---@return Promise<T>, fun(value: T), fun(reason: any)
 function Promise.with_resolvers()
   local resolve, reject
   local promise = Promise.new(function(res, rej)
@@ -393,8 +335,5 @@ function Promise.with_resolvers()
   end)
   return promise, resolve, reject
 end
-
-Promise.select = require("opencode.promise.ui").select
-Promise.input = require("opencode.promise.ui").input
 
 return Promise

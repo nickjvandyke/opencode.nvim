@@ -1,5 +1,123 @@
 # Changelog
 
+## [0.13.4](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.3...v0.13.4) (2026-06-26)
+
+
+### Bug Fixes
+
+* **server:** heartbeat timer disconnect ([#305](https://github.com/nickjvandyke/opencode.nvim/issues/305)) ([43adb10](https://github.com/nickjvandyke/opencode.nvim/commit/43adb10f21403adeec5980e73305fff29195e36b))
+
+## [0.13.3](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.2...v0.13.3) (2026-06-23)
+
+
+### Features
+
+* **api:** remove public `start` wrapper (config option remains) ([49b3418](https://github.com/nickjvandyke/opencode.nvim/commit/49b34182ad6ba870bf19173b64ea0662b2fddc00))
+* **ask:** submit even when input is empty ([20c28c8](https://github.com/nickjvandyke/opencode.nvim/commit/20c28c8860e3b9ab7bb79123680b2f314083c708))
+* **context:** format paths relative to server's CWD ([b9307e5](https://github.com/nickjvandyke/opencode.nvim/commit/b9307e5074ddec537e6587e86e2767df0290512f))
+
+## [0.13.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.1...v0.13.2) (2026-06-19)
+
+
+### Features
+
+* **prompt:** consistently open in `ask()` when prompt ends with "..." ([a7380bf](https://github.com/nickjvandyke/opencode.nvim/commit/a7380bf08cf7a2d1d600a7fa2eedee288907524d))
+* **select:** granular control of included server items ([2322752](https://github.com/nickjvandyke/opencode.nvim/commit/2322752a4c76e9e0cf2286ed255db53c7f24e9ad))
+
+## [0.13.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.0...v0.13.1) (2026-06-12)
+
+
+### Bug Fixes
+
+* **edits:** E816 malformed diffpatch ([#287](https://github.com/nickjvandyke/opencode.nvim/issues/287)) ([d0ad9f3](https://github.com/nickjvandyke/opencode.nvim/commit/d0ad9f3f603d10b767253d0391d1c6d90dddac24))
+
+## [0.13.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.12.0...v0.13.0) (2026-06-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* **context:** remove `@diff` context and prompt
+
+### Features
+
+* **context:** remove `[@diff](https://github.com/diff)` context and prompt ([7106214](https://github.com/nickjvandyke/opencode.nvim/commit/7106214840d5a9d26f0e37f372fdcba8920f7c50))
+* **discovery:** make process-finding async, catch + surface executor errors ([9aa4f03](https://github.com/nickjvandyke/opencode.nvim/commit/9aa4f03f1dff0521ca9f79d9e1fd4df121f5a0ee))
+
+## [0.12.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.11.0...v0.12.0) (2026-06-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **snacks.picker:** the `snacks.picker` send action has moved from plugin code to a README snippet. please copy the snippet into your config to continue using it.
+
+### Features
+
+* **snacks.picker:** move from plugin code to README snippet, export + improve `format()` ([82958e2](https://github.com/nickjvandyke/opencode.nvim/commit/82958e22981eaf92cb317beac36469c1b1c3e14d))
+
+
+### Bug Fixes
+
+* **context:** `[@this](https://github.com/this)` context wrongly used 0-based cols ([ab91312](https://github.com/nickjvandyke/opencode.nvim/commit/ab9131238e5b35274421e2041d770d31b46fabc2))
+
+## [0.11.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.2...v0.11.0) (2026-06-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* **lsp:** remove
+* **context:** remove `grapple` default
+* **api:** public `prompt` and `ask` no longer accept an `opts` (only used for context). public methods no longer return their promises.
+* **server:** `server.toggle` and `server.stop` config options and their corresponding public API methods are removed. the bundled terminal manager is removed and the default `server.start` now uses native `term://`. for toggle behavior, see the README section on user-land alternatives using e.g. `snacks.terminal`. sorry for the inconvenience!
+
+### Features
+
+* **context:** filter `[@diagnostics](https://github.com/diagnostics)` by range if present ([606b22f](https://github.com/nickjvandyke/opencode.nvim/commit/606b22f9db8bbcccb7c4a69a8e108a4d341f1f57))
+* **context:** remove `grapple` default ([00edfd3](https://github.com/nickjvandyke/opencode.nvim/commit/00edfd3798c4208a200b95ddbc11bb0f5f2d011b))
+* **context:** return inline text for buffers not backed by a file ([248208f](https://github.com/nickjvandyke/opencode.nvim/commit/248208f73d973736d8f59d9a2e7b7cf43b1179ba))
+* **lsp:** remove ([8532183](https://github.com/nickjvandyke/opencode.nvim/commit/85321834ec43b0dad69e65d45c4d9ef8bb16a7e8))
+* **select:** remove session.share default, shorten descs ([bc21b03](https://github.com/nickjvandyke/opencode.nvim/commit/bc21b034e75522d5b62c418d7ff945eb83f542d5))
+* **server:** always include configured server in selection options ([b8be0de](https://github.com/nickjvandyke/opencode.nvim/commit/b8be0de4e2e178037a310ef8a8015222e3fc54b5))
+* **server:** drop `stop` and `toggle`, simplify `start` to native `term://` ([a7c4dd7](https://github.com/nickjvandyke/opencode.nvim/commit/a7c4dd70f80c87380244af826c2e870bd8fb2ec3))
+
+
+### Bug Fixes
+
+* **command:** double-send "session.interrupt" to actually interrupt ([1d37976](https://github.com/nickjvandyke/opencode.nvim/commit/1d379765df2b2e66c271776ed692a06e61247d59))
+* **edits:** wipeout new buffer when done, escape edited filepath ([e4e5894](https://github.com/nickjvandyke/opencode.nvim/commit/e4e5894f0d115365c977fddb3081e1d26912aed8))
+* **lsp:** duplicated filepath on diagnostic code action prompt ([db9b870](https://github.com/nickjvandyke/opencode.nvim/commit/db9b8706834b9a8b802aef68aaed741e487e64f2))
+* **snacks.picker:** append instead of submit the item, concat with comma ([db2a543](https://github.com/nickjvandyke/opencode.nvim/commit/db2a5430b63825109a3bd0ca36b421cd1eac58e1))
+
+
+### Code Refactoring
+
+* **api:** thread server through modules and call internal modules directly ([a751647](https://github.com/nickjvandyke/opencode.nvim/commit/a751647a9c9cb927a7e105a88eee9ffce2ec6c69))
+
+## [0.10.2](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.1...v0.10.2) (2026-06-04)
+
+
+### Features
+
+* **ask:** change cmp documentation to plaintext ([4999c69](https://github.com/nickjvandyke/opencode.nvim/commit/4999c69b8b630fd525c8986b163635238bb6cc92))
+* **permissions:** remove wait for idle ([315f6e0](https://github.com/nickjvandyke/opencode.nvim/commit/315f6e0106102734f55d885eaee28f19b9c7a125))
+* **server:** call `opts.server.stop` on exit ([34d1283](https://github.com/nickjvandyke/opencode.nvim/commit/34d12838f331ab813232dcf2a73a40b494beee48))
+
+
+### Bug Fixes
+
+* **health:** log specific error when can't capture `opencode.nvim` hash ([1f6442f](https://github.com/nickjvandyke/opencode.nvim/commit/1f6442f4b0bb140ac3e87a37c53729a72605a1c3))
+* **select:** actually select chosen session ([a28aa15](https://github.com/nickjvandyke/opencode.nvim/commit/a28aa1580a94b704d3ad83f16ed4e3e2eb4ee5a5))
+* **server:** propagate _all_ API errors ([fb12acb](https://github.com/nickjvandyke/opencode.nvim/commit/fb12acb1a071935a1027ba3e3386f7072fefc37c))
+* **terminal:** don't close native `ask` on start ([fbb0a9d](https://github.com/nickjvandyke/opencode.nvim/commit/fbb0a9d2fa444e4bf4ef4fd4e12d1716f7910a5b))
+
+## [0.10.1](https://github.com/nickjvandyke/opencode.nvim/compare/v0.10.0...v0.10.1) (2026-05-23)
+
+
+### Bug Fixes
+
+* **context:** don't shorten to home directory for more reliable READs ([985764e](https://github.com/nickjvandyke/opencode.nvim/commit/985764ebd36387a193550afd05d03d23a394a946))
+* **select:** only include server fns when they're configured ([47ce749](https://github.com/nickjvandyke/opencode.nvim/commit/47ce74944142d2f2e8e52a8f93801ed9eee68497))
+* **status:** improve reliability and simplicity ([677dddb](https://github.com/nickjvandyke/opencode.nvim/commit/677dddb6be04d5d8a7b380278613219b0384c6b7))
+
 ## [0.10.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.9.0...v0.10.0) (2026-05-17)
 
 

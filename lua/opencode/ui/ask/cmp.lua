@@ -1,6 +1,3 @@
----@module 'blink.cmp'
----@module 'snacks'
-
 ---@type table<vim.lsp.protocol.Method, fun(params: table, callback:fun(err: lsp.ResponseError?, result: any))>
 local handlers = {}
 local ms = vim.lsp.protocol.Methods
@@ -66,8 +63,7 @@ handlers[ms.completionItem_resolve] = function(params, callback)
   local item = vim.deepcopy(params)
   local context = require("opencode.context").current
   if not item.documentation and context then
-    -- Agents can be empty here - they already have documentation attached
-    local rendered = context:render(item.label, {})
+    local rendered = context:render(item.label)
     -- Highlights won't match other locations, but there's no general way to control them.
     -- Would have to support each completion plugin separately.
     -- Markdown code blocks to preserve formatting.
@@ -75,19 +71,19 @@ handlers[ms.completionItem_resolve] = function(params, callback)
     -- and then things like `~` in consecutive filepaths become strikethroughs.
     -- Or matching `[]` disappears because it's interpreted as a markdown link with an empty URL.
     item.documentation = {
-      kind = "markdown",
-      value = "```" .. context.plaintext(rendered.output) .. "```",
+      kind = "plaintext",
+      value = rendered.output:plaintext(),
     }
   end
 
   callback(nil, item)
 end
 
----An in-process LSP that provides completions for context placeholders and agents.
+---An in-process LSP that provides completions for context placeholders and server agents.
 ---@type vim.lsp.Config
 return {
   name = "opencode_ask_cmp",
-  -- Note the filetype has no effect because `snacks.input` buftype is `prompt`.
+  -- Note the filetype has no effect because snacks.input buftype is `prompt`.
   -- https://github.com/neovim/neovim/issues/36775
   -- Instead, we manually start the LSP in a callback.
   -- To that end, we also locate this file under `lua/` - not the usual `lsp/` - so Neovim's module resolution can find it.
