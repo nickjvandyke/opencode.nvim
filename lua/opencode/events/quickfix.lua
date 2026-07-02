@@ -30,7 +30,8 @@ function M.add(event)
     vim.api.nvim_set_current_win(prev_win)
   end
 
-  local existing_items = vim.fn.getqflist({ id = qf_list_id, items = 0 })
+  ---@type vim.quickfix.entry[]
+  local existing_items = vim.fn.getqflist({ id = qf_list_id, items = 0 }).items
 
   local buf = vim.fn.bufnr(file)
   ---@type vim.quickfix.entry
@@ -40,17 +41,18 @@ function M.add(event)
     text = event.type,
     type = "I",
     -- Would love to have line/col... but OpenCode only includes the file
+    -- TODO: Check if that holds for all events with a file?
   }
 
-  local item_already_exists = vim.iter(existing_items.items):any(function(i) ---@param i vim.quickfix.entry
+  local item_already_exists = vim.iter(existing_items):any(function(i) ---@param i vim.quickfix.entry
     return (i.filename == new_item.filename or i.bufnr == new_item.bufnr) and i.text == new_item.text
   end)
   if item_already_exists then
     return
   end
 
-  table.insert(existing_items.items, new_item)
-  vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing_items.items })
+  table.insert(existing_items, new_item)
+  vim.fn.setqflist({}, "u", { id = qf_list_id, items = existing_items })
 end
 
 return M

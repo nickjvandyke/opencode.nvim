@@ -13,6 +13,8 @@ vim.api.nvim_create_autocmd("User", {
   desc = "Add files used by OpenCode to a quickfix list",
 })
 
+-- TODO: Actually test with OpenCode
+-- TODO: Remove
 vim.api.nvim_create_user_command("OpencodeEdited1", function()
   ---@type opencode.server.Event
   local event = {
