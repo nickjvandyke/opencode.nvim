@@ -53,7 +53,8 @@ Server.__index = Server
 ---| "reject"
 
 ---@alias opencode.server.Event
----| { type: "file.edited" }
+---| { type: "file.edited", properties: { file: string } }
+---| { type: "file.read", properties: { file: string } }
 ---| { type: "permission.asked", properties: { id: number, permission: string, patterns: string[], metadata?: { diff: string, filepath: string } } }
 ---| { type: "permission.replied", properties: { requestID: number } }
 ---| { type: "server.connected" }

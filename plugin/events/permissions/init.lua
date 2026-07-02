@@ -2,15 +2,15 @@ vim.api.nvim_create_autocmd("User", {
   group = vim.api.nvim_create_augroup("OpencodePermissions", { clear = true }),
   pattern = { "OpencodeEvent:permission.asked", "OpencodeEvent:permission.replied" },
   callback = function(args)
-    ---@type opencode.server.Event
-    local event = args.data.event
-    ---@type string
-    local url = args.data.url
-
     local opts = require("opencode.config").opts.events.permissions or {}
     if not opts.enabled then
       return
     end
+
+    ---@type opencode.server.Event
+    local event = args.data.event
+    ---@type string
+    local url = args.data.url
 
     require("opencode.server")
       .new(url)
