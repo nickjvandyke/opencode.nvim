@@ -37,8 +37,8 @@ function M.add(event)
     -- Would love to have line/col... but event only includes the file
   }
 
-  local item_already_exists = vim.iter(existing_items.items):any(function(i)
-    return i.filename == new_item.filename or i.bufnr == new_item.bufnr
+  local item_already_exists = vim.iter(existing_items.items):any(function(i) ---@param i vim.quickfix.entry
+    return (i.filename == new_item.filename or i.bufnr == new_item.bufnr) and i.text == new_item.text
   end)
   if item_already_exists then
     return
