@@ -353,6 +353,10 @@ vim.api.nvim_create_autocmd("User", {
 
 When OpenCode edits a file, opencode.nvim automatically reloads the corresponding buffer.
 
+### Quickfix
+
+When OpenCode performs actions involving a file (like reading or editing), opencode.nvim adds it to a quickfix list for easy perusing.
+
 ### Permissions
 
 When OpenCode requests a permission, opencode.nvim asks you to approve or deny it.
