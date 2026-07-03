@@ -8,7 +8,7 @@ local QUICKFIX_LIST_TITLE = "OpenCode"
 ---@type number?
 local qf_list_id = nil
 
----Add `event.properties.file` (if it exists) and `event.type` to an "OpenCode" quickfix list.
+---Add `event.properties.file` (if present) and `event.type` to an "OpenCode" quickfix list.
 ---
 ---@param event opencode.server.Event
 function M.add(event)
