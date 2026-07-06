@@ -10,7 +10,7 @@ vim.api.nvim_create_autocmd("User", {
     local event = args.data.event
     require("opencode.events.quickfix").add(event)
   end,
-  desc = "Add files read and edited by OpenCode to a quickfix list",
+  desc = "Add files used by OpenCode to a quickfix list",
 })
 
 vim.api.nvim_create_user_command("OpencodeEdited1", function()
