@@ -13,8 +13,12 @@ local qf_list_id = nil
 ---@param event opencode.server.Event
 function M.add(event)
   ---@type string?
-  local file = event.properties.file
-  if not file then
+  local file
+  if event.type == "file.edited" then
+    file = event.properties.file
+  elseif event.type == "message.part.updated" and event.properties.part.tool == "read" then
+    file = event.properties.part.title
+  else
     return
   end
 
