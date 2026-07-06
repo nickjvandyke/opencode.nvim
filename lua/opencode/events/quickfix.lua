@@ -24,7 +24,6 @@ function M.add(event)
 
     -- Only open qflist upon creation; otherwise let the user do their thing
     -- TODO: Allow configuration of that? It's good for discovery but might be annoying after that.
-    -- Maybe a notification?
     local prev_win = vim.api.nvim_get_current_win()
     vim.cmd.copen()
     vim.api.nvim_set_current_win(prev_win)
