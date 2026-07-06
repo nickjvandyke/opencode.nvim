@@ -8,8 +8,6 @@ local QUICKFIX_LIST_TITLE = "OpenCode"
 ---@type number?
 local qf_list_id = nil
 
----Add `event.properties.file` (if present) and `event.type` to an "OpenCode" quickfix list.
----
 ---@param event opencode.server.Event
 function M.add(event)
   ---@type string?
@@ -17,6 +15,7 @@ function M.add(event)
   if event.type == "file.edited" then
     file = event.properties.file
   elseif event.type == "message.part.updated" and event.properties.part.tool == "read" then
+    -- TODO: Still not working
     file = event.properties.part.title
   else
     return
