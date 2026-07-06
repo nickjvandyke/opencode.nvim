@@ -10,13 +10,16 @@ local qf_list_id = nil
 
 ---@param event opencode.server.Event
 function M.add(event)
+  if event.type == "message.part.updated" then
+    vim.print(event)
+  end
   ---@type string?
   local file
   if event.type == "file.edited" then
     file = event.properties.file
   elseif event.type == "message.part.updated" and event.properties.part.tool == "read" then
-    -- TODO: Still not working
-    file = event.properties.part.title
+    -- TODO: Not hitting the condition?? Maybe it's not always in a message part update? message.new or similar?
+    file = event.properties.part.state.title
   else
     return
   end

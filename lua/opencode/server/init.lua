@@ -54,7 +54,7 @@ Server.__index = Server
 
 ---@alias opencode.server.Event
 ---| { type: "file.edited", properties: { file: string } }
----| { type: "message.part.updated", properties: { part: { tool: "read", state: { input: { filePath: string } }, title: string } } }
+---| { type: "message.part.updated", properties: { part: { tool: "read", state: { input: { filePath: string }, title: string } } } }
 ---| { type: "permission.asked", properties: { id: number, permission: string, patterns: string[], metadata?: { diff: string, filepath: string } } }
 ---| { type: "permission.replied", properties: { requestID: number } }
 ---| { type: "server.connected" }
