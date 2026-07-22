@@ -268,6 +268,8 @@ vim.api.nvim_create_autocmd('User', {
 
 </details>
 
+opencode.nvim prioritizes focused pairing with a single OpenCode instance. As such, it connects to an OpenCode server before interacting with it, listening for events and targeting it for future interactions. Consider disabling `vim.g.opencode_opts.server.connect` if you frequently jump between servers or don't care for disruptive synchronous events like permission requests.
+
 ## 🚀 Usage
 
 ### Ask — `require("opencode").ask()`
@@ -327,7 +329,7 @@ Command OpenCode:
 
 ## 👀 Events
 
-opencode.nvim forwards OpenCode's Server-Sent-Events as an `OpencodeEvent` autocmd:
+opencode.nvim forwards the connected OpenCode's Server-Sent-Events as an `OpencodeEvent` autocmd:
 
 ```lua
 -- Handle OpenCode events
@@ -351,15 +353,15 @@ vim.api.nvim_create_autocmd("User", {
 
 ### Edits
 
-When OpenCode edits a file, opencode.nvim automatically reloads the corresponding buffer.
+When the connected OpenCode edits a file, opencode.nvim automatically reloads the corresponding buffer.
 
 ### Permissions
 
-When OpenCode requests a permission, opencode.nvim asks you to approve or deny it.
+When the connected OpenCode requests a permission, opencode.nvim asks you to approve (once/always) or deny it.
 
 #### Edits
 
-For edit requests, opencode.nvim opens the target file in a new tab and uses Neovim's `:diffpatch` to display the proposed changes side-by-side. See `:h 'diffopt'` for customization.
+When the connected Opencode requests an edit, opencode.nvim opens the target file in a new tab and uses Neovim's `:diffpatch` to display the proposed changes side-by-side. See `:h 'diffopt'` for customization.
 
 | Keymap  | Function                                                                      |
 | ------- | ----------------------------------------------------------------------------- |

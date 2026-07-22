@@ -63,6 +63,7 @@ stylua .
 
 - **Async**: custom Promise implementation in `lua/opencode/promise/init.lua` (fork of `promise.nvim`)
 - **Server discovery flow** (`lua/opencode/server/discovery/init.lua`): connected server → configured URL → local process scan (filtered by CWD overlap) → auto-start + poll (5s timeout)
+- **Discovery vs connection**: server.connect (default true) controls whether auto-discovered servers are automatically subscribed to via SSE. When false, the server is found but not connected — use the select menu's "Connect to a server" / "Disconnect from connected server" items to manage connections manually.
 - **Context system** (`lua/opencode/context/init.lua`): captures buffer/win/cursor/selection before UI opens, renders placeholders (`@this`, `@buffer`, etc.) in prompts
 - **Events**: SSE subscribed on `connect()`, dispatched as `OpencodeEvent:<type>` User autocmds
 - **Edit review**: opens diff in new tab via `:diffpatch`, keymaps `da`/`dr` to accept/reject, `dp`/`do` for per-hunk

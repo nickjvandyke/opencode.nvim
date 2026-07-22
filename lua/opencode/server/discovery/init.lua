@@ -94,7 +94,11 @@ function M.get()
       return poll()
     end)
     :next(function(server)
-      return server:connect()
+      if require("opencode.config").opts.server.connect then
+        return server:connect()
+      else
+        return Promise.resolve(server)
+      end
     end)
 end
 

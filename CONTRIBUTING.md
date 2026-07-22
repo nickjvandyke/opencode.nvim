@@ -13,6 +13,7 @@ I maintain this in my free time — please allow for variable response times and
 If unsure, propose changes in an issue or discussion first!
 
 - Integrate Neovim and OpenCode to maintain familiar flow.
+- Prioritize focused pairing with a single OpenCode instance.
 - Provide novel functionality first, and convenience second.
 - Simple and intuitive UX.
 
