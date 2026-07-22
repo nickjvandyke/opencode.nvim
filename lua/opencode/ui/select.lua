@@ -6,7 +6,7 @@
 ---@field server? table<opencode.select.server.Items, string> | false Server controls to display and their descriptions.
 
 ---@alias opencode.select.server.Items
----| 'server.select'
+---| 'server.connect'
 ---| 'server.start'
 ---| 'server.disconnect'
 
@@ -77,11 +77,11 @@ function M.select(context, opts)
   -- Server section
   if opts.server then
     table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
-    if opts.server["server.select"] then
-      local text = opts.server["server.select"]
+    if opts.server["server.connect"] then
+      local text = opts.server["server.connect"]
       table.insert(items, {
         __type = "server",
-        name = "server.select",
+        name = "server.connect",
         text = text,
         highlights = { { text, "Comment" } },
         preview = { text = "" },
@@ -157,7 +157,7 @@ function M.select(context, opts)
           return require("opencode.api.command").command(choice.name, context.server)
         end
       elseif choice.__type == "server" then
-        if choice.name == "server.select" then
+        if choice.name == "server.connect" then
           return require("opencode.server.discovery")
             .locally()
             :next(function(servers)

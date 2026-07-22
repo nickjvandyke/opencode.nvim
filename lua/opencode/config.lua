@@ -92,9 +92,9 @@ local defaults = {
       ["session.undo"] = "Undo last action in current session",
     },
     server = {
-      ["server.select"] = "Select server",
       ["server.start"] = "Start configured server",
-      ["server.disconnect"] = "Disconnect from current server",
+      ["server.connect"] = "Connect to a server",
+      ["server.disconnect"] = "Disconnect from connected server",
     },
     snacks = {
       preview = "preview",
