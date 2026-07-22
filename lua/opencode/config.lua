@@ -93,6 +93,7 @@ local defaults = {
     server = {
       ["server.select"] = "Select server",
       ["server.start"] = "Start configured server",
+      ["server.disconnect"] = "Disconnect from current server",
     },
     snacks = {
       preview = "preview",

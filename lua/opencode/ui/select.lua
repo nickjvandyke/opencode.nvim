@@ -8,6 +8,7 @@
 ---@alias opencode.select.server.Items
 ---| 'server.select'
 ---| 'server.start'
+---| 'server.disconnect'
 
 local M = {}
 
@@ -89,8 +90,17 @@ function M.select(context, opts)
       table.insert(items, {
         __type = "server",
         name = "server.start",
-        text = "Start server",
+        text = "Start configured server",
         highlights = { { "Start configured server", "Comment" } },
+        preview = { text = "" },
+      })
+    end
+    if opts.server["server.disconnect"] and require("opencode.server").connected then
+      table.insert(items, {
+        __type = "server",
+        name = "server.disconnect",
+        text = "Disconnect from current server",
+        highlights = { { "Disconnect from current server", "Comment" } },
         preview = { text = "" },
       })
     end
@@ -172,6 +182,11 @@ function M.select(context, opts)
             end)
         elseif choice.name == "server.start" then
           return config.opts.server.start()
+        elseif choice.name == "server.disconnect" then
+          local connected = require("opencode.server").connected
+          if connected then
+            connected:disconnect()
+          end
         end
       else
         return Promise.reject("Unknown item: " .. choice.name)

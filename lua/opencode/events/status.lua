@@ -38,9 +38,13 @@ function M.update(event, url)
   elseif event.type == "session.status" and event.properties.status.type == "error" then
     status = "error"
   elseif event.type == "server.instance.disposed" then
-    status = nil
-    M.url = nil
+    M.reset()
   end
+end
+
+function M.reset()
+  status = nil
+  M.url = nil
 end
 
 return M

@@ -381,6 +381,7 @@ function Server:disconnect()
 
   if Server.connected == self then
     Server.connected = nil
+    require("opencode.events.status").reset()
   end
 end
 
