@@ -78,29 +78,32 @@ function M.select(context, opts)
   if opts.server then
     table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
     if opts.server["server.select"] then
+      local text = opts.server["server.select"]
       table.insert(items, {
         __type = "server",
         name = "server.select",
-        text = "Select server",
-        highlights = { { "Select server", "Comment" } },
+        text = text,
+        highlights = { { text, "Comment" } },
         preview = { text = "" },
       })
     end
     if opts.server["server.start"] and config.opts.server.start then
+      local text = opts.server["server.start"]
       table.insert(items, {
         __type = "server",
         name = "server.start",
-        text = "Start configured server",
-        highlights = { { "Start configured server", "Comment" } },
+        text = text,
+        highlights = { { text, "Comment" } },
         preview = { text = "" },
       })
     end
     if opts.server["server.disconnect"] and require("opencode.server").connected then
+      local text = opts.server["server.disconnect"]
       table.insert(items, {
         __type = "server",
         name = "server.disconnect",
-        text = "Disconnect from current server",
-        highlights = { { "Disconnect from current server", "Comment" } },
+        text = text,
+        highlights = { { text, "Comment" } },
         preview = { text = "" },
       })
     end
