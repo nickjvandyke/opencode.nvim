@@ -14,7 +14,7 @@ A Neovim Lua plugin that bridges Neovim and the `opencode` CLI (external binary)
 
 - Config is passed via `vim.g.opencode_opts` for simpler UX and faster startup (see `lua/opencode/config.lua:6`)
 - `snacks.nvim` nested opts go under `ask.snacks` / `select.snacks`, then get merged into `ask` / `select` at the end of config.lua
-- `vim.o.autoread = true` is required when `events.reload = true` (the default)
+- `vim.o.autoread` is automatically set to `true` when `events.reload = true` (the default) unless the user has explicitly configured it
 - Neovim doesn't support mixed integer/string keys in `vim.g`, which affects some `snacks.input` options; workaround: modify `require("opencode.config").opts` directly
 
 ## Dependencies

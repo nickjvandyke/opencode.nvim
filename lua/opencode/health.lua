@@ -6,27 +6,24 @@ function M.check()
   local uname = vim.uv.os_uname()
   vim.health.info(string.format("OS: %s %s (%s)", uname.sysname, uname.release, uname.machine))
 
-  vim.health.info("`nvim` version: `" .. tostring(vim.version()) .. "`.")
+  vim.health.info("`nvim` version: `" .. tostring(vim.version()) .. "`")
 
   local plugin_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
   local git_hash =
     vim.trim(vim.fn.system("cd " .. vim.fn.shellescape(plugin_dir) .. " && git rev-parse HEAD")):gsub("\n", "\\n")
   if vim.v.shell_error == 0 then
-    vim.health.info("opencode.nvim git commit hash: `" .. git_hash .. "`.")
+    vim.health.info("opencode.nvim git commit hash: `" .. git_hash .. "`")
   else
-    vim.health.warn("opencode.nvim git commit hash: `" .. git_hash .. "`.")
+    vim.health.warn("opencode.nvim git commit hash: `" .. git_hash .. "`")
   end
 
   vim.health.info("`vim.g.opencode_opts`: " .. vim.inspect(vim.g.opencode_opts))
-
   local opts = require("opencode.config").opts
+
   if opts.events.reload and not vim.o.autoread then
     vim.health.warn(
-      "`vim.g.opencode_opts.events.reload = true` but `vim.o.autoread = false`: files edited by `opencode` won't be automatically reloaded in buffers.",
-      {
-        "Set `vim.o.autoread = true`",
-        "Or set `vim.g.opencode_opts.events.reload = false`",
-      }
+      "`vim.g.opencode_opts.events.reload = true` but `vim.o.autoread = false`: files edited by `opencode` can't be automatically reloaded in buffers.",
+      "Set `vim.o.autoread = true`."
     )
   end
 

@@ -40,8 +40,6 @@ vim.g.opencode_opts = {
   -- Your configuration, if any; goto definition on the type for details
 }
 
-vim.o.autoread = true -- Required for `vim.g.opencode_opts.events.reload`
-
 -- Recommended/example keymaps
 vim.keymap.set({ "n", "x" }, "<C-a>",   function() require("opencode").ask("@this: ") end,                    { desc = "Ask OpenCode…" })
 vim.keymap.set({ "n", "x" }, "<C-x>",   function() require("opencode").select() end,                          { desc = "Select OpenCode…" })
@@ -63,8 +61,6 @@ vim.keymap.set({ "n" },      "<S-C-d>", function() require("opencode").command("
     vim.g.opencode_opts = {
       -- Your configuration, if any; goto definition on the type for details
     }
-
-    vim.o.autoread = true -- Required for `vim.g.opencode_opts.events.reload`
 
     -- Recommended/example keymaps
     vim.keymap.set({ "n", "x" }, "<C-a>",   function() require("opencode").ask("@this: ") end,                    { desc = "Ask OpenCode…" })
@@ -349,7 +345,7 @@ vim.api.nvim_create_autocmd("User", {
 
 ### Edits
 
-When the connected OpenCode edits a file, opencode.nvim automatically reloads the corresponding buffer.
+When the connected OpenCode edits a file, opencode.nvim reloads the corresponding buffer in real-time. `vim.o.autoread = true` is set automatically to enable this unless you've explicitly configured it.
 
 ### Permissions
 
