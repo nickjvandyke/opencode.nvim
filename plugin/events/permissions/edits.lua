@@ -15,10 +15,14 @@ vim.api.nvim_create_autocmd("User", {
     require("opencode.server")
       .new(url)
       :next(function(server)
-        require("opencode.events.permissions.edits").diff(event, server)
+        return require("opencode.events.permissions.edits").diff(event):next(function(reply)
+          if reply then
+            return server:permit(event.properties.id, reply)
+          end
+        end)
       end)
       :catch(function(err)
-        vim.notify("Failed to diff OpenCode edit request: " .. err, vim.log.levels.ERROR, { title = "opencode" })
+        vim.notify("OpenCode edit request error: " .. err, vim.log.levels.ERROR, { title = "opencode" })
       end)
   end,
   desc = "Diff proposed edits from OpenCode",

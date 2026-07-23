@@ -4,7 +4,7 @@
 ---You _must_ run `opencode` with the `--port` flag to expose its server.
 ---If pointing to a headless server, you _must_ attach a TUI via `opencode attach <URL>`.
 ---@field url? string | fun(callback: fun(url?: string))
----@field connect? boolean Connect to an OpenCode server before interacting with it, listening for events and targeting it for future interactions.
+---@field connect? boolean Whether to connect to an OpenCode server before interacting with it, listening for events and targeting it for future interactions.
 ---@field username? string Basic auth username.
 ---@field password? string Basic auth password.
 ---@field start? fun() | false Start an OpenCode server. Called when none are found; will retry after.
