@@ -353,7 +353,7 @@ When the connected OpenCode edits a file, opencode.nvim automatically reloads th
 
 ### Permissions
 
-When the connected OpenCode requests a permission, opencode.nvim asks you to approve (once/always) or deny it.
+When the connected OpenCode requests a permission, opencode.nvim asks you to approve or deny it.
 
 #### Edits
 
