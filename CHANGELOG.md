@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.14.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.4...v0.14.0) (2026-07-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **select:** rename "server.select" item to "server.connect"
+
+### Features
+
+* **reload:** automatically set `vim.o.autoread` if user hasn't set ([c0d0122](https://github.com/nickjvandyke/opencode.nvim/commit/c0d01222492b6fdfd58fb4efc1780c6970a608f4))
+* **select:** rename "server.select" item to "server.connect" ([9971caa](https://github.com/nickjvandyke/opencode.nvim/commit/9971caa6ab302070a6478771da1ac18dd7dd4e41))
+* **server:** add server.disconnect to select menu ([f8ef811](https://github.com/nickjvandyke/opencode.nvim/commit/f8ef811dcafe4094aa50f733a0ba3c53ee1caafa))
+* **server:** support disabling auto-connecting ([ead89d4](https://github.com/nickjvandyke/opencode.nvim/commit/ead89d4b04313112f8db09c9df38024ea9ef0f0f))
+
+
+### Bug Fixes
+
+* **permissions:** properly chain promises for better error propagation ([8d13938](https://github.com/nickjvandyke/opencode.nvim/commit/8d139381cbd436599af31e78608b4a41402d1c0f))
+* **select:** use `vim.g.opencode_opts.select.server` descriptions ([ca33385](https://github.com/nickjvandyke/opencode.nvim/commit/ca33385719f292ca4c375db350d6ca2f59c1501d))
+
 ## [0.13.4](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.3...v0.13.4) (2026-06-26)
 
 
