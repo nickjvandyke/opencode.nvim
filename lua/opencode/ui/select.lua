@@ -149,13 +149,7 @@ function M.select(context, opts)
       if choice.__type == "prompt" then
         return require("opencode.api.prompt").prompt(choice.text, context)
       elseif choice.__type == "command" then
-        if choice.name == "session.select" then
-          return require("opencode.ui.select_session").select_session(context.server):next(function(session)
-            return context.server:select_session(session.id)
-          end)
-        else
-          return require("opencode.api.command").command(choice.name, context.server)
-        end
+        return require("opencode.api.command").command(choice.name, context.server)
       elseif choice.__type == "server" then
         if choice.name == "server.connect" then
           return require("opencode.server.discovery")

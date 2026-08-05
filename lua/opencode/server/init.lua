@@ -14,6 +14,7 @@
 ---@field url string
 ---@field cwd string
 ---@field title string
+---@field session_id? string The session currently active in the TUI.
 ---@field subagents opencode.server.Agent[]
 ---@field subscription_job_id? number
 ---@field heartbeat_timer? uv.uv_timer_t
@@ -61,6 +62,7 @@ Server.__index = Server
 ---| { type: "server.instance.disposed" }
 ---| { type: "session.status", properties: { status: { type: "idle" | "busy" | "error" } } }
 ---| { type: "tui.command.execute", properties: { command: string } }
+---| { type: "tui.session.select", properties: { sessionID: string } }
 ---| { type: string, properties: table }
 
 ---Attempt to connect to an OpenCode server and fetch its health and details.
@@ -92,6 +94,7 @@ function Server.new(url)
       function(results) ---@param results { [1]: { directory: string, worktree: string }, [2]: opencode.server.Session[], [3]: opencode.server.Agent }
         self.cwd = results[1].directory or results[1].worktree
         self.title = results[2][1] and results[2][1].title or "<No sessions>"
+        self.session_id = results[2][1] and results[2][1].id
         self.subagents = vim.tbl_filter(function(agent) ---@param agent opencode.server.Agent
           return agent.mode == "subagent"
         end, results[3])
@@ -110,7 +113,7 @@ function Server:display_name()
 end
 
 ---@param path string
----@param method "GET" | "POST"
+---@param method "GET" | "POST" | "PATCH"
 ---@param body table?
 ---@param on_success fun(response: table)
 ---@param on_error fun(msg: string, code: number, status: number?)
@@ -293,8 +296,18 @@ end
 ---@param session_id string
 ---@return Promise<any>
 function Server:select_session(session_id)
+  self.session_id = session_id
   return require("opencode.promise").new(function(resolve, reject)
     self:curl("/tui/select-session", "POST", { sessionID = session_id }, resolve, reject)
+  end)
+end
+
+---@param session_id string
+---@param title string New title for the session.
+---@return Promise<any>
+function Server:update_session(session_id, title)
+  return require("opencode.promise").new(function(resolve, reject)
+    self:curl("/session/" .. session_id, "PATCH", { title = title }, resolve, reject)
   end)
 end
 
@@ -352,6 +365,8 @@ function Server:connect()
           resolve(self)
         elseif response.type == "server.instance.disposed" then
           self:disconnect()
+        elseif response.type == "tui.session.select" then
+          self.session_id = response.properties.sessionID
         end
 
         require("opencode.events").emit(response, self)

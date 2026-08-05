@@ -296,6 +296,13 @@ Prompt OpenCode.
 
 Wraps Prompt as an operator, supporting ranges and dot-repeat.
 
+### Rename Session — `require("opencode").rename_session()`
+
+Rename the current session.
+
+- Prompts for a new title, pre-filled with the current one.
+- Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
+
 ### Command — `require("opencode").command()`
 
 Command OpenCode:
@@ -314,10 +321,13 @@ Command OpenCode:
 | `session.new`            | Start new session                          |
 | `session.page.up`        | Scroll messages up one page                |
 | `session.page.down`      | Scroll messages down one page              |
+| `session.rename`         | Rename session                             |
 | `session.select`         | Select session                             |
 | `session.share`          | Share current session                      |
 | `session.redo`           | Redo last undone action in current session |
 | `session.undo`           | Undo last action in current session        |
+
+`session.rename` and `session.select` aren't OpenCode TUI commands — they're handled by opencode.nvim itself, opening the rename input and session picker respectively.
 
 ## 👀 Events
 
