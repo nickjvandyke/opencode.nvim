@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.0...v1.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **edits:** diff new files ([#324](https://github.com/nickjvandyke/opencode.nvim/issues/324)) ([df1a05f](https://github.com/nickjvandyke/opencode.nvim/commit/df1a05f5345ad072d6c91a020ae2a27f7c952e47))
+
 ## [1.0.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.14.0...v1.0.0) (2026-08-20)
 
 This release signifies my confidence in the plugin's stability. Thanks to everyone who contributed along the way! I hope I've made your dev life easier.
