@@ -23,7 +23,7 @@ function M.get()
         return Promise.resolve({})
       end
 
-      local ok, processes = pcall(vim.fn.json_decode, ps_stdout)
+      local ok, processes = pcall(vim.json.decode, ps_stdout)
       if not ok then
         return Promise.reject("Failed to parse `powershell` output: " .. tostring(processes))
       end
