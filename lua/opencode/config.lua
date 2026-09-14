@@ -1,9 +1,15 @@
+---@class opencode.editor.LiveContextOpts
+---@field enabled? boolean Enable live context on startup (default: false)
+---@field port? number WebSocket server port, 0 for random (default: 0)
+---@field auth_token? string|true Authentication token, true to generate one (default: nil)
+
 ---@class opencode.Opts
 ---@field server? opencode.server.Opts OpenCode server connection options.
 ---@field contexts? table<string, fun(context: opencode.context.Context): string?> Context placeholders and their builders.
 ---@field ask? opencode.ask.Opts Options for `ask()`. Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field select? opencode.select.Opts Options and items for `select()`. Supports [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---@field events? opencode.events.Opts Options for handling OpenCode events.
+---@field live_context? opencode.editor.LiveContextOpts Options for live context feature.
 
 ---Your opencode.nvim configuration.
 ---Passed via global variable for [simpler UX and faster startup](https://mrcjkb.dev/posts/2023-08-22-setup.html).
@@ -115,6 +121,11 @@ local defaults = {
         enabled = true,
       },
     },
+  },
+  live_context = {
+    enabled = false,
+    port = 0,
+    auth_token = nil,
   },
 }
 

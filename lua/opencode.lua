@@ -110,4 +110,77 @@ end
 
 M.format = require("opencode.context").format
 
+M.editor = {
+  server = require("opencode.server.websocket"),
+  selection = require("opencode.editor.selection"),
+  lockfile = require("opencode.editor.lockfile"),
+}
+
+function M.start_live_context(opts)
+  opts = vim.tbl_deep_extend("force", {}, require("opencode.config").opts.live_context or {}, opts or {})
+  local port = opts.port or 0
+  local auth_token = opts.auth_token
+
+  if M.editor.server.is_running() then
+    return true, M.editor.server.get_port()
+  end
+
+  if auth_token == true then
+    local token_err
+    auth_token, token_err = M.editor.lockfile.generate_auth_token()
+    if not auth_token then
+      return false, "Failed to generate authentication token: " .. (token_err or "unknown error")
+    end
+  elseif auth_token ~= nil and type(auth_token) ~= "string" then
+    return false, "Authentication token must be a string or true"
+  end
+
+  M.editor.lockfile.clean_all()
+
+  local server_ok, server_result = M.editor.server.start(port, auth_token)
+  if not server_ok then
+    return false, server_result
+  end
+
+  local actual_port = server_result
+
+  local lock_ok, lock_result = M.editor.lockfile.create(actual_port, auth_token)
+  if not lock_ok then
+    M.editor.server.stop()
+    return false, lock_result
+  end
+
+  M.editor.selection.enable()
+
+  return true, actual_port
+end
+
+function M.stop_live_context()
+  local port = M.editor.server.get_port()
+
+  M.editor.selection.disable()
+  M.editor.server.stop()
+
+  if port then
+    M.editor.lockfile.remove(port)
+  end
+end
+
+function M.attach_context(line_start, line_end)
+  local selection = require("opencode.editor.selection")
+  local ok, err
+
+  if line_start and line_end then
+    ok, err = selection.send_range_as_mention(line_start, line_end)
+  else
+    ok, err = selection.send_visual_selection_as_mention()
+  end
+
+  if not ok then
+    vim.notify(err or "Failed to attach context", vim.log.levels.WARN, { title = "OpenCode" })
+  end
+
+  return ok, err
+end
+
 return M

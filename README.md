@@ -22,6 +22,7 @@ For me, the best tools are the ones that "just work." opencode.nvim is designed 
 - Accept/reject and reload OpenCode edits
 - Handle OpenCode events as autocmds
 - Simple, sensible, Vim-y defaults and interfaces
+- **Live Context**: Broadcast current file/selection to OpenCode TUI in real-time via WebSocket
 
 ## 📦 Setup
 
@@ -56,12 +57,14 @@ vim.keymap.set({ "n" },      "<S-C-d>", function() require("opencode").command("
 {
   "nickjvandyke/opencode.nvim",
   version = "*", -- Latest stable release
-  config = function()
+  init = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
       -- Your configuration, if any; goto definition on the type for details
     }
+  end,
 
+  config = function()
     -- Recommended/example keymaps
     vim.keymap.set({ "n", "x" }, "<C-a>",   function() require("opencode").ask("@this: ") end,                    { desc = "Ask OpenCode…" })
     vim.keymap.set({ "n", "x" }, "<C-x>",   function() require("opencode").select() end,                          { desc = "Select OpenCode…" })
@@ -295,6 +298,41 @@ Prompt OpenCode.
 ### Operator — `require("opencode").operator()`
 
 Wraps Prompt as an operator, supporting ranges and dot-repeat.
+
+### Live Context — `require("opencode").start_live_context()`
+
+Keep OpenCode aware of the file and visual selection you are working in.
+
+Set these options before the plugin loads. To start Live Context automatically, configure your plugin manager to load opencode.nvim at startup.
+
+```lua
+vim.g.opencode_opts = {
+  live_context = {
+    enabled = true, -- Start when the plugin loads
+    port = 0, -- Use an available port
+    auth_token = true, -- Optional: generate a per-process token
+  },
+}
+
+-- Or start manually with the configured options.
+vim.keymap.set("n", "<leader>ol", function()
+  require("opencode").start_live_context()
+end, { desc = "Start live context" })
+
+vim.keymap.set("x", "<leader>oa", function()
+  require("opencode").attach_context()
+end, { desc = "Attach selection to OpenCode" })
+```
+
+`attach_context()` emits `at_mentioned`. OpenCode inserts the file reference into its prompt without submitting it, leaving the prompt ready for more text.
+
+| API or command | Description |
+| --- | --- |
+| `start_live_context(opts)` / `:OpenCodeLiveContextStart` | Start the server and selection tracking |
+| `stop_live_context()` / `:OpenCodeLiveContextStop` | Stop the server and remove its lockfile |
+| `attach_context()` / `:'<,'>OpenCodeAttach` | Insert the selected file range into the TUI prompt |
+
+For a fixed port, set `port` and launch OpenCode with `OPENCODE_EDITOR_SSE_PORT` or `CLAUDE_CODE_SSE_PORT` set to the same value. This bypasses lockfile discovery.
 
 ### Command — `require("opencode").command()`
 
