@@ -108,6 +108,20 @@ function M.operator(prompt)
   return "g@"
 end
 
+---Rename the current session.
+---
+--- - Prompts for a new title pre-filled with the current one.
+---
+---@param opts? opencode.rename_session.Opts Override configured options for this call.
+function M.rename_session(opts)
+  require("opencode.server.discovery")
+    .get()
+    :next(function(server)
+      return require("opencode.ui.rename_session").rename_session(server, opts)
+    end)
+    :catch(on_error)
+end
+
 M.format = require("opencode.context").format
 
 return M

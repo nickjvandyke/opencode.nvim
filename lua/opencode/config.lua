@@ -2,6 +2,7 @@
 ---@field server? opencode.server.Opts OpenCode server connection options.
 ---@field contexts? table<string, fun(context: opencode.context.Context): string?> Context placeholders and their builders.
 ---@field ask? opencode.ask.Opts Options for `ask()`. Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
+---@field rename_session? opencode.rename_session.Opts Options for `rename_session()`. Supports [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---@field select? opencode.select.Opts Options and items for `select()`. Supports [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---@field events? opencode.events.Opts Options for handling OpenCode events.
 
@@ -88,6 +89,7 @@ local defaults = {
       ["session.interrupt"] = "Interrupt current session",
       ["session.new"] = "Start new session",
       ["session.redo"] = "Redo last undone action in current session",
+      ["session.rename"] = "Rename session",
       ["session.select"] = "Select session",
       ["session.undo"] = "Undo last action in current session",
     },

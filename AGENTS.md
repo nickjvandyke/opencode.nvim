@@ -6,7 +6,7 @@ A Neovim Lua plugin that bridges Neovim and the `opencode` CLI (external binary)
 
 ## Entrypoints
 
-- **Public API**: `lua/opencode.lua` — exports `ask()`, `select()`, `prompt()`, `command()`, `operator()`, `format()`, `statusline`
+- **Public API**: `lua/opencode.lua` — exports `ask()`, `select()`, `prompt()`, `command()`, `operator()`, `rename_session()`, `format()`, `statusline`
 - **Config**: `vim.g.opencode_opts` global (not a `setup()` call); merged with defaults from `lua/opencode/config.lua`
 - **Plugin files**: `plugin/highlights.lua` sets highlight groups; `plugin/events/` registers four autocmd groups (`OpencodeReload`, `OpencodeStatus`, `OpencodePermissions`, `OpencodeEdits`) that listen for `OpencodeEvent:*` User events to reload edited buffers, update statusline, display permission requests, and diff edit proposals
 
