@@ -1,28 +1,63 @@
 local M = {}
 
+---@class opencode.server.discovery.Registration
+---@field url string
+---@field password? string
+---@field pid? number
+---@field version? string
+
+---Read the registered OpenCode background service (URL + password).
+---
+---OpenCode v2 writes `service.json` to its state directory when the service
+---starts. The plugin connects to that URL with the generated password.
+---
+---@return opencode.server.discovery.Registration?
+local function registered()
+  local state_home = vim.env.XDG_STATE_HOME
+  -- Mirror OpenCode's own resolution: XDG roots based on `os.homedir()`, which on
+  -- Windows is `%USERPROFILE%` (where `$HOME` is not reliably set).
+  local home = vim.uv.os_homedir() or vim.env.HOME or ""
+  local state_dir = (state_home and state_home ~= "") and vim.fs.joinpath(state_home, "opencode")
+    or vim.fs.joinpath(home, ".local", "state", "opencode")
+  local path = vim.fs.joinpath(state_dir, "service.json")
+  local ok, lines = pcall(vim.fn.readfile, path)
+  if not ok or not lines or #lines == 0 then
+    return nil
+  end
+
+  local decoded_ok, decoded = pcall(vim.fn.json_decode, table.concat(lines, "\n"))
+  if decoded_ok and type(decoded) == "table" and type(decoded.url) == "string" then
+    return {
+      url = decoded.url,
+      password = decoded.password,
+      pid = decoded.pid,
+      version = decoded.version,
+    }
+  end
+
+  return nil
+end
+
 local function find()
   local Promise = require("opencode.promise")
   local connected_server = require("opencode.server").connected
+  if connected_server then
+    return Promise.resolve(connected_server)
+  end
 
-  return connected_server and Promise.resolve(connected_server)
-    or M.configured()
-    or M.locally():next(function(servers)
-      local nvim_cwd = vim.fn.getcwd()
-      local servers_sharing_cwd = vim.tbl_filter(function(server) ---@param server opencode.server.Server
-        -- Overlaps in either direction, with no non-empty mismatch
-        return server.cwd:find(nvim_cwd, 0, true) == 1 or nvim_cwd:find(server.cwd, 0, true) == 1
-      end, servers)
+  local configured = M.configured()
+  if configured then
+    return configured
+  end
 
-      if #servers_sharing_cwd == 0 then
-        -- We prefer falling back to `opts.server.start` over selecting from servers that don't match the CWD.
-        -- Manual selection is still available for that rare need.
-        return Promise.reject("No OpenCode servers found with overlapping CWD")
-      elseif #servers_sharing_cwd == 1 then
-        return Promise.resolve(servers_sharing_cwd[1])
-      else
-        return require("opencode.ui.select_server").select_server(servers_sharing_cwd)
-      end
+  local info = registered()
+  if info then
+    return require("opencode.server").new(info.url, { password = info.password }):catch(function(err)
+      return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. info.url))
     end)
+  end
+
+  return Promise.reject("No OpenCode server found")
 end
 
 ---Look for an OpenCode server every second, rejecting if not found after five seconds.
@@ -65,7 +100,7 @@ end
 ---
 ---1. The currently connected server.
 ---2. The configured URL in `require("opencode.config").opts.server.url`.
----3. All local servers that overlap with Neovim's CWD. Automatically selects if just one, otherwise prompts to select from them.
+---3. The background service registered in OpenCode's state directory (`service.json`).
 ---4. Calling `vim.g.opencode_opts.server.start` and retrying the above over five seconds.
 ---
 ---@return Promise<opencode.server.Server>
@@ -79,7 +114,14 @@ function M.get()
         return Promise.reject()
       end
 
-      local start = require("opencode.config").opts.server.start
+      local server_opts = require("opencode.config").opts.server
+
+      -- A configured URL is authoritative; don't start a local server for it.
+      if server_opts and server_opts.url ~= nil then
+        return Promise.reject(err)
+      end
+
+      local start = server_opts and server_opts.start
 
       if not start then
         -- Propagate original error
@@ -102,49 +144,12 @@ function M.get()
     end)
 end
 
----Search for `opencode` processes on this machine and attempt to resolve them to servers.
+---The registered OpenCode background service (URL + password), if any.
+---Useful for callers that need the raw registration before a full server connection.
 ---
----@return Promise<opencode.server.Server[]>
-function M.locally()
-  local Promise = require("opencode.promise")
-  return require("opencode.server.discovery.process")
-    .get()
-    :next(function(processes)
-      if #processes == 0 then
-        return Promise.reject("No `opencode ... --port` processes found")
-      else
-        return Promise.resolve(processes)
-      end
-    end)
-    :next(function(processes)
-      -- `all_settled` because we expect non-servers (falsely discovered processes) to reject
-      return Promise.all_settled(
-        vim.tbl_map(function(process) ---@param process opencode.server.discovery.process.Process
-          return require("opencode.server").new("http://localhost:" .. process.port)
-        end, processes)
-      )
-    end)
-    :next(function(results)
-      local servers = {}
-      for _, result in ipairs(results) do
-        if result.status == "fulfilled" then
-          table.insert(servers, result.value)
-        end
-      end
-
-      if #servers == 0 then
-        for _, result in ipairs(results) do
-          if result.status == "rejected" and result.reason then
-            -- Prefer to surface a specific rejection - it's likely from a valid server (e.g. unauthenticated)
-            return Promise.reject(result.reason)
-          end
-        end
-
-        return Promise.reject("No OpenCode servers found")
-      end
-
-      return Promise.resolve(servers)
-    end)
+---@return opencode.server.discovery.Registration?
+function M.registration()
+  return registered()
 end
 
 ---Attempt to connect to the OpenCode server at `vim.g.opencode_opts.server.url`.

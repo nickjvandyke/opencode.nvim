@@ -4,15 +4,13 @@
 
 local M = {}
 
----@param event opencode.server.Event | { type: "permission.asked" }
+---@param event opencode.server.Event
 ---@return Promise<opencode.server.PermissionReply>
 function M.request(event)
+  local data = event.data
   return require("opencode.promise.ui")
     .select({ "Once", "Always", "Reject" }, {
-      prompt = "Permit opencode to: " .. event.properties.permission .. " " .. table.concat(
-        event.properties.patterns,
-        ", "
-      ) .. "?: ",
+      prompt = "Permit opencode to: " .. data.action .. " " .. table.concat(data.resources or {}, ", ") .. "?: ",
       format_item = function(item)
         return item
       end,

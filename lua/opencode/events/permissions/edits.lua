@@ -3,30 +3,69 @@
 
 local M = {}
 
----@type integer?
+---@type string?
 local current_edit_request_id = nil
 ---@type integer?
 local diff_tabpage = nil
 
----@param event opencode.server.Event | { type: "permission.asked" } | { type: "permission.replied" }
+---Extract the diff and target file from an OpenCode v2 edit permission request.
+---
+---v2 shape: `{ action = "edit", resources = { file }, metadata = { files = { { file, patch, ... } } } }`
+---
+---TODO: this `metadata.files` shape is OpenCode v2.0.10-specific. Newer builds drop the
+---diff from the edit permission request; if that ships, reconstruct it from the pending
+---tool call (the event's `source` points at the message/call, whose input carries
+---`path`/`oldString`/`newString`).
+---
+---@param event opencode.server.Event
+---@return { diff: string, filepath: string }?
+function M.preview(event)
+  local data = event.data
+  if event.type ~= "permission.asked" or data.action ~= "edit" then
+    return nil
+  end
+
+  local files = data.metadata and data.metadata.files
+  -- A multi-file edit only shows files[1] while the reply covers the whole request,
+  -- so approve/reject blindly on the rest. Defer those to the generic permission prompt.
+  -- TODO: the multi-file `patch` tool also sends a combined `metadata.diff`/`metadata.filepath`;
+  -- consider displaying that instead of falling back entirely.
+  if not files or #files ~= 1 then
+    return nil
+  end
+  local file = files[1]
+  if not file or not file.patch then
+    return nil
+  end
+
+  return { diff = file.patch, filepath = file.file or (data.resources and data.resources[1]) }
+end
+
+---@param event opencode.server.Event
 ---@return Promise<opencode.server.PermissionReply>
 function M.diff(event)
   local Promise = require("opencode.promise")
 
-  if event.type == "permission.asked" and event.properties.permission == "edit" then
-    local diff = event.properties.metadata.diff
+  local edit = M.preview(event)
+  if edit then
+    local diff = edit.diff
 
-    local filepath = event.properties.metadata.filepath
+    local filepath = edit.filepath
     local absolute_filepath = vim.fn.fnamemodify(filepath, ":p")
 
     -- Opencode sends the absolute path sometimes with the HOME and sometimes without
     -- It has something to do with the path of the opencode server cwd wrt the file/directory
     if vim.fn.isdirectory(vim.fs.dirname(absolute_filepath)) == 1 then
       filepath = absolute_filepath
-    elseif vim.env.HOME and vim.env.HOME ~= "" then
-      local home_filepath = vim.fs.normalize(vim.fs.joinpath(vim.env.HOME, filepath))
-      if vim.fn.isdirectory(vim.fs.dirname(home_filepath)) == 1 then
-        filepath = home_filepath
+    else
+      -- `os.homedir()` matches OpenCode's own resolution (and works on Windows),
+      -- where `$HOME` is not reliably set.
+      local home = vim.uv.os_homedir() or vim.env.HOME
+      if home and home ~= "" then
+        local home_filepath = vim.fs.normalize(vim.fs.joinpath(home, filepath))
+        if vim.fn.isdirectory(vim.fs.dirname(home_filepath)) == 1 then
+          filepath = home_filepath
+        end
       end
     end
 
@@ -52,7 +91,7 @@ function M.diff(event)
     -- Also prevents it from lingering in e.g. pickers and `:ls`.
     vim.bo[diff_buff].bufhidden = "wipe"
     diff_tabpage = vim.api.nvim_get_current_tabpage()
-    current_edit_request_id = event.properties.id
+    current_edit_request_id = event.data.id
 
     return Promise.new(function(resolve, reject)
       -- Override native hunk-specific keymaps to reject the edit as a whole first
@@ -90,7 +129,7 @@ function M.diff(event)
         reject()
       end, { buffer = true, desc = "Close OpenCode edit diff" })
     end)
-  elseif event.type == "permission.replied" and current_edit_request_id == event.properties.requestID then
+  elseif event.type == "permission.replied" and current_edit_request_id == event.data.requestID then
     -- Entire edit was accepted or rejected, either in the plugin or TUI; close the diff
     current_edit_request_id = nil
     if diff_tabpage and vim.api.nvim_tabpage_is_valid(diff_tabpage) then

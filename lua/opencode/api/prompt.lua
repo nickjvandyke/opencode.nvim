@@ -12,10 +12,8 @@ function M.prompt(prompt, context)
     :next(function(_prompt)
       local plaintext = context:render(_prompt).output:plaintext()
 
-      return context.server:tui_append_prompt(plaintext):next(function()
-        if not _prompt:match(" $") then
-          return context.server:tui_execute_command("prompt.submit")
-        end
+      return context.server:resolve_session():next(function(session)
+        return context.server:prompt(session.id, plaintext)
       end)
     end)
     :next(function()

@@ -20,7 +20,7 @@ A Neovim Lua plugin that bridges Neovim and the `opencode` CLI (external binary)
 ## Dependencies
 
 - **Required**: `opencode` CLI, `curl`
-- **Auto-discovery**: `pgrep` + `lsof` (Unix, unless `server.url` is set)
+- **Auto-discovery**: reads OpenCode's background service registration (`service.json`) from its state directory (unless `server.url` is set)
 - **Optional**: `snacks.nvim` (enhances `ask()` with `snacks.input`, `select()` with `snacks.picker`), `blink.cmp` (completion plugin with LSP source)
 - No hard Lua dependencies beyond Neovim itself
 
@@ -62,10 +62,11 @@ stylua .
 ## Architecture notes
 
 - **Async**: custom Promise implementation in `lua/opencode/promise/init.lua` (fork of `promise.nvim`)
-- **Server discovery flow** (`lua/opencode/server/discovery/init.lua`): connected server → configured URL → local process scan (filtered by CWD overlap) → auto-start + poll (5s timeout)
-- **Discovery vs connection**: server.connect (default true) controls whether auto-discovered servers are automatically subscribed to via SSE. When false, the server is found but not connected — use the select menu's "Connect to a server" / "Disconnect from connected server" items to manage connections manually.
+- **Server discovery flow** (`lua/opencode/server/discovery/init.lua`): connected server → configured URL → OpenCode background service registration (`service.json`, URL + password) → auto-start + poll (5s timeout)
+- **OpenCode v2 API** (`lua/opencode/server/init.lua`): the HTTP API lives under `/api/*` and requires HTTP basic auth. The password comes from the service registration or `opts.server.password`. Requests carry `x-opencode-directory: <nvim cwd>`; the daemon is shared across projects, so `/api/session` is scoped with a `directory` query. Prompts and commands target the most recently updated root session for Neovim's directory (`Server:resolve_session()`), resolved per call and never cached. OpenCode v2 has no TUI-driving or prompt-append API.
+- **Discovery vs connection**: server.connect (default true) controls whether the discovered server is automatically subscribed to via SSE. When false, the server is found but not connected.
 - **Context system** (`lua/opencode/context/init.lua`): captures buffer/win/cursor/selection before UI opens, renders placeholders (`@this`, `@buffer`, etc.) in prompts
-- **Events**: SSE subscribed on `connect()`, dispatched as `OpencodeEvent:<type>` User autocmds
+- **Events**: SSE subscribed on `connect()` (`/api/event`), dispatched as `OpencodeEvent:<type>` User autocmds. OpenCode v2 events are shaped `{ id, type, data }`.
 - **Edit review**: opens diff in new tab via `:diffpatch`, keymaps `da`/`dr` to accept/reject, `dp`/`do` for per-hunk
 - **Ask completion**: in-process LSP server (`lua/opencode/ui/ask/cmp.lua`) providing context placeholder + agent completions
 - **Integration policy**: code that bridges another tool _to_ opencode.nvim (e.g. picker send, terminal toggle) belongs in README examples. Code that enhances opencode.nvim's own UI (ask/select with snacks input/picker) stays in the plugin.

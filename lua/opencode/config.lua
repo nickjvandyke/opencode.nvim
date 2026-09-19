@@ -24,7 +24,7 @@ local defaults = {
     username = vim.env.OPENCODE_SERVER_USERNAME or "opencode", -- Same env vars and defaults as OpenCode
     password = vim.env.OPENCODE_SERVER_PASSWORD,
     start = function()
-      vim.cmd("vsplit term://opencode --port | wincmd p")
+      vim.cmd("vsplit term://opencode | wincmd p")
     end,
   },
   contexts = {
@@ -79,22 +79,6 @@ local defaults = {
       optimize = "Optimize @this for performance and readability",
       review = "Review @this for correctness and readability",
       test = "Add tests for @this",
-    },
-    commands = {
-      ["agent.cycle"] = "Cycle selected agent",
-      ["prompt.clear"] = "Clear current prompt",
-      ["prompt.submit"] = "Submit current prompt",
-      ["session.compact"] = "Compact current session",
-      ["session.interrupt"] = "Interrupt current session",
-      ["session.new"] = "Start new session",
-      ["session.redo"] = "Redo last undone action in current session",
-      ["session.select"] = "Select session",
-      ["session.undo"] = "Undo last action in current session",
-    },
-    server = {
-      ["server.start"] = "Start configured server",
-      ["server.connect"] = "Connect to a server",
-      ["server.disconnect"] = "Disconnect from connected server",
     },
     snacks = {
       preview = "preview",

@@ -35,7 +35,7 @@ function M.check()
     vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local minimum_version = "1.17"
+    local minimum_version = "2.0"
     local minimum_version_parsed = vim.version.parse(minimum_version)
     if
       found_version_parsed
@@ -65,24 +65,26 @@ function M.check()
     })
   end
 
-  -- Binaries for auto-finding `opencode` process (Unix only)
-  if vim.fn.has("win32") == 0 and not (opts and opts.server and opts.server.url) then
-    if vim.fn.executable("pgrep") == 1 then
-      vim.health.ok("`pgrep` available.")
+  -- OpenCode v2 registers its background service in its state directory.
+  -- The plugin reads that registration to discover the server URL and password.
+  if not (opts and opts.server and opts.server.url) then
+    local registration = require("opencode.server.discovery").registration()
+    if registration then
+      vim.health.ok("OpenCode background service registered at `" .. registration.url .. "`.")
+      if registration.version then
+        vim.health.info("Registered service version: `" .. registration.version .. "`.")
+      end
     else
-      vim.health.error(
-        "`pgrep` executable not found in `$PATH`.",
-        { "Install `pgrep` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.url`." }
+      vim.health.info(
+        "No OpenCode background service registered yet. "
+          .. "Run `opencode` to start it, or set `vim.g.opencode_opts.server.url`."
       )
     end
-    if vim.fn.executable("lsof") == 1 then
-      vim.health.ok("`lsof` available.")
-    else
-      vim.health.error(
-        "`lsof` executable not found in `$PATH`.",
-        { "Install `lsof` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.url`." }
-      )
-    end
+  end
+
+  local connected = require("opencode.server").connected
+  if connected then
+    vim.health.ok("Connected to OpenCode at `" .. connected.url .. "`.")
   end
 
   vim.health.start("opencode.nvim [snacks]")
