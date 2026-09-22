@@ -27,12 +27,11 @@ function M.check()
     )
   end
 
-  vim.health.start("opencode.nvim [binaries]")
+  vim.health.start("opencode.nvim [executables]")
 
   if vim.fn.executable("opencode") == 1 then
-    local found_version = vim.fn.system("opencode --version")
-    found_version = vim.trim(vim.split(found_version, "\n")[1])
-    vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
+    local found_version = vim.trim(vim.fn.system("opencode --version"))
+    vim.health.ok("`" .. found_version .. "`" .. " available.")
 
     local found_version_parsed = vim.version.parse(found_version)
     local minimum_version = "2.0"
@@ -65,19 +64,19 @@ function M.check()
     })
   end
 
-  -- OpenCode v2 registers its background service in its state directory.
-  -- The plugin reads that registration to discover the server URL and password.
   if not (opts and opts.server and opts.server.url) then
     local registration = require("opencode.server.discovery").registration()
     if registration then
-      vim.health.ok("OpenCode background service registered at `" .. registration.url .. "`.")
-      if registration.version then
-        vim.health.info("Registered service version: `" .. registration.version .. "`.")
-      end
+      vim.health.ok(
+        "OpenCode background service "
+          .. (registration.version and ("(v" .. registration.version .. ") ") or "")
+          .. "registered at `"
+          .. registration.url
+          .. "`."
+      )
     else
       vim.health.info(
-        "No OpenCode background service registered yet. "
-          .. "Run `opencode` to start it, or set `vim.g.opencode_opts.server.url`."
+        "No OpenCode background service registered yet. Run `opencode` to start it, or set `vim.g.opencode_opts.server.url`."
       )
     end
   end

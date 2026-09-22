@@ -12,7 +12,7 @@ local M = {}
 ---starts. The plugin connects to that URL with the generated password.
 ---
 ---@return opencode.server.discovery.Registration?
-local function registered()
+function M.registration()
   local state_home = vim.env.XDG_STATE_HOME
   -- Mirror OpenCode's own resolution: XDG roots based on `os.homedir()`, which on
   -- Windows is `%USERPROFILE%` (where `$HOME` is not reliably set).
@@ -50,7 +50,7 @@ local function find()
     return configured
   end
 
-  local info = registered()
+  local info = M.registration()
   if info then
     return require("opencode.server").new(info.url, { password = info.password }):catch(function(err)
       return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. info.url))
@@ -142,14 +142,6 @@ function M.get()
         return Promise.resolve(server)
       end
     end)
-end
-
----The registered OpenCode background service (URL + password), if any.
----Useful for callers that need the raw registration before a full server connection.
----
----@return opencode.server.discovery.Registration?
-function M.registration()
-  return registered()
 end
 
 ---Attempt to connect to the OpenCode server at `vim.g.opencode_opts.server.url`.
