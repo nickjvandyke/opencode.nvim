@@ -297,10 +297,6 @@ Run a registered OpenCode [command](https://opencode.ai/v2/docs/commands/).
 
 Targets the most recently updated session for Neovim's directory.
 
-```lua
-require("opencode").command("review", "branch")
-```
-
 ## 👀 Events
 
 opencode.nvim forwards the connected OpenCode's Server-Sent-Events as an `OpencodeEvent` autocmd:
