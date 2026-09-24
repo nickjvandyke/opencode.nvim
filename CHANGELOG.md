@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.2...v2.0.0) (2026-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to OpenCode v2
+
+### Features
+
+* migrate to OpenCode v2 ([d512228](https://github.com/nickjvandyke/opencode.nvim/commit/d5122284835d88ff47197863722ee6f89b1a001f))
+
+
+### Bug Fixes
+
+* **server:** send x-opencode-directory: nvim-cwd on every request ([#239](https://github.com/nickjvandyke/opencode.nvim/issues/239)) ([71fb506](https://github.com/nickjvandyke/opencode.nvim/commit/71fb506ef1898048bc548668f31f495ad6c29453))
+
 ## [1.0.2](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.1...v1.0.2) (2026-09-14)
 
 
