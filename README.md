@@ -31,7 +31,9 @@ For me, the best tools are the ones that "just work." opencode.nvim is designed 
 vim.pack.add({
   {
     src = "https://github.com/nickjvandyke/opencode.nvim",
-    version = vim.version.range("*"), -- Latest stable release
+    -- Defaults to "main", supporting OpenCode v2.
+    -- Uncomment to pull the latest stable release, supporting OpenCode v1.
+    -- version = vim.version.range("*"),
   },
 })
 
@@ -53,7 +55,9 @@ vim.keymap.set({ "n" },      "goo",     function() return require("opencode").op
 ```lua
 {
   "nickjvandyke/opencode.nvim",
-  version = "*", -- Latest stable release
+  -- Defaults to "main", supporting OpenCode v2.
+  -- Uncomment to pull the latest stable release, supporting OpenCode v1.
+  -- version = "*",
   config = function()
     ---@type opencode.Opts
     vim.g.opencode_opts = {
