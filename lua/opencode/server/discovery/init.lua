@@ -9,7 +9,9 @@ local M = {}
 ---Read the registered OpenCode background service (URL + password).
 ---
 ---OpenCode v2 writes `service.json` to its state directory when the service
----starts. The plugin connects to that URL with the generated password.
+---starts, or `service-<channel>.json` for channels other than `latest`, `dev`,
+---`beta` and `next` (e.g. Nix builds use `prod`). The plugin connects to the URL
+---in the most recently written one with the generated password.
 ---
 ---@return opencode.server.discovery.Registration?
 function M.registration()
@@ -19,20 +21,45 @@ function M.registration()
   local home = vim.uv.os_homedir() or vim.env.HOME or ""
   local state_dir = (state_home and state_home ~= "") and vim.fs.joinpath(state_home, "opencode")
     or vim.fs.joinpath(home, ".local", "state", "opencode")
-  local path = vim.fs.joinpath(state_dir, "service.json")
-  local ok, lines = pcall(vim.fn.readfile, path)
-  if not ok or not lines or #lines == 0 then
-    return nil
-  end
 
-  local decoded_ok, decoded = pcall(vim.fn.json_decode, table.concat(lines, "\n"))
-  if decoded_ok and type(decoded) == "table" and type(decoded.url) == "string" then
-    return {
-      url = decoded.url,
-      password = decoded.password,
-      pid = decoded.pid,
-      version = decoded.version,
-    }
+  local candidates = {}
+  for name in vim.fs.dir(state_dir) do
+    if name == "service.json" or name:match("^service%-.+%.json$") then
+      local path = vim.fs.joinpath(state_dir, name)
+      -- fs_stat follows symlinks, so a linked registration file still counts
+      local stat = vim.uv.fs_stat(path)
+      if stat and stat.type == "file" then
+        table.insert(candidates, { name = name, path = path, mtime = stat.mtime })
+      end
+    end
+  end
+  table.sort(candidates, function(a, b)
+    if a.mtime.sec ~= b.mtime.sec then
+      return a.mtime.sec > b.mtime.sec
+    end
+    if a.mtime.nsec ~= b.mtime.nsec then
+      return a.mtime.nsec > b.mtime.nsec
+    end
+    -- same mtime: prefer the default service.json, then sort by name
+    if (a.name == "service.json") ~= (b.name == "service.json") then
+      return a.name == "service.json"
+    end
+    return a.name < b.name
+  end)
+
+  for _, candidate in ipairs(candidates) do
+    local ok, lines = pcall(vim.fn.readfile, candidate.path)
+    if ok and lines and #lines > 0 then
+      local decoded_ok, decoded = pcall(vim.fn.json_decode, table.concat(lines, "\n"))
+      if decoded_ok and type(decoded) == "table" and type(decoded.url) == "string" then
+        return {
+          url = decoded.url,
+          password = decoded.password,
+          pid = decoded.pid,
+          version = decoded.version,
+        }
+      end
+    end
   end
 
   return nil
@@ -100,7 +127,7 @@ end
 ---
 ---1. The currently connected server.
 ---2. The configured URL in `require("opencode.config").opts.server.url`.
----3. The background service registered in OpenCode's state directory (`service.json`).
+---3. The background service registered in OpenCode's state directory (`service.json` or `service-<channel>.json`).
 ---4. Calling `vim.g.opencode_opts.server.start` and retrying the above over five seconds.
 ---
 ---@return Promise<opencode.server.Server>
