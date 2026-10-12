@@ -312,7 +312,11 @@ function Server:permit(session_id, request_id, decision)
 end
 
 ---How often OpenCode sends heartbeat events.
-local OPENCODE_HEARTBEAT_INTERVAL_MS = 10000
+local OPENCODE_HEARTBEAT_INTERVAL_MS = 15000
+
+---Silence before we treat the subscription as dead.
+---Must exceed the heartbeat interval with room for jitter.
+local HEARTBEAT_DEADLINE_MS = OPENCODE_HEARTBEAT_INTERVAL_MS + 5000
 
 ---The currently connected server.
 ---Cleared when the server disposes itself, the connection errors, or the heartbeat disappears.
@@ -336,7 +340,7 @@ function Server:connect()
   local function reset_heartbeat()
     if self.heartbeat_timer then
       self.heartbeat_timer:start(
-        OPENCODE_HEARTBEAT_INTERVAL_MS + 1000,
+        HEARTBEAT_DEADLINE_MS,
         0,
         vim.schedule_wrap(function()
           self:disconnect()
