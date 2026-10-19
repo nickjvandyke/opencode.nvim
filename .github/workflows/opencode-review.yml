@@ -27,7 +27,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_PERMISSION: '{ "bash": { "*": "deny", "gh*": "allow", "gh pr review*": "deny", "gh pr review --comment*": "allow" } }'
         with:
-          model: opencode/big-pickle
+          model: opencode-go/deepseek-v4.1-flash
           use_github_token: true
           prompt: |
             Review this pull request:
