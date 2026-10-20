@@ -6,15 +6,15 @@ local M = {}
 ---@field pid? number
 ---@field version? string
 
----Read the registered OpenCode background service (URL + password).
+---Read the registered OpenCode background services (URL + password), newest first.
 ---
 ---OpenCode v2 writes `service.json` to its state directory when the service
 ---starts, or `service-<channel>.json` for channels other than `latest`, `dev`,
----`beta` and `next` (e.g. Nix builds use `prod`). The plugin connects to the URL
----in the most recently written one with the generated password.
+---`beta` and `next` (e.g. Nix builds use `prod`). A registration may be stale
+---if its server has since exited, so callers should try each in order.
 ---
----@return opencode.server.discovery.Registration?
-function M.registration()
+---@return opencode.server.discovery.Registration[]
+function M.registrations()
   local state_home = vim.env.XDG_STATE_HOME
   -- Mirror OpenCode's own resolution: XDG roots based on `os.homedir()`, which on
   -- Windows is `%USERPROFILE%` (where `$HOME` is not reliably set).
@@ -37,8 +37,8 @@ function M.registration()
     if a.mtime.sec ~= b.mtime.sec then
       return a.mtime.sec > b.mtime.sec
     end
-    if a.mtime.nsec ~= b.mtime.nsec then
-      return a.mtime.nsec > b.mtime.nsec
+    if (a.mtime.nsec or 0) ~= (b.mtime.nsec or 0) then
+      return (a.mtime.nsec or 0) > (b.mtime.nsec or 0)
     end
     -- same mtime: prefer the default service.json, then sort by name
     if (a.name == "service.json") ~= (b.name == "service.json") then
@@ -47,22 +47,30 @@ function M.registration()
     return a.name < b.name
   end)
 
+  local registrations = {}
   for _, candidate in ipairs(candidates) do
     local ok, lines = pcall(vim.fn.readfile, candidate.path)
     if ok and lines and #lines > 0 then
       local decoded_ok, decoded = pcall(vim.fn.json_decode, table.concat(lines, "\n"))
       if decoded_ok and type(decoded) == "table" and type(decoded.url) == "string" then
-        return {
+        table.insert(registrations, {
           url = decoded.url,
           password = decoded.password,
           pid = decoded.pid,
           version = decoded.version,
-        }
+        })
       end
     end
   end
 
-  return nil
+  return registrations
+end
+
+---Read the most recently registered OpenCode background service.
+---
+---@return opencode.server.discovery.Registration?
+function M.registration()
+  return M.registrations()[1]
 end
 
 local function find()
@@ -77,11 +85,19 @@ local function find()
     return configured
   end
 
-  local info = M.registration()
-  if info then
+  -- Try each registration in turn; a newer one may be left behind by an exited server
+  local registrations = M.registrations()
+  local function try(i)
+    local info = registrations[i]
     return require("opencode.server").new(info.url, { password = info.password }):catch(function(err)
+      if registrations[i + 1] then
+        return try(i + 1)
+      end
       return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. info.url))
     end)
+  end
+  if #registrations > 0 then
+    return try(1)
   end
 
   return Promise.reject("No OpenCode server found")
@@ -127,7 +143,7 @@ end
 ---
 ---1. The currently connected server.
 ---2. The configured URL in `require("opencode.config").opts.server.url`.
----3. The background service registered in OpenCode's state directory (`service.json` or `service-<channel>.json`).
+---3. The background services registered in OpenCode's state directory (`service.json` or `service-<channel>.json`), newest first.
 ---4. Calling `vim.g.opencode_opts.server.start` and retrying the above over five seconds.
 ---
 ---@return Promise<opencode.server.Server>
