@@ -2,13 +2,7 @@
 
 ---@class opencode.select.Opts : snacks.picker.ui_select.Opts
 ---@field prompts? table<string, string> | false Prompts to display. Passed to `prompt()`.
----@field commands? table<opencode.server.Command | string, string> | false Commands to display and their descriptions.
----@field server? table<opencode.select.server.Items, string> | false Server controls to display and their descriptions.
-
----@alias opencode.select.server.Items
----| 'server.connect'
----| 'server.start'
----| 'server.disconnect'
+---@field commands? boolean Whether to display OpenCode's registered commands. Defaults to `true`.
 
 local M = {}
 
@@ -17,11 +11,10 @@ local M = {}
 ---@return Promise<any>
 function M.select(context, opts)
   opts = vim.tbl_deep_extend("force", require("opencode.config").opts.select or {}, opts or {})
-  local config = require("opencode.config")
 
   local Promise = require("opencode.promise")
 
-  ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" | "server" }
+  ---@class opencode.select.Item : snacks.picker.finder.Item, { __type: "prompt" | "command" }
   local items = {}
 
   -- Prompts section
@@ -51,146 +44,84 @@ function M.select(context, opts)
     end
   end
 
-  -- Commands section
-  if opts.commands then
-    table.insert(items, { __group = true, name = "COMMANDS", preview = { text = "" } })
-    local command_items = {}
-    for name, description in pairs(opts.commands) do
-      table.insert(command_items, {
-        __type = "command",
-        name = name,
-        text = description,
-        highlights = { { description, "Comment" } },
-        preview = {
-          text = "",
-        },
-      })
-    end
-    table.sort(command_items, function(a, b)
-      return a.name < b.name
+  -- Commands section: registered on the server, so it may include user-defined commands.
+  local commands = opts.commands == false and Promise.resolve({})
+    or context.server:get_commands():catch(function()
+      return Promise.resolve({})
     end)
-    for _, item in ipairs(command_items) do
-      table.insert(items, item)
-    end
-  end
 
-  -- Server section
-  if opts.server then
-    table.insert(items, { __group = true, name = "SERVER", preview = { text = "" } })
-    if opts.server["server.connect"] then
-      local text = opts.server["server.connect"]
-      table.insert(items, {
-        __type = "server",
-        name = "server.connect",
-        text = text,
-        highlights = { { text, "Comment" } },
-        preview = { text = "" },
-      })
-    end
-    if opts.server["server.start"] and config.opts.server.start then
-      local text = opts.server["server.start"]
-      table.insert(items, {
-        __type = "server",
-        name = "server.start",
-        text = text,
-        highlights = { { text, "Comment" } },
-        preview = { text = "" },
-      })
-    end
-    if opts.server["server.disconnect"] and require("opencode.server").connected then
-      local text = opts.server["server.disconnect"]
-      table.insert(items, {
-        __type = "server",
-        name = "server.disconnect",
-        text = text,
-        highlights = { { text, "Comment" } },
-        preview = { text = "" },
-      })
-    end
-  end
-
-  for i, item in ipairs(items) do
-    item.idx = i -- Store the index for non-snacks formatting
-  end
-
-  ---@type snacks.picker.ui_select.Opts
-  local select_opts = {
-    ---@param item snacks.picker.finder.Item
-    ---@param is_snacks boolean
-    format_item = function(item, is_snacks)
-      if is_snacks then
-        if item.__group then
-          return { { item.name, "Title" } }
+  return commands
+    :next(function(registered)
+      if opts.commands ~= false and #registered > 0 then
+        table.insert(items, { __group = true, name = "COMMANDS", preview = { text = "" } })
+        local command_items = {}
+        for _, command in ipairs(registered) do
+          local description = command.description or ""
+          table.insert(command_items, {
+            __type = "command",
+            name = command.name,
+            text = description,
+            highlights = { { description, "Comment" } },
+            preview = {
+              text = "",
+            },
+          })
         end
-        local formatted = vim.deepcopy(item.highlights or {})
-        table.insert(formatted, 1, { item.name, "Keyword" })
-        table.insert(formatted, 2, { string.rep(" ", 18 - #item.name) })
-        return formatted
-      else
-        local indent = #tostring(#items) - #tostring(item.idx)
-        if item.__group then
-          local divider = string.rep("—", (80 - #item.name) / 2)
-          return string.rep(" ", indent) .. divider .. item.name .. divider
+        table.sort(command_items, function(a, b)
+          return a.name < b.name
+        end)
+        for _, item in ipairs(command_items) do
+          table.insert(items, item)
         end
-        return ("%s[%s]%s%s"):format(
-          string.rep(" ", indent),
-          item.name,
-          string.rep(" ", 18 - #item.name),
-          item.text or ""
-        )
       end
-    end,
-  }
-  select_opts = vim.tbl_deep_extend("force", select_opts, opts)
 
-  return require("opencode.promise.ui")
-    .select(items, select_opts)
+      for i, item in ipairs(items) do
+        item.idx = i -- Store the index for non-snacks formatting
+      end
+
+      ---@type snacks.picker.ui_select.Opts
+      local select_opts = {
+        ---@param item snacks.picker.finder.Item
+        ---@param is_snacks boolean
+        format_item = function(item, is_snacks)
+          if is_snacks then
+            if item.__group then
+              return { { item.name, "Title" } }
+            end
+            local formatted = vim.deepcopy(item.highlights or {})
+            table.insert(formatted, 1, { item.name, "Keyword" })
+            table.insert(formatted, 2, { string.rep(" ", 18 - #item.name) })
+            return formatted
+          else
+            local indent = #tostring(#items) - #tostring(item.idx)
+            if item.__group then
+              local divider = string.rep("—", (80 - #item.name) / 2)
+              return string.rep(" ", indent) .. divider .. item.name .. divider
+            end
+            return ("%s[%s]%s%s"):format(
+              string.rep(" ", indent),
+              item.name,
+              string.rep(" ", 18 - #item.name),
+              item.text or ""
+            )
+          end
+        end,
+      }
+      select_opts = vim.tbl_deep_extend("force", select_opts, opts)
+
+      return require("opencode.promise.ui").select(items, select_opts)
+    end)
     :next(function(choice)
       if choice.__type == "prompt" then
         return require("opencode.api.prompt").prompt(choice.text, context)
       elseif choice.__type == "command" then
-        if choice.name == "session.select" then
-          return require("opencode.ui.select_session").select_session(context.server):next(function(session)
-            return context.server:select_session(session.id)
+        -- Commands may take arguments, but the API doesn't expose whether they do,
+        -- so always prompt (the command runs with its default when left blank).
+        return require("opencode.promise.ui")
+          .input({ prompt = "Arguments for /" .. choice.name .. " (optional): ", default = "" })
+          :next(function(args)
+            return require("opencode.api.command").command(choice.name, args, context.server)
           end)
-        else
-          return require("opencode.api.command").command(choice.name, context.server)
-        end
-      elseif choice.__type == "server" then
-        if choice.name == "server.connect" then
-          return require("opencode.server.discovery")
-            .locally()
-            :next(function(servers)
-              local configured = require("opencode.server.discovery").configured()
-              if configured then
-                return configured:next(function(configured_server)
-                  if
-                    not vim.tbl_contains(servers, function(local_server)
-                      return local_server.url == configured_server.url
-                    end, { predicate = true })
-                  then
-                    table.insert(servers, 1, configured_server)
-                  end
-                  return Promise.resolve(servers)
-                end)
-              else
-                return Promise.resolve(servers)
-              end
-            end)
-            :next(function(servers)
-              return require("opencode.ui.select_server").select_server(servers)
-            end)
-            :next(function(selected_server)
-              return selected_server:connect()
-            end)
-        elseif choice.name == "server.start" then
-          return config.opts.server.start()
-        elseif choice.name == "server.disconnect" then
-          local connected = require("opencode.server").connected
-          if connected then
-            connected:disconnect()
-          end
-        end
       else
         return Promise.reject("Unknown item: " .. choice.name)
       end

@@ -29,15 +29,18 @@ end
 function M.update(event, url)
   M.url = url
 
-  if
-    event.type == "server.connected" or (event.type == "session.status" and event.properties.status.type == "idle")
-  then
+  if event.type == "server.connected" then
     status = "idle"
-  elseif event.type == "session.status" and event.properties.status.type == "busy" then
-    status = "busy"
-  elseif event.type == "session.status" and event.properties.status.type == "error" then
+  elseif event.type == "session.status" then
+    local kind = event.data and event.data.status and event.data.status.type
+    if kind == "idle" then
+      status = "idle"
+    elseif kind == "busy" or kind == "retry" then
+      status = "busy"
+    end
+  elseif event.type == "session.execution.failed" then
     status = "error"
-  elseif event.type == "server.instance.disposed" then
+  elseif event.type == "global.disposed" or event.type == "server.instance.disposed" then
     M.reset()
   end
 end

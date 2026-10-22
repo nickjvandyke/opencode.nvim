@@ -32,7 +32,9 @@ For me, the best tools are the ones that "just work." opencode.nvim is designed 
 vim.pack.add({
   {
     src = "https://github.com/nickjvandyke/opencode.nvim",
-    version = vim.version.range("*"), -- Latest stable release
+    -- Defaults to "main", supporting OpenCode v2.
+    -- Uncomment to pull the latest stable release, supporting OpenCode v1.
+    -- version = vim.version.range("*"),
   },
 })
 
@@ -44,10 +46,8 @@ vim.g.opencode_opts = {
 -- Recommended/example keymaps
 vim.keymap.set({ "n", "x" }, "<C-a>",   function() require("opencode").ask("@this: ") end,                    { desc = "Ask OpenCode…" })
 vim.keymap.set({ "n", "x" }, "<C-x>",   function() require("opencode").select() end,                          { desc = "Select OpenCode…" })
-vim.keymap.set({ "n", "x" }, "go",      function() return require("opencode").operator("@this ") end,         { desc = "Append range to OpenCode", expr = true })
-vim.keymap.set({ "n" },      "goo",     function() return require("opencode").operator("@this ") .. "_" end,  { desc = "Append line to OpenCode", expr = true })
-vim.keymap.set({ "n" },      "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll OpenCode up" })
-vim.keymap.set({ "n" },      "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll OpenCode down" })
+vim.keymap.set({ "n", "x" }, "go",      function() return require("opencode").operator("@this") end,         { desc = "Send range to OpenCode", expr = true })
+vim.keymap.set({ "n" },      "goo",     function() return require("opencode").operator("@this") .. "_" end,  { desc = "Send line to OpenCode", expr = true })
 ```
 
 <details>
@@ -68,10 +68,8 @@ vim.keymap.set({ "n" },      "<S-C-d>", function() require("opencode").command("
     -- Recommended/example keymaps
     vim.keymap.set({ "n", "x" }, "<C-a>",   function() require("opencode").ask("@this: ") end,                    { desc = "Ask OpenCode…" })
     vim.keymap.set({ "n", "x" }, "<C-x>",   function() require("opencode").select() end,                          { desc = "Select OpenCode…" })
-    vim.keymap.set({ "n", "x" }, "go",      function() return require("opencode").operator("@this ") end,         { desc = "Append range to OpenCode", expr = true })
-    vim.keymap.set({ "n" },      "goo",     function() return require("opencode").operator("@this ") .. "_" end,  { desc = "Append line to OpenCode", expr = true })
-    vim.keymap.set({ "n" },      "<S-C-u>", function() require("opencode").command("session.half.page.up") end,   { desc = "Scroll OpenCode up" })
-    vim.keymap.set({ "n" },      "<S-C-d>", function() require("opencode").command("session.half.page.down") end, { desc = "Scroll OpenCode down" })
+    vim.keymap.set({ "n", "x" }, "go",      function() return require("opencode").operator("@this") end,         { desc = "Send range to OpenCode", expr = true })
+    vim.keymap.set({ "n" },      "goo",     function() return require("opencode").operator("@this") .. "_" end,  { desc = "Send line to OpenCode", expr = true })
   end,
 }
 ```
@@ -96,13 +94,23 @@ programs.nixvim = {
 The below examples are specific, but generalize to other plugins.
 
 <details>
-<summary><a href="https://github.com/folke/snacks.nvim">snacks.nvim</a></summary>
+<summary><a href="https://github.com/folke/snacks.nvim/blob/main/docs/input.md">snacks.input</a> (Ask)</summary>
 
 ```lua
 require("snacks").setup({
   input = {
     enabled = true, -- Enhances Ask
   },
+})
+```
+
+</details>
+
+<details>
+<summary><a href="https://github.com/folke/snacks.nvim/blob/main/docs/picker.md">snacks.picker</a> (Select)</summary>
+
+```lua
+require("snacks").setup({
   picker = {
     enabled = true, -- Enhances Select
     win = {
@@ -130,7 +138,49 @@ require("snacks").setup({
 </details>
 
 <details>
-<summary><a href="https://github.com/saghen/blink.cmp">blink.cmp</a></summary>
+<summary><a href="https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md">snacks.terminal</a> (Server)</summary>
+
+```lua
+local opencode_cmd = 'opencode'
+---@type snacks.terminal.Opts
+local snacks_terminal_opts = {
+  win = {
+    position = 'right',
+    enter = false,
+  },
+}
+
+---@type opencode.Opts
+vim.g.opencode_opts = {
+  server = {
+    start = function()
+      require('snacks.terminal').open(opencode_cmd, snacks_terminal_opts)
+    end,
+  },
+}
+
+-- Can also leverage toggle functionality.
+-- If you use <leader> here, remove 't' — otherwise Neovim will add input delay to your <leader> when typing in the terminal to watch for the mapping.
+vim.keymap.set({ 'n', 't' }, '<C-.>', function()
+  require('snacks.terminal').toggle(opencode_cmd, snacks_terminal_opts)
+end, { desc = 'Toggle OpenCode' })
+
+-- Optionally show the terminal when OpenCode starts executing
+vim.api.nvim_create_autocmd('User', {
+  pattern = { 'OpencodeEvent:session.execution.started' },
+  callback = function()
+    local win = require('snacks.terminal').get(opencode_cmd, { create = false })
+    if win then
+      win:show()
+    end
+  end,
+})
+```
+
+</details>
+
+<details>
+<summary><a href="https://github.com/saghen/blink.cmp">blink.cmp</a> (Completion)</summary>
 
 ```lua
 -- Configure blink.cmp to show completions in Ask from opencode.nvim's in-process LSP.
@@ -152,7 +202,7 @@ require("blink.cmp").setup({
 </details>
 
 <details>
-<summary><a href="https://github.com/nvim-lualine/lualine.nvim">lualine.nvim</a></summary>
+<summary><a href="https://github.com/nvim-lualine/lualine.nvim">lualine.nvim</a> (Statusline)</summary>
 
 ```lua
 require("lualine").setup({
@@ -162,8 +212,8 @@ require("lualine").setup({
         -- Show the currently connected server and its status
         require("opencode").statusline,
       },
-    }
-  }
+    },
+  },
 })
 ```
 
@@ -210,60 +260,11 @@ Select prompts to review, explain, and improve your code:
 
 ### Server
 
-Run `opencode` locally however you like and opencode.nvim will find them! Or point `vim.g.opencode_opts.server.url` to a specific server, including remotes.
+Run `opencode` and opencode.nvim will automatically find its daemon server! Or point `vim.g.opencode_opts.server.url` to a specific server, including remotes.
 
-> [!IMPORTANT]
-> You _must_ run `opencode` with the `--port` flag to expose its server.
+If opencode.nvim can't find a running service, it starts one via `vim.g.opencode_opts.server.start`, defaulting to opening `opencode` in a terminal. See [Integrations > snacks.terminal (Server)](#integrations) for a custom start example.
 
-If opencode.nvim can't find a running `opencode`, it starts one via `vim.g.opencode_opts.server.start`, defaulting to `term://opencode --port`.
-
-<details>
-<summary>Start via <a href="https://github.com/folke/snacks.nvim/blob/main/docs/terminal.md">snacks.terminal</a></summary>
-
-```lua
-local opencode_cmd = 'opencode --port'
----@type snacks.terminal.Opts
-local snacks_terminal_opts = {
-  win = {
-    position = 'right',
-    enter = false,
-  },
-}
-
----@type opencode.Opts
-vim.g.opencode_opts = {
-  server = {
-    start = function()
-      require('snacks.terminal').open(opencode_cmd, snacks_terminal_opts)
-    end,
-  },
-}
-
--- Can also leverage toggle functionality.
--- If you use <leader> here, remove 't' — otherwise Neovim will add input delay to your <leader> when typing in the terminal to watch for the mapping.
-vim.keymap.set({ 'n', 't' }, '<C-.>', function()
-  require('snacks.terminal').toggle(opencode_cmd, snacks_terminal_opts)
-end, { desc = 'Toggle OpenCode' })
-
--- Optionally show upon submitting prompt
-vim.api.nvim_create_autocmd('User', {
-  pattern = { 'OpencodeEvent:tui.command.execute' },
-  callback = function(args)
-    ---@type opencode.server.Event
-    local event = args.data.event
-    if event.properties.command == 'prompt.submit' then
-      local win = require('snacks.terminal').get(opencode_cmd, { create = false })
-      if win then
-        win:show()
-      end
-    end
-  end,
-})
-```
-
-</details>
-
-opencode.nvim prioritizes focused pairing with a single OpenCode instance. As such, it connects to an OpenCode server before interacting with it, listening for events and targeting it for future interactions. Consider disabling `vim.g.opencode_opts.server.connect` if you frequently jump between servers or don't care for disruptive synchronous events like permission requests.
+opencode.nvim prioritizes focused pairing with a single OpenCode instance. As such, it connects to an OpenCode server before interacting with it, listening for events and targeting it for future interactions. Consider disabling `vim.g.opencode_opts.server.connect` if you don't care for disruptive synchronous events like permission requests.
 
 ## 🚀 Usage
 
@@ -273,7 +274,7 @@ Input a prompt for OpenCode.
 
 - Passes the text to Prompt.
 - Press `<Up>` to browse recent asks.
-- Highlights and completes contexts and OpenCode subagents.
+- Highlights and completes contexts.
   - Press `<Tab>` to trigger built-in completion.
   - Provided by in-process LSP when using [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 
@@ -281,19 +282,15 @@ Input a prompt for OpenCode.
 
 Select from all opencode.nvim functionality.
 
-- Prompts
-- Commands
-- Servers
-
 Highlights and previews items when using [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 
 ### Prompt — `require("opencode").prompt()`
 
 Prompt OpenCode.
 
-- Injects configured contexts.
-- Trailing space appends; trailing "..." opens in Ask.
-- OpenCode will interpret references to files or subagents.
+Targets the most recently updated session for Neovim's directory.
+Injects configured contexts.
+Trailing "..." opens in `ask()`.
 
 ### Operator — `require("opencode").operator()`
 
@@ -336,26 +333,9 @@ For a fixed port, set `port` and launch OpenCode with `OPENCODE_EDITOR_SSE_PORT`
 
 ### Command — `require("opencode").command()`
 
-Command OpenCode:
+Run a registered OpenCode [command](https://opencode.ai/v2/docs/commands/).
 
-| Command                  | Description                                |
-| ------------------------ | ------------------------------------------ |
-| `agent.cycle`            | Cycle selected agent                       |
-| `prompt.clear`           | Clear current prompt                       |
-| `prompt.submit`          | Submit current prompt                      |
-| `session.compact`        | Compact current session                    |
-| `session.first`          | Jump to first message in session           |
-| `session.half.page.up`   | Scroll messages up half a page             |
-| `session.half.page.down` | Scroll messages down half a page           |
-| `session.interrupt`      | Interrupt current session                  |
-| `session.last`           | Jump to last message in current session    |
-| `session.new`            | Start new session                          |
-| `session.page.up`        | Scroll messages up one page                |
-| `session.page.down`      | Scroll messages down one page              |
-| `session.select`         | Select session                             |
-| `session.share`          | Share current session                      |
-| `session.redo`           | Redo last undone action in current session |
-| `session.undo`           | Undo last action in current session        |
+Targets the most recently updated session for Neovim's directory.
 
 ## 👀 Events
 
@@ -371,15 +351,18 @@ vim.api.nvim_create_autocmd("User", {
     ---@type string
     local url = args.data.url
 
-    -- See the available event types and their properties
+    -- See the available event types and their data
     vim.notify(vim.inspect(event))
     -- Do something useful
     if event.type == "session.status" then
-      vim.notify("OpenCode status updated: " .. event.properties.status.type)
+      vim.notify("OpenCode status updated: " .. event.data.status.type)
     end
   end,
 })
 ```
+
+> [!NOTE]
+> Event payloads are passed through from the OpenCode as-is and follow its schema. They may change with OpenCode releases, so treat them as best-effort rather than a stable API contract.
 
 ### Edits
 

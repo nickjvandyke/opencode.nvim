@@ -10,12 +10,12 @@ function M.this(context)
       from[2] = context.range.from[2] + 1
       to[2] = context.range.to[2] + 1
     end
-    return context.format({ buf = context.buf, from = from, to = to, rel = context.server.cwd })
+    return context.format({ buf = context.buf, from = from, to = to, rel = vim.fn.getcwd() })
   else
     return context.format({
       buf = context.buf,
       from = { context.cursor[1], context.cursor[2] + 1 },
-      rel = context.server.cwd,
+      rel = vim.fn.getcwd(),
     })
   end
 end
@@ -23,7 +23,7 @@ end
 ---The buffer.
 ---@param context opencode.context.Context
 function M.buffer(context)
-  return context.format({ buf = context.buf, rel = context.server.cwd })
+  return context.format({ buf = context.buf, rel = vim.fn.getcwd() })
 end
 
 ---All open buffers.
@@ -31,7 +31,7 @@ end
 function M.buffers(context)
   local file_list = {}
   for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
-    local path = context.format({ buf = buf.bufnr, rel = context.server.cwd })
+    local path = context.format({ buf = buf.bufnr, rel = vim.fn.getcwd() })
     if path then
       table.insert(file_list, path)
     end
@@ -52,7 +52,7 @@ function M.visible_text(context)
       buf = buf,
       from = { vim.fn.line("w0", win) },
       to = { vim.fn.line("w$", win) },
-      rel = context.server.cwd,
+      rel = vim.fn.getcwd(),
     })
     if location then
       table.insert(visible, location)
@@ -105,7 +105,7 @@ function M.diagnostics(context)
       buf = diagnostic.bufnr,
       from = { diagnostic.lnum + 1, diagnostic.col + 1 },
       to = { diagnostic.end_lnum + 1, diagnostic.end_col + 1 },
-      rel = context and context.server.cwd,
+      rel = vim.fn.getcwd(),
     })
 
     return string.format(
@@ -136,7 +136,7 @@ function M.quickfix(context)
     if has_buf then
       table.insert(
         lines,
-        context.format({ buf = entry.bufnr, from = { entry.lnum, entry.col }, rel = context.server.cwd })
+        context.format({ buf = entry.bufnr, from = { entry.lnum, entry.col }, rel = vim.fn.getcwd() })
       )
     end
   end
@@ -151,7 +151,7 @@ function M.marks(context)
     if mark.mark:match("^'[A-Z]$") then
       table.insert(
         marks,
-        context.format({ buf = mark.pos[1], from = { mark.pos[2], mark.pos[3] }, rel = context.server.cwd })
+        context.format({ buf = mark.pos[1], from = { mark.pos[2], mark.pos[3] }, rel = vim.fn.getcwd() })
       )
     end
   end

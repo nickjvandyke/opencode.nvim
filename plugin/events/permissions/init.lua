@@ -4,24 +4,26 @@ vim.api.nvim_create_autocmd("User", {
   callback = function(args)
     ---@type opencode.server.Event
     local event = args.data.event
-    ---@type string
-    local url = args.data.url
 
     local opts = require("opencode.config").opts.events.permissions or {}
     if
       not opts.enabled
       or event.type ~= "permission.asked"
-      or (opts.edits.enabled and event.properties.permission == "edit")
+      -- Defer to the edit-diff handler only when it can actually show a preview.
+      or (opts.edits.enabled and require("opencode.events.permissions.edits").preview(event) ~= nil)
     then
       return
     end
 
-    require("opencode.server")
-      .new(url)
-      :next(function(server)
-        return require("opencode.events.permissions").request(event):next(function(choice)
-          return server:permit(event.properties.id, choice)
-        end)
+    local server = require("opencode.server").connected
+    if not server then
+      return
+    end
+
+    require("opencode.events.permissions")
+      .request(event)
+      :next(function(choice)
+        return server:permit(event.data.sessionID, event.data.id, choice)
       end)
       :catch(function(err)
         if err then

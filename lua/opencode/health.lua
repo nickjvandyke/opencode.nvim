@@ -6,15 +6,15 @@ function M.check()
   local uname = vim.uv.os_uname()
   vim.health.info(string.format("OS: %s %s (%s)", uname.sysname, uname.release, uname.machine))
 
-  vim.health.info("`nvim` version: `" .. tostring(vim.version()) .. "`")
+  vim.health.info("Neovim version: `" .. tostring(vim.version()) .. "`")
 
   local plugin_dir = vim.fn.fnamemodify(debug.getinfo(1, "S").source:sub(2), ":h")
   local git_hash =
     vim.trim(vim.fn.system("cd " .. vim.fn.shellescape(plugin_dir) .. " && git rev-parse HEAD")):gsub("\n", "\\n")
   if vim.v.shell_error == 0 then
-    vim.health.info("opencode.nvim git commit hash: `" .. git_hash .. "`")
+    vim.health.info("opencode.nvim git commit: `" .. git_hash .. "`")
   else
-    vim.health.warn("opencode.nvim git commit hash: `" .. git_hash .. "`")
+    vim.health.warn("opencode.nvim git commit: `" .. git_hash .. "`")
   end
 
   vim.health.info("`vim.g.opencode_opts`: " .. vim.inspect(vim.g.opencode_opts))
@@ -27,49 +27,28 @@ function M.check()
     )
   end
 
-  vim.health.start("opencode.nvim [binaries]")
+  vim.health.start("opencode.nvim [executables]")
 
   if vim.fn.executable("opencode") == 1 then
-    local found_version = vim.fn.system("opencode --version")
-    found_version = vim.trim(vim.split(found_version, "\n")[1])
-    vim.health.ok("`opencode` available with version `" .. found_version .. "`.")
+    local found_version = vim.trim(vim.fn.system("opencode --version"))
+    vim.health.ok("`" .. found_version .. "`" .. " available.")
 
     local found_version_parsed = vim.version.parse(found_version)
-    local latest_tested_version = "1.17.4"
-    local latest_tested_version_parsed = vim.version.parse(latest_tested_version)
-    if found_version_parsed and latest_tested_version_parsed then
-      local found_major = found_version_parsed[1] or 0
-      local latest_tested_major = latest_tested_version_parsed[1] or 0
-      local found_minor = found_version_parsed[2] or 0
-      local latest_tested_minor = latest_tested_version_parsed[2] or 0
-      local found_patch = found_version_parsed[3] or 0
-      local latest_tested_patch = latest_tested_version_parsed[3] or 0
-
-      if latest_tested_major ~= found_major then
-        vim.health.warn(
-          "`opencode` version has a `major` version mismatch with latest tested version `"
-            .. latest_tested_version
-            .. "`: may cause compatibility issues."
-        )
-      elseif found_minor < latest_tested_minor then
-        vim.health.warn(
-          "`opencode` version has an older `minor` version than latest tested version `"
-            .. latest_tested_version
-            .. "`: may cause compatibility issues.",
-          {
-            "Update `opencode`.",
-          }
-        )
-      elseif found_minor == latest_tested_minor and found_patch < latest_tested_patch then
-        vim.health.warn(
-          "`opencode` version has an older `patch` version than latest tested version `"
-            .. latest_tested_version
-            .. "`: may cause compatibility issues.",
-          {
-            "Update `opencode`.",
-          }
-        )
-      end
+    local minimum_version = "2.0"
+    local minimum_version_parsed = vim.version.parse(minimum_version)
+    if
+      found_version_parsed
+      and minimum_version_parsed
+      and vim.version.cmp(found_version_parsed, minimum_version_parsed) < 0
+    then
+      vim.health.warn(
+        "`opencode` version is older than the minimum supported version `"
+          .. minimum_version
+          .. "`: may cause compatibility issues.",
+        {
+          "Update `opencode`.",
+        }
+      )
     end
   else
     vim.health.error("`opencode` executable not found in `$PATH`.", {
@@ -85,24 +64,26 @@ function M.check()
     })
   end
 
-  -- Binaries for auto-finding `opencode` process (Unix only)
-  if vim.fn.has("win32") == 0 and not (opts and opts.server and opts.server.url) then
-    if vim.fn.executable("pgrep") == 1 then
-      vim.health.ok("`pgrep` available.")
+  if not (opts and opts.server and opts.server.url) then
+    local registration = require("opencode.server.discovery").registration()
+    if registration then
+      vim.health.ok(
+        "OpenCode background service "
+          .. (registration.version and ("(v" .. registration.version .. ") ") or "")
+          .. "registered at `"
+          .. registration.url
+          .. "`."
+      )
     else
-      vim.health.error(
-        "`pgrep` executable not found in `$PATH`.",
-        { "Install `pgrep` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.url`." }
+      vim.health.info(
+        "No OpenCode background service registered yet. Run `opencode` to start it, or set `vim.g.opencode_opts.server.url`."
       )
     end
-    if vim.fn.executable("lsof") == 1 then
-      vim.health.ok("`lsof` available.")
-    else
-      vim.health.error(
-        "`lsof` executable not found in `$PATH`.",
-        { "Install `lsof` and ensure it's in your `$PATH`", "Or set `vim.g.opencode_opts.server.url`." }
-      )
-    end
+  end
+
+  local connected = require("opencode.server").connected
+  if connected then
+    vim.health.ok("Connected to OpenCode at `" .. connected.url .. "`.")
   end
 
   vim.health.start("opencode.nvim [snacks]")

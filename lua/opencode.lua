@@ -12,7 +12,7 @@ end
 ---
 --- - Passes the text to `prompt()`.
 --- - Press `<Up>` to browse recent asks.
---- - Highlights and completes contexts and OpenCode subagents.
+--- - Highlights and completes contexts.
 ---   - Press `<Tab>` to trigger built-in completion.
 ---   - Provided by in-process LSP when using [snacks.input](https://github.com/folke/snacks.nvim/blob/main/docs/input.md).
 ---
@@ -31,11 +31,7 @@ end
 
 ---Select from all opencode.nvim functionality.
 ---
---- - Prompts
---- - Commands
---- - Servers
----
---- Highlights and previews items when using [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
+---Highlights and previews items when using [snacks.picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md).
 ---
 ---@param opts? opencode.select.Opts Override configured options for this call.
 function M.select(opts)
@@ -52,9 +48,9 @@ M.statusline = require("opencode.events.status").statusline
 
 ---Prompt OpenCode.
 ---
---- - Injects configured contexts.
---- - Trailing space appends; trailing "..." opens in `ask()`.
---- - OpenCode will interpret references to files or subagents.
+---Targets the most recently updated session for Neovim's directory.
+---Injects configured contexts.
+---Trailing "..." opens in `ask()`.
 ---
 ---@param prompt string
 function M.prompt(prompt)
@@ -67,14 +63,16 @@ function M.prompt(prompt)
     :catch(on_error)
 end
 
----Command OpenCode.
+---Run a registered OpenCode [command](https://opencode.ai/v2/docs/commands/).
+---Targets the most recently updated session for Neovim's directory.
 ---
----@param command opencode.server.Command | string
-function M.command(command)
+---@param command string
+---@param text? string Arguments for the command.
+function M.command(command, text)
   require("opencode.server.discovery")
     .get()
     :next(function(server)
-      return require("opencode.api.command").command(command, server)
+      return require("opencode.api.command").command(command, text or "", server)
     end)
     :catch(on_error)
 end

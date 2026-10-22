@@ -35,25 +35,6 @@ handlers[ms.textDocument_completion] = function(params, callback)
     table.insert(items, item)
   end
 
-  local connected_server = require("opencode.server").connected
-  local agents = connected_server and connected_server.subagents or {}
-  for _, agent in ipairs(agents) do
-    local label = "@" .. agent.name
-    ---@type lsp.CompletionItem
-    local item = {
-      label = label,
-      filterText = label,
-      insertText = label,
-      insertTextFormat = vim.lsp.protocol.InsertTextFormat.PlainText,
-      kind = vim.lsp.protocol.CompletionItemKind.Property,
-      documentation = {
-        kind = "markdown",
-        value = "```" .. agent.description or "Agent" .. "```",
-      },
-    }
-    table.insert(items, item)
-  end
-
   callback(nil, items)
 end
 

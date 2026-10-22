@@ -125,9 +125,6 @@ function Context:render(prompt)
   local contexts = require("opencode.config").opts.contexts or {}
 
   local context_placeholders = vim.tbl_keys(contexts)
-  local agent_placeholders = vim.tbl_map(function(agent)
-    return "@" .. agent.name
-  end, self.server.subagents)
 
   ---@type table<string, { input: (fun(): opencode.context.rendered.Text), output: (fun(): opencode.context.rendered.Text) }>
   local placeholders = {}
@@ -143,16 +140,6 @@ function Context:render(prompt)
         else
           return { context_placeholder, "OpencodeContextPlaceholder" }
         end
-      end,
-    }
-  end
-  for _, agent_placeholder in ipairs(agent_placeholders) do
-    placeholders[agent_placeholder] = {
-      input = function()
-        return { agent_placeholder, "OpencodeAgent" }
-      end,
-      output = function()
-        return { agent_placeholder, "OpencodeAgent" }
       end,
     }
   end

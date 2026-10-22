@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.0.2](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.1...v1.0.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **windows:** error when discovering servers ([#327](https://github.com/nickjvandyke/opencode.nvim/issues/327)) ([618c91a](https://github.com/nickjvandyke/opencode.nvim/commit/618c91ad5fe2fe3761108205c3d793a5aae0d76f))
+
+## [1.0.1](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.0...v1.0.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **edits:** diff new files ([#324](https://github.com/nickjvandyke/opencode.nvim/issues/324)) ([df1a05f](https://github.com/nickjvandyke/opencode.nvim/commit/df1a05f5345ad072d6c91a020ae2a27f7c952e47))
+
+## [1.0.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.14.0...v1.0.0) (2026-08-20)
+
+This release signifies my confidence in the plugin's stability. Thanks to everyone who contributed along the way! I hope I've made your dev life easier.
+
+### Features
+
+* **health:** simplify `opencode` version check to minimum version ([3f9e5f1](https://github.com/nickjvandyke/opencode.nvim/commit/3f9e5f13e7f45f0e759300c8a2b517df20442268))
+
+
+### Miscellaneous Chores
+
+* trigger 1.0.0 release ([d3a7eec](https://github.com/nickjvandyke/opencode.nvim/commit/d3a7eece9278657bf8f3205397bf441a49ed4cf9))
+
 ## [0.14.0](https://github.com/nickjvandyke/opencode.nvim/compare/v0.13.4...v0.14.0) (2026-07-27)
 
 

@@ -25,9 +25,23 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENCODE_PERMISSION: '{ "bash": { "*": "deny", "gh*": "allow", "gh pr review*": "deny", "gh pr review --comment*": "allow" } }'
+          # The action runs headless. Any "ask" rule hangs the job, so every
+          # action that could prompt must resolve to allow or deny.
+          # The action posts the final response as the PR comment. Deny
+          # `gh pr review` so the model cannot post a second one.
+          OPENCODE_PERMISSION: |
+            {
+              "bash": {
+                "*": "deny",
+                "gh*": "allow",
+                "gh pr review*": "deny"
+              },
+              "external_directory": { "*": "allow" },
+              "doom_loop": "deny",
+              "question": "deny"
+            }
         with:
-          model: opencode/big-pickle
+          model: opencode-go/deepseek-v4.1-flash
           use_github_token: true
           prompt: |
             Review this pull request:
@@ -40,4 +54,6 @@ jobs:
 
             Diffs are important, but make sure you read the entire file to get proper context. Make it clear the suggestions are merely suggestions and the human can decide what to do.
 
-            If applicable, use `gh pr review --comment` to post inline suggestions on specific lines. Use a review comment (not inline) for high-level architectural or cross-file feedback. If you have a good suggested fix, include it in a code suggestion block.
+            The action posts your final response as the PR comment. Write the complete review as your final response, and do not post a separate review or comment. Include a suggested fix in a code suggestion block, and name the file and line for each suggestion.
+
+            Review by reading the diff and the surrounding files. You may read external files, including Lua type definitions under `/opt/nvim`, but do not execute `nvim`, `lua-language-server`, `stylua`, or other local tooling. Your only shell command is `gh`.

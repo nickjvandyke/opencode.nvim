@@ -42,7 +42,7 @@ end
 -- FIX: Overridden by blink.cmp cmdline completion if enabled, and that won't have the below items.
 -- Can we wire up the below as a blink.cmp cmdline source?
 
----Completion function for context placeholders and OpenCode subagents.
+---Completion function for context placeholders.
 ---Must be a global variable for use with `vim.ui.select`.
 ---
 ---@param ArgLead string The text being completed.
@@ -57,11 +57,6 @@ _G.opencode_completion = function(ArgLead, CmdLine, CursorPos)
   local completions = {}
   for placeholder, _ in pairs(require("opencode.config").opts.contexts) do
     table.insert(completions, placeholder)
-  end
-  local server = require("opencode.server").connected
-  local agents = server and server.subagents or {}
-  for _, agent in ipairs(agents) do
-    table.insert(completions, "@" .. agent.name)
   end
 
   local items = {}
