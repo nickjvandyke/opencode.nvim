@@ -17,7 +17,7 @@
 ---@field url string
 ---@field username string
 ---@field password? string
----@field version? string
+---@field version string
 ---@field subscription_job_id? number
 ---@field heartbeat_timer? uv.uv_timer_t
 local Server = {}
@@ -76,10 +76,19 @@ function Server.new(url, credentials)
   self.heartbeat_timer = vim.uv.new_timer()
 
   local Promise = require("opencode.promise")
-  return self:request("/api/info", "GET"):next(function(info)
-    self.version = info and info.version
-    return Promise.resolve(self)
-  end)
+  return self
+    :get_info()
+    :next(function(info)
+      self.version = info.version
+      return Promise.resolve(self)
+    end)
+    :catch(function(err)
+      if self.heartbeat_timer then
+        self.heartbeat_timer:close()
+        self.heartbeat_timer = nil
+      end
+      return Promise.reject(err)
+    end)
 end
 
 ---@param path string
@@ -237,6 +246,11 @@ function Server:request(path, method, body, opts)
   return require("opencode.promise").new(function(resolve, reject)
     self:curl(path, method, body, resolve, reject, opts)
   end)
+end
+
+---@return Promise<{ version: string }>
+function Server:get_info()
+  return self:request("/api/info", "GET")
 end
 
 ---Root sessions for Neovim's directory, newest first.
