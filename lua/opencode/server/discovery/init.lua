@@ -86,7 +86,7 @@ local function find()
       if registrations[i + 1] then
         return try(i + 1)
       end
-      return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. registration.url))
+      return Promise.reject("Failed to connect to OpenCode server registered at " .. registration.url .. ": " .. err)
     end)
   end
   if #registrations > 0 then
