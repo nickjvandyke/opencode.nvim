@@ -65,7 +65,7 @@ function M.check()
   end
 
   if not (opts and opts.server and opts.server.url) then
-    local registration = require("opencode.server.discovery").registration()
+    local registration = require("opencode.server.discovery").registrations()[1]
     if registration then
       vim.health.ok(
         "OpenCode background service "
