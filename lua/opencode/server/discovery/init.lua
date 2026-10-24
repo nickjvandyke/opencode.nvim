@@ -66,13 +66,6 @@ function M.registrations()
   return registrations
 end
 
----Read the most recently registered OpenCode background service.
----
----@return opencode.server.discovery.Registration?
-function M.registration()
-  return M.registrations()[1]
-end
-
 local function find()
   local Promise = require("opencode.promise")
   local connected_server = require("opencode.server").connected
@@ -88,12 +81,12 @@ local function find()
   -- Try each registration in turn; a newer one may be left behind by an exited server
   local registrations = M.registrations()
   local function try(i)
-    local info = registrations[i]
-    return require("opencode.server").new(info.url, { password = info.password }):catch(function(err)
+    local registration = registrations[i]
+    return require("opencode.server").new(registration.url, { password = registration.password }):catch(function(err)
       if registrations[i + 1] then
         return try(i + 1)
       end
-      return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. info.url))
+      return Promise.reject(err or ("Failed to connect to registered OpenCode server at " .. registration.url))
     end)
   end
   if #registrations > 0 then
