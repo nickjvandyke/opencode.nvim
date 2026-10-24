@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.2...v2.0.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate to OpenCode v2
+
+### Features
+
+* migrate to OpenCode v2 ([d512228](https://github.com/nickjvandyke/opencode.nvim/commit/d5122284835d88ff47197863722ee6f89b1a001f))
+
+
+### Bug Fixes
+
+* **server:** discover channel-suffixed service registrations ([#338](https://github.com/nickjvandyke/opencode.nvim/issues/338)) ([dccbd55](https://github.com/nickjvandyke/opencode.nvim/commit/dccbd5561abe80c1bcff61ec0826417c16ae14ed))
+* **server:** heartbeat deadline shorter than heartbeat interval ([#340](https://github.com/nickjvandyke/opencode.nvim/issues/340)) ([4d3580a](https://github.com/nickjvandyke/opencode.nvim/commit/4d3580a0ebb060cfdd41fa93784a046706a728cf))
+* **server:** send x-opencode-directory: nvim-cwd on every request ([#239](https://github.com/nickjvandyke/opencode.nvim/issues/239)) ([71fb506](https://github.com/nickjvandyke/opencode.nvim/commit/71fb506ef1898048bc548668f31f495ad6c29453))
+* **server:** unclosed timer when connecting to server fails ([f8e8cf0](https://github.com/nickjvandyke/opencode.nvim/commit/f8e8cf02be7340489df1b67b518ce2842c65520f))
+
 ## [1.0.2](https://github.com/nickjvandyke/opencode.nvim/compare/v1.0.1...v1.0.2) (2026-09-14)
 
 
