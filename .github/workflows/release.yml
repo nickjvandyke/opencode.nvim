@@ -1,20 +1,25 @@
-name: release-please
+name: release
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-  discussions: write
+  contents: read
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   release-please:
+    needs: ci
     if: github.event.repository.fork == false
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      discussions: write
     steps:
       - id: release
         uses: googleapis/release-please-action@v5
