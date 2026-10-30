@@ -1,4 +1,4 @@
-name: LuaLS
+name: ci
 
 on:
   push:
@@ -10,7 +10,22 @@ permissions:
   contents: read
 
 jobs:
-  diagnostics:
+  stylua:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Stylua
+        run: |
+          curl -L https://github.com/JohnnyMorganz/StyLua/releases/latest/download/stylua-linux-x86_64.zip -o stylua.zip
+          unzip stylua.zip -d /usr/local/bin
+          chmod +x /usr/local/bin/stylua
+
+      - name: Run Stylua check
+        run: stylua --check .
+
+  lua-ls:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

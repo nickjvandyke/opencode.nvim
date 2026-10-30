@@ -39,8 +39,7 @@ stylua .
 
 ## CI
 
-- **`.github/workflows/lua-ls.yml`**: type-check on push/PR to main
-- **`.github/workflows/stylua.yml`**: format check on push/PR to main
+- **`.github/workflows/ci.yml`**: two jobs on push/PR to main — `format` runs `stylua --check .`, `lua-ls` runs LuaLS diagnostics
 - **`.github/workflows/release-please.yml`**: automated releases via release-please (non-fork, main branch only)
 
 ## Testing
